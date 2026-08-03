@@ -1,16 +1,6 @@
-import {
-  addDays,
-  addHours,
-  addMinutes,
-  format,
-  isAfter,
-  isBefore,
-  parseISO,
-  startOfDay,
-} from 'date-fns'
+import { addDays, format, parseISO } from 'date-fns'
 import { ru } from 'date-fns/locale'
-import type { ReminderInterval, Settings, Task } from '@/db/types'
-import { isWithinWorkTime, nextWorkTime } from './workTime'
+import type { ReminderInterval } from '@/db/types'
 
 export const REMINDER_INTERVALS: ReminderInterval[] = [
   '15m',
@@ -83,99 +73,6 @@ export function fromLocalInputValue(value: string): string | null {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return null
   return date.toISOString()
-}
-
-/**
- * Start reminder: once when now >= startTime - leadTime and still before/at start.
- * Only during work hours (or deferred — caller checks work time separately).
- */
-export function shouldSendStartReminder(
-  task: Task,
-  settings: Settings,
-  now: Date = new Date(),
-): boolean {
-  if (task.status !== 'active' || task.startNotified || !task.startTime) return false
-  if (!isWithinWorkTime(now, settings)) return false
-
-  const start = parseISO(task.startTime)
-  const notifyAt = addHours(start, -settings.reminderLeadTime)
-
-  return !isBefore(now, notifyAt) && !isAfter(now, addMinutes(start, 5))
-}
-
-/**
- * Close reminder: periodic while task is active, respecting interval and work hours.
- * Anchor: lastReminderSent or startTime or createdAt.
- */
-export function shouldSendCloseReminder(
-  task: Task,
-  settings: Settings,
-  now: Date = new Date(),
-): boolean {
-  if (task.status !== 'active') return false
-  if (!isWithinWorkTime(now, settings)) return false
-
-  const intervalMs = intervalToMs(task.reminderInterval)
-  const anchorIso = task.lastReminderSent ?? task.startTime ?? task.createdAt
-  const anchor = parseISO(anchorIso)
-  const dueAt = new Date(anchor.getTime() + intervalMs)
-
-  // If dueAt falls outside work time, treat next work time as due
-  const effectiveDue = isWithinWorkTime(dueAt, settings) ? dueAt : nextWorkTime(dueAt, settings)
-
-  return !isBefore(now, effectiveDue)
-}
-
-export function shouldSendNewTaskReminder(
-  settings: Settings,
-  now: Date = new Date(),
-): boolean {
-  if (!settings.newTaskReminder.enabled) return false
-  if (!isWithinWorkTime(now, settings)) return false
-
-  const intervalMs = intervalToMs(settings.newTaskReminder.interval)
-
-  if (!settings.lastNewTaskReminderSent) {
-    const dayStart = getWorkDayStart(now, settings)
-    if (!dayStart) return true
-    const offset = settings.newTaskReminder.firstOffsetMinutes ?? 0
-    const firstAt = addMinutes(dayStart, offset)
-    return !isBefore(now, firstAt)
-  }
-
-  const last = parseISO(settings.lastNewTaskReminderSent)
-  const dueAt = new Date(last.getTime() + intervalMs)
-  const effectiveDue = isWithinWorkTime(dueAt, settings) ? dueAt : nextWorkTime(dueAt, settings)
-  return !isBefore(now, effectiveDue)
-}
-
-function getWorkDayStart(now: Date, settings: Settings): Date | null {
-  if (!isWithinWorkTime(now, settings)) return null
-  const dateKey = format(now, 'yyyy-MM-dd')
-  const exception = settings.exceptions.find((item) => item.date === dateKey)
-  if (exception?.isOff) return null
-
-  const startHm = exception?.start ?? getTodaySchedule(now, settings)?.start
-  if (!startHm) return null
-
-  const [h, m] = startHm.split(':').map(Number)
-  const start = startOfDay(now)
-  start.setHours(h, m, 0, 0)
-  return start
-}
-
-function getTodaySchedule(now: Date, settings: Settings) {
-  const map = [
-    'sunday',
-    'monday',
-    'tuesday',
-    'wednesday',
-    'thursday',
-    'friday',
-    'saturday',
-  ] as const
-  const key = map[now.getDay()]
-  return settings.workSchedule[key]
 }
 
 export function monthLabel(year: number, month: number): string {

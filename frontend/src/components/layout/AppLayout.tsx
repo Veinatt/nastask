@@ -1,11 +1,9 @@
 import { Outlet } from 'react-router-dom'
 import { Navigation } from './Navigation'
 import { useTelegram } from '@/hooks/useTelegram'
-import { useNotifications } from '@/hooks/useNotifications'
 
 export function AppLayout() {
   useTelegram()
-  useNotifications(true)
 
   return (
     <div className="min-h-dvh flex flex-col">
