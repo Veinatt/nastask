@@ -1,6 +1,5 @@
 import { apiFetch } from '@/api/client'
-import { settingsApi } from '@/api/settingsApi'
-import type { ReminderInterval, Settings, Task } from '@/db/types'
+import type { ReminderInterval, Task } from '@/db/types'
 
 export type ReminderPayload = {
   taskId: string
@@ -9,14 +8,9 @@ export type ReminderPayload = {
   startTime: string | null
   interval: ReminderInterval
   deadline: string | null
-  workSchedule: Settings['workSchedule']
-  reminderLeadTime: number
-  newTaskReminder: Settings['newTaskReminder']
-  exceptions: Settings['exceptions']
 }
 
-async function buildPayload(task: Task, userId: number): Promise<ReminderPayload> {
-  const settings = await settingsApi.get()
+function buildPayload(task: Task, userId: number): ReminderPayload {
   return {
     taskId: task.id,
     userId,
@@ -24,16 +18,12 @@ async function buildPayload(task: Task, userId: number): Promise<ReminderPayload
     startTime: task.startTime,
     interval: task.reminderInterval,
     deadline: task.deadline,
-    workSchedule: settings.workSchedule,
-    reminderLeadTime: settings.reminderLeadTime,
-    newTaskReminder: settings.newTaskReminder,
-    exceptions: settings.exceptions,
   }
 }
 
 export const remindersApi = {
   async createReminder(task: Task, userId: number): Promise<void> {
-    const payload = await buildPayload(task, userId)
+    const payload = buildPayload(task, userId)
     await apiFetch('/api/reminders', {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -41,7 +31,7 @@ export const remindersApi = {
   },
 
   async updateReminder(task: Task, userId: number): Promise<void> {
-    const payload = await buildPayload(task, userId)
+    const payload = buildPayload(task, userId)
     await apiFetch(`/api/reminders/${encodeURIComponent(task.id)}`, {
       method: 'PUT',
       body: JSON.stringify(payload),

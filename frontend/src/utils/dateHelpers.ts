@@ -3,6 +3,7 @@ import { ru } from 'date-fns/locale'
 import type { ReminderInterval } from '@/db/types'
 
 export const REMINDER_INTERVALS: ReminderInterval[] = [
+  '3m',
   '15m',
   '30m',
   '1h',
@@ -13,6 +14,7 @@ export const REMINDER_INTERVALS: ReminderInterval[] = [
 ]
 
 export const REMINDER_INTERVAL_LABELS: Record<ReminderInterval, string> = {
+  '3m': '3 минуты (тест)',
   '15m': '15 минут',
   '30m': '30 минут',
   '1h': '1 час',
@@ -24,6 +26,8 @@ export const REMINDER_INTERVAL_LABELS: Record<ReminderInterval, string> = {
 
 export function intervalToMs(interval: ReminderInterval): number {
   switch (interval) {
+    case '3m':
+      return 3 * 60 * 1000
     case '15m':
       return 15 * 60 * 1000
     case '30m':

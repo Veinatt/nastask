@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-const schema = z.object({
+const baseSchema = z.object({
   title: z.string().trim().min(1, 'Укажите название'),
   quantity: z
     .string()
@@ -35,13 +35,26 @@ const schema = z.object({
     .trim()
     .regex(/^\d+([.,]\d+)?$/, 'Только число')
     .refine((v) => Number(v.replace(',', '.')) > 0, 'Должно быть больше 0'),
-  reminderInterval: z.enum(['15m', '30m', '1h', '2h', '3h', '4h', 'daily']),
+  reminderInterval: z.enum(['3m', '15m', '30m', '1h', '2h', '3h', '4h', 'daily']),
   startTimeLocal: z.string().optional(),
   deadlineLocal: z.string().optional(),
   completedAtLocal: z.string().optional(),
 })
 
-type FormValues = z.infer<typeof schema>
+function buildSchema(requireCompletedAt: boolean) {
+  if (!requireCompletedAt) return baseSchema
+  return baseSchema.superRefine((values, ctx) => {
+    if (!values.completedAtLocal?.trim()) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['completedAtLocal'],
+        message: 'Укажите дату завершения',
+      })
+    }
+  })
+}
+
+type FormValues = z.infer<typeof baseSchema>
 
 function filterIntegerInput(value: string): string {
   return value.replace(/\D/g, '')
@@ -73,9 +86,13 @@ type TaskFormProps = {
 export function TaskForm({ open, onOpenChange, task, onSubmit }: TaskFormProps) {
   const isEdit = Boolean(task)
   const isCompleted = task?.status === 'completed'
+  const resolver = useMemo(
+    () => zodResolver(buildSchema(Boolean(isCompleted))),
+    [isCompleted],
+  )
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver,
     defaultValues: {
       title: '',
       quantity: '1',
@@ -112,7 +129,14 @@ export function TaskForm({ open, onOpenChange, task, onSubmit }: TaskFormProps) 
     }
   }, [open, task, form])
 
+  useEffect(() => {
+    form.clearErrors()
+  }, [isCompleted, form])
+
   const handleSubmit = form.handleSubmit(async (values) => {
+    const completedAt = fromLocalInputValue(values.completedAtLocal ?? '')
+    if (isCompleted && !completedAt) return
+
     await onSubmit({
       title: values.title,
       quantity: Number(values.quantity),
@@ -120,9 +144,7 @@ export function TaskForm({ open, onOpenChange, task, onSubmit }: TaskFormProps) 
       reminderInterval: values.reminderInterval,
       startTime: fromLocalInputValue(values.startTimeLocal ?? ''),
       deadline: fromLocalInputValue(values.deadlineLocal ?? ''),
-      ...(isCompleted
-        ? { completedAt: fromLocalInputValue(values.completedAtLocal ?? '') }
-        : {}),
+      ...(isCompleted ? { completedAt } : {}),
     })
     onOpenChange(false)
   })
@@ -245,6 +267,11 @@ export function TaskForm({ open, onOpenChange, task, onSubmit }: TaskFormProps) 
                 type="datetime-local"
                 {...form.register('completedAtLocal')}
               />
+              {form.formState.errors.completedAtLocal && (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.completedAtLocal.message}
+                </p>
+              )}
             </div>
           )}
 

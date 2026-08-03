@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { WEEKDAY_LABELS, WEEKDAYS } from '@/db/defaults'
 import type { ReminderInterval, ScheduleException, Settings, Weekday } from '@/db/types'
+import { syncSettingsToBackend } from '@/api/settingsApi'
 import { useSettings } from '@/hooks/useSettings'
 import { useTelegram } from '@/hooks/useTelegram'
 import { REMINDER_INTERVAL_LABELS, REMINDER_INTERVALS } from '@/utils/dateHelpers'
@@ -23,10 +24,16 @@ export function SettingsPage() {
   const { settings, isLoading, updateSettings } = useSettings()
   const { user, inTelegram } = useTelegram()
   const [draft, setDraft] = useState<Settings>(settings)
+  const [firstOffsetText, setFirstOffsetText] = useState(
+    String(settings.newTaskReminder.firstOffsetMinutes ?? 60),
+  )
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     setDraft(settings)
+    setFirstOffsetText(String(settings.newTaskReminder.firstOffsetMinutes ?? 60))
+    setSaveError(null)
   }, [settings])
 
   const updateDay = (day: Weekday, patch: Partial<Settings['workSchedule'][Weekday]>) => {
@@ -64,12 +71,48 @@ export function SettingsPage() {
   }
 
   const handleSave = async () => {
-    await updateSettings({
+    setSaveError(null)
+
+    if (draft.newTaskReminder.enabled) {
+      const trimmed = firstOffsetText.trim()
+      if (trimmed === '') {
+        setSaveError('Укажите смещение после начала дня (минуты)')
+        setSaved(false)
+        return
+      }
+      if (!/^\d+$/.test(trimmed)) {
+        setSaveError('Смещение должно быть целым числом минут ≥ 0')
+        setSaved(false)
+        return
+      }
+    }
+
+    const firstOffsetMinutes = draft.newTaskReminder.enabled
+      ? Number(firstOffsetText.trim())
+      : (draft.newTaskReminder.firstOffsetMinutes ?? 60)
+
+    const next = await updateSettings({
       workSchedule: draft.workSchedule,
       exceptions: draft.exceptions,
       reminderLeadTime: draft.reminderLeadTime,
-      newTaskReminder: draft.newTaskReminder,
+      deadlineLeadTime: draft.deadlineLeadTime,
+      newTaskReminder: {
+        ...draft.newTaskReminder,
+        firstOffsetMinutes,
+      },
     })
+
+    if (user?.id) {
+      try {
+        await syncSettingsToBackend(user.id, next)
+      } catch (error) {
+        console.error('[settings] sync to backend failed', error)
+        setSaveError('Сохранено локально, но не удалось отправить на сервер')
+        setSaved(false)
+        return
+      }
+    }
+
     setSaved(true)
   }
 
@@ -186,17 +229,62 @@ export function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="leadTime">Упреждение старта (часы)</Label>
-            <Input
-              id="leadTime"
-              type="number"
-              min={0}
-              step={0.5}
-              value={draft.reminderLeadTime}
-              onChange={(e) => {
-                setDraft((prev) => ({ ...prev, reminderLeadTime: Number(e.target.value) || 0 }))
+            <Select
+              value={String(
+                Math.min(12, Math.max(1, Math.round(draft.reminderLeadTime) || 1)),
+              )}
+              onValueChange={(value) => {
+                setDraft((prev) => ({ ...prev, reminderLeadTime: Number(value) }))
                 setSaved(false)
               }}
-            />
+            >
+              <SelectTrigger id="leadTime">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-h-[8.3rem]">
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((hours) => (
+                  <SelectItem
+                    key={hours}
+                    value={String(hours)}
+                    className="rounded-none border-b border-border last:border-b-0"
+                  >
+                    {hours} {hours === 1 ? 'час' : hours < 5 ? 'часа' : 'часов'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="deadlineLead">Упреждение дедлайна (часы)</Label>
+            <Select
+              value={String(
+                Math.min(12, Math.max(1, Math.round(draft.deadlineLeadTime) || 1)),
+              )}
+              onValueChange={(value) => {
+                setDraft((prev) => ({ ...prev, deadlineLeadTime: Number(value) }))
+                setSaved(false)
+              }}
+            >
+              <SelectTrigger id="deadlineLead">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-h-[8.3rem]">
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((hours) => (
+                  <SelectItem
+                    key={hours}
+                    value={String(hours)}
+                    className="rounded-none border-b border-border last:border-b-0"
+                  >
+                    {hours} {hours === 1 ? 'час' : hours < 5 ? 'часа' : 'часов'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              За сколько часов до дедлайна придёт уведомление. В момент дедлайна задача
+              завершится автоматически.
+            </p>
           </div>
 
           <div className="flex items-center justify-between gap-3">
@@ -247,28 +335,29 @@ export function SettingsPage() {
             <Label htmlFor="firstOffset">Смещение после начала дня (мин)</Label>
             <Input
               id="firstOffset"
-              type="number"
-              min={0}
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="60"
               disabled={!draft.newTaskReminder.enabled}
-              value={draft.newTaskReminder.firstOffsetMinutes ?? 60}
+              value={firstOffsetText}
               onChange={(e) => {
-                setDraft((prev) => ({
-                  ...prev,
-                  newTaskReminder: {
-                    ...prev.newTaskReminder,
-                    firstOffsetMinutes: Number(e.target.value) || 0,
-                  },
-                }))
+                const next = e.target.value.replace(/[^\d]/g, '')
+                setFirstOffsetText(next)
                 setSaved(false)
+                setSaveError(null)
               }}
             />
           </div>
         </CardContent>
       </Card>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Button onClick={() => void handleSave()}>Сохранить</Button>
-        {saved && <span className="text-sm text-muted-foreground">Сохранено</span>}
+        {saved && !saveError && (
+          <span className="text-sm text-muted-foreground">Сохранено</span>
+        )}
+        {saveError && <span className="text-sm text-destructive">{saveError}</span>}
       </div>
     </div>
   )

@@ -40,6 +40,7 @@ export function createDefaultSettings(): Settings {
     },
     exceptions: [],
     reminderLeadTime: 1,
+    deadlineLeadTime: 1,
     newTaskReminder: {
       enabled: false,
       interval: '1h',

@@ -57,6 +57,8 @@ if (!telegramReady) {
   applyColorScheme(window.matchMedia('(prefers-color-scheme: dark)').matches)
 }
 
+const DEV_FAKE_USER_ID = Number(import.meta.env.VITE_DEV_USER_ID ?? 334808852)
+
 export function useTelegram() {
   const [inTelegram] = useState(telegramReady)
   const tgUser = useSignal(initData.user)
@@ -76,20 +78,37 @@ export function useTelegram() {
   }, [inTelegram, isDark])
 
   const user = useMemo<TelegramUser | null>(() => {
-    if (!tgUser) return null
-    return {
-      id: tgUser.id,
-      firstName: tgUser.first_name,
-      lastName: tgUser.last_name,
-      username: tgUser.username,
+    // Prefer real Telegram user even on localhost (e.g. Telegram Desktop WebView)
+    if (tgUser) {
+      return {
+        id: tgUser.id,
+        firstName: tgUser.first_name,
+        lastName: tgUser.last_name,
+        username: tgUser.username,
+      }
     }
+
+    // Browser DEV without Telegram — fake user for local API testing
+    if (import.meta.env.DEV) {
+      return {
+        id: DEV_FAKE_USER_ID,
+        firstName: 'Dev',
+        lastName: 'User',
+        username: 'devuser',
+      }
+    }
+
+    return null
   }, [tgUser])
+
+  const initDataRaw =
+    typeof initData.raw === 'function' ? initData.raw() ?? null : null
 
   return {
     inTelegram,
     user,
     userId: user?.id ?? null,
-    initDataRaw: typeof initData.raw === 'function' ? initData.raw() ?? null : null,
+    initDataRaw,
     isDark: inTelegram ? Boolean(isDark) : undefined,
   }
 }

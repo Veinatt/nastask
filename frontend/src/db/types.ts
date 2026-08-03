@@ -1,4 +1,4 @@
-export type ReminderInterval = '15m' | '30m' | '1h' | '2h' | '3h' | '4h' | 'daily'
+export type ReminderInterval = '3m' | '15m' | '30m' | '1h' | '2h' | '3h' | '4h' | 'daily'
 
 export type TaskStatus = 'active' | 'completed' | 'cancelled'
 
@@ -40,11 +40,24 @@ export interface Task {
   startNotified: boolean
 }
 
+export type PendingOpType = 'create' | 'update' | 'complete' | 'delete'
+
+export interface PendingOp {
+  id: string
+  type: PendingOpType
+  taskId: string
+  payload: unknown
+  createdAt: string
+  tries: number
+}
+
 export interface Settings {
   id: 'app'
   workSchedule: Record<Weekday, DaySchedule>
   exceptions: ScheduleException[]
   reminderLeadTime: number
+  /** Hours before deadline to notify */
+  deadlineLeadTime: number
   newTaskReminder: {
     enabled: boolean
     interval: ReminderInterval
@@ -63,6 +76,4 @@ export type CreateTaskInput = {
   deadline: string | null
 }
 
-export type UpdateTaskInput = Partial<
-  Omit<Task, 'id' | 'createdAt'>
->
+export type UpdateTaskInput = Partial<Omit<Task, 'id' | 'createdAt'>>
