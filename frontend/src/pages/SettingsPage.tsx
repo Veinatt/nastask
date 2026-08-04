@@ -1,363 +1,287 @@
-import { useEffect, useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
-import { WEEKDAY_LABELS, WEEKDAYS } from '@/db/defaults'
-import type { ReminderInterval, ScheduleException, Settings, Weekday } from '@/db/types'
-import { syncSettingsToBackend } from '@/api/settingsApi'
-import { useSettings } from '@/hooks/useSettings'
-import { useTelegram } from '@/hooks/useTelegram'
-import { REMINDER_INTERVAL_LABELS, REMINDER_INTERVALS } from '@/utils/dateHelpers'
+import { useEffect, useState, type ReactNode } from 'react'
+import {
+  Check,
+  Coffee,
+  Monitor,
+  Moon,
+  Pencil,
+  Sun,
+  Trash2,
+  X,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { useSettings } from '@/hooks/useSettings'
+import { useTheme } from '@/hooks/useTheme'
+import { useTelegram } from '@/hooks/useTelegram'
+import { useDictionaries } from '@/hooks/useDictionaries'
+import { useI18n } from '@/hooks/useI18n'
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import type { ThemePreference } from '@/lib/theme'
+import type { AppLocale } from '@/lib/i18n'
+import type { DictKind } from '@/db/types'
 
-export function SettingsPage() {
-  const { settings, isLoading, updateSettings } = useSettings()
-  const { user, inTelegram } = useTelegram()
-  const [draft, setDraft] = useState<Settings>(settings)
-  const [firstOffsetText, setFirstOffsetText] = useState(
-    String(settings.newTaskReminder.firstOffsetMinutes ?? 60),
-  )
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
+function DictSection({ kind, title }: { kind: DictKind; title: string }) {
+  const { t } = useI18n()
+  const { items, create, rename, remove } = useDictionaries(kind)
+  const [name, setName] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
 
-  useEffect(() => {
-    setDraft(settings)
-    setFirstOffsetText(String(settings.newTaskReminder.firstOffsetMinutes ?? 60))
-    setSaveError(null)
-  }, [settings])
-
-  const updateDay = (day: Weekday, patch: Partial<Settings['workSchedule'][Weekday]>) => {
-    setDraft((prev) => ({
-      ...prev,
-      workSchedule: {
-        ...prev.workSchedule,
-        [day]: { ...prev.workSchedule[day], ...patch },
-      },
-    }))
-    setSaved(false)
+  const add = () => {
+    void create(name)
+      .then(() => {
+        setName('')
+        setError(null)
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : t('common.error')))
   }
 
-  const addException = () => {
-    const today = new Date().toISOString().slice(0, 10)
-    const item: ScheduleException = { date: today, isOff: true }
-    setDraft((prev) => ({ ...prev, exceptions: [...prev.exceptions, item] }))
-    setSaved(false)
+  const startEdit = (id: string, current: string) => {
+    setEditingId(id)
+    setEditName(current)
+    setError(null)
   }
 
-  const updateException = (index: number, patch: Partial<ScheduleException>) => {
-    setDraft((prev) => ({
-      ...prev,
-      exceptions: prev.exceptions.map((item, i) => (i === index ? { ...item, ...patch } : item)),
-    }))
-    setSaved(false)
-  }
-
-  const removeException = (index: number) => {
-    setDraft((prev) => ({
-      ...prev,
-      exceptions: prev.exceptions.filter((_, i) => i !== index),
-    }))
-    setSaved(false)
-  }
-
-  const handleSave = async () => {
-    setSaveError(null)
-
-    if (draft.newTaskReminder.enabled) {
-      const trimmed = firstOffsetText.trim()
-      if (trimmed === '') {
-        setSaveError('Укажите смещение после начала дня (минуты)')
-        setSaved(false)
-        return
-      }
-      if (!/^\d+$/.test(trimmed)) {
-        setSaveError('Смещение должно быть целым числом минут ≥ 0')
-        setSaved(false)
-        return
-      }
-    }
-
-    const firstOffsetMinutes = draft.newTaskReminder.enabled
-      ? Number(firstOffsetText.trim())
-      : (draft.newTaskReminder.firstOffsetMinutes ?? 60)
-
-    const next = await updateSettings({
-      workSchedule: draft.workSchedule,
-      exceptions: draft.exceptions,
-      reminderLeadTime: draft.reminderLeadTime,
-      deadlineLeadTime: draft.deadlineLeadTime,
-      newTaskReminder: {
-        ...draft.newTaskReminder,
-        firstOffsetMinutes,
-      },
-    })
-
-    if (user?.id) {
-      try {
-        await syncSettingsToBackend(user.id, next)
-      } catch (error) {
-        console.error('[settings] sync to backend failed', error)
-        setSaveError('Сохранено локально, но не удалось отправить на сервер')
-        setSaved(false)
-        return
-      }
-    }
-
-    setSaved(true)
-  }
-
-  if (isLoading) {
-    return <p className="text-sm text-muted-foreground">Загрузка…</p>
+  const saveEdit = () => {
+    if (!editingId) return
+    void rename(editingId, editName)
+      .then(() => {
+        setEditingId(null)
+        setEditName('')
+        setError(null)
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : t('common.error')))
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Настройки</h1>
-        <p className="text-sm text-muted-foreground">
-          Рабочее время и напоминания
-          {inTelegram && user ? ` · Telegram ID: ${user.id}` : ''}
-        </p>
+    <section className="surface-panel p-4 sm:p-5 space-y-3 h-full flex flex-col">
+      <h2 className="font-semibold text-primary-soft/90">{title}</h2>
+      <div className="flex gap-2">
+        <Input
+          value={name}
+          placeholder={t('settings.dict.newPlaceholder')}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') add()
+          }}
+        />
+        <Button type="button" variant="secondary" onClick={add} disabled={!name.trim()}>
+          {t('common.add')}
+        </Button>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Рабочее время</CardTitle>
-          <CardDescription>Уведомления отправляются только в рабочие часы</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {WEEKDAYS.map((day) => {
-            const schedule = draft.workSchedule[day]
-            return (
-              <div key={day} className="grid grid-cols-[1fr_auto_auto] items-center gap-2 sm:grid-cols-[140px_auto_1fr_1fr]">
-                <div className="flex items-center gap-2 col-span-3 sm:col-span-2">
-                  <Checkbox
-                    checked={schedule.enabled}
-                    onCheckedChange={(checked) => updateDay(day, { enabled: Boolean(checked) })}
-                    id={`day-${day}`}
-                  />
-                  <Label htmlFor={`day-${day}`}>{WEEKDAY_LABELS[day]}</Label>
-                </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      <ul className="space-y-1 flex-1">
+        {items.map((item) => (
+          <li
+            key={item.id}
+            className="flex items-center justify-between gap-2 text-sm py-1.5 border-b border-border/60 last:border-0"
+          >
+            {editingId === item.id ? (
+              <>
                 <Input
-                  type="time"
-                  value={schedule.start}
-                  disabled={!schedule.enabled}
-                  onChange={(e) => updateDay(day, { start: e.target.value })}
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="h-8"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveEdit()
+                    if (e.key === 'Escape') setEditingId(null)
+                  }}
+                  autoFocus
                 />
-                <Input
-                  type="time"
-                  value={schedule.end}
-                  disabled={!schedule.enabled}
-                  onChange={(e) => updateDay(day, { end: e.target.value })}
-                />
-              </div>
-            )
-          })}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1.5">
-              <CardTitle>Исключения</CardTitle>
-              <CardDescription>Выходные и изменённый график</CardDescription>
-            </div>
-            <Button type="button" size="sm" variant="outline" onClick={addException}>
-              <Plus /> Добавить
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {draft.exceptions.length === 0 && (
-            <p className="text-sm text-muted-foreground">Исключений нет</p>
-          )}
-          {draft.exceptions.map((item, index) => (
-            <div key={`${item.date}-${index}`} className="space-y-2 rounded-lg border p-3">
-              <div className="flex items-center gap-2">
-                <Input
-                  type="date"
-                  value={item.date}
-                  onChange={(e) => updateException(index, { date: e.target.value })}
-                />
-                <Button type="button" size="icon" variant="ghost" onClick={() => removeException(index)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={item.isOff}
-                  onCheckedChange={(checked) => updateException(index, { isOff: checked })}
-                  id={`off-${index}`}
-                />
-                <Label htmlFor={`off-${index}`}>Выходной</Label>
-              </div>
-              {!item.isOff && (
-                <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    type="time"
-                    value={item.start ?? '09:00'}
-                    onChange={(e) => updateException(index, { start: e.target.value })}
-                  />
-                  <Input
-                    type="time"
-                    value={item.end ?? '18:00'}
-                    onChange={(e) => updateException(index, { end: e.target.value })}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Уведомления</CardTitle>
-          <CardDescription>Клиентские напоминания (MVP)</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="leadTime">Упреждение старта (часы)</Label>
-            <Select
-              value={String(
-                Math.min(12, Math.max(1, Math.round(draft.reminderLeadTime) || 1)),
-              )}
-              onValueChange={(value) => {
-                setDraft((prev) => ({ ...prev, reminderLeadTime: Number(value) }))
-                setSaved(false)
-              }}
-            >
-              <SelectTrigger id="leadTime">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="max-h-[8.3rem]">
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((hours) => (
-                  <SelectItem
-                    key={hours}
-                    value={String(hours)}
-                    className="rounded-none border-b border-border last:border-b-0"
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-emerald-500"
+                    aria-label={t('common.save')}
+                    onClick={saveEdit}
                   >
-                    {hours} {hours === 1 ? 'час' : hours < 5 ? 'часа' : 'часов'}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="deadlineLead">Упреждение дедлайна (часы)</Label>
-            <Select
-              value={String(
-                Math.min(12, Math.max(1, Math.round(draft.deadlineLeadTime) || 1)),
-              )}
-              onValueChange={(value) => {
-                setDraft((prev) => ({ ...prev, deadlineLeadTime: Number(value) }))
-                setSaved(false)
-              }}
-            >
-              <SelectTrigger id="deadlineLead">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="max-h-[8.3rem]">
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((hours) => (
-                  <SelectItem
-                    key={hours}
-                    value={String(hours)}
-                    className="rounded-none border-b border-border last:border-b-0"
+                    <Check className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    aria-label={t('common.cancel')}
+                    onClick={() => setEditingId(null)}
                   >
-                    {hours} {hours === 1 ? 'час' : hours < 5 ? 'часа' : 'часов'}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              За сколько часов до дедлайна придёт уведомление. В момент дедлайна задача
-              завершится автоматически.
-            </p>
-          </div>
-
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <Label htmlFor="newTasks">Проверьте новые задачи</Label>
-              <p className="text-xs text-muted-foreground">Периодическое напоминание</p>
-            </div>
-            <Switch
-              id="newTasks"
-              checked={draft.newTaskReminder.enabled}
-              onCheckedChange={(checked) => {
-                setDraft((prev) => ({
-                  ...prev,
-                  newTaskReminder: { ...prev.newTaskReminder, enabled: checked },
-                }))
-                setSaved(false)
-              }}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Интервал</Label>
-            <Select
-              value={draft.newTaskReminder.interval}
-              onValueChange={(value: ReminderInterval) => {
-                setDraft((prev) => ({
-                  ...prev,
-                  newTaskReminder: { ...prev.newTaskReminder, interval: value },
-                }))
-                setSaved(false)
-              }}
-              disabled={!draft.newTaskReminder.enabled}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {REMINDER_INTERVALS.map((interval) => (
-                  <SelectItem key={interval} value={interval}>
-                    {REMINDER_INTERVAL_LABELS[interval]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="firstOffset">Смещение после начала дня (мин)</Label>
-            <Input
-              id="firstOffset"
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              placeholder="60"
-              disabled={!draft.newTaskReminder.enabled}
-              value={firstOffsetText}
-              onChange={(e) => {
-                const next = e.target.value.replace(/[^\d]/g, '')
-                setFirstOffsetText(next)
-                setSaved(false)
-                setSaveError(null)
-              }}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <Button onClick={() => void handleSave()}>Сохранить</Button>
-        {saved && !saveError && (
-          <span className="text-sm text-muted-foreground">Сохранено</span>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <span className="min-w-0 truncate">{item.name}</span>
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-primary-soft"
+                    aria-label={t('common.edit')}
+                    onClick={() => startEdit(item.id, item.name)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    aria-label={t('common.delete')}
+                    onClick={() =>
+                      void remove(item.id).catch((err) =>
+                        setError(err instanceof Error ? err.message : t('common.error')),
+                      )
+                    }
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </>
+            )}
+          </li>
+        ))}
+        {items.length === 0 && (
+          <li className="text-sm text-muted-foreground py-2">{t('common.empty')}</li>
         )}
-        {saveError && <span className="text-sm text-destructive">{saveError}</span>}
+      </ul>
+    </section>
+  )
+}
+
+export function SettingsPage() {
+  const { t, locale, setLocale } = useI18n()
+  const { settings, updateSettings } = useSettings()
+  const { preference, setPreference } = useTheme()
+  const { inTelegram } = useTelegram()
+  const [hourlyRate, setHourlyRate] = useState('')
+  const [taxRate, setTaxRate] = useState('')
+  const [currency, setCurrency] = useState('')
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const themeOptions: {
+    value: ThemePreference
+    label: string
+    icon: ReactNode
+  }[] = [
+    { value: 'light', label: t('settings.theme.light'), icon: <Sun /> },
+    { value: 'dark', label: t('settings.theme.dark'), icon: <Moon /> },
+    { value: 'cozy', label: t('settings.theme.cozy'), icon: <Coffee /> },
+    {
+      value: 'system',
+      label: inTelegram ? t('settings.theme.telegram') : t('settings.theme.system'),
+      icon: <Monitor />,
+    },
+  ]
+
+  const languageOptions: { value: AppLocale; label: string }[] = [
+    { value: 'ru', label: t('settings.language.ru') },
+    { value: 'be', label: t('settings.language.be') },
+  ]
+
+  useEffect(() => {
+    setHourlyRate(String(settings.hourlyRate))
+    setTaxRate(String(settings.taxRate))
+    setCurrency(settings.currency)
+  }, [settings.hourlyRate, settings.taxRate, settings.currency])
+
+  const save = async () => {
+    setError(null)
+    setSaved(false)
+    try {
+      await updateSettings({
+        hourlyRate: Number(hourlyRate),
+        taxRate: Number(taxRate),
+        currency: currency.trim() || 'BYN',
+      })
+      setSaved(true)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('settings.saveError'))
+    }
+  }
+
+  return (
+    <div className="grid gap-6">
+      <header className="space-y-1">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('settings.title')}</h1>
+        <p className="text-sm text-muted-foreground">
+          {t('settings.subtitle')}
+        </p>
+      </header>
+
+      <section className="surface-panel p-4 sm:p-5 space-y-3">
+        <h2 className="font-semibold">{t('settings.theme')}</h2>
+        <SegmentedControl
+          fullWidth
+          value={preference}
+          onChange={setPreference}
+          options={themeOptions}
+        />
+      </section>
+
+      <section className="surface-panel p-4 sm:p-5 space-y-3">
+        <h2 className="font-semibold">{t('settings.language')}</h2>
+        <SegmentedControl
+          fullWidth
+          value={locale}
+          onChange={setLocale}
+          options={languageOptions}
+        />
+      </section>
+
+      <section className="surface-panel p-4 sm:p-5 space-y-4">
+        <h2 className="font-semibold">{t('settings.pay')}</h2>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="space-y-2">
+            <Label htmlFor="rate">{t('settings.hourlyRate')}</Label>
+            <Input
+              id="rate"
+              type="number"
+              min={0}
+              step="any"
+              value={hourlyRate}
+              onChange={(e) => setHourlyRate(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="tax">{t('settings.tax')}</Label>
+            <Input
+              id="tax"
+              type="number"
+              min={0}
+              max={100}
+              step="any"
+              value={taxRate}
+              onChange={(e) => setTaxRate(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="currency">{t('settings.currency')}</Label>
+            <Input
+              id="currency"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button onClick={() => void save()}>{t('common.save')}</Button>
+          {saved && <span className="text-sm text-primary-soft">{t('settings.saved')}</span>}
+          {error && <span className="text-sm text-destructive">{error}</span>}
+        </div>
+      </section>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <DictSection kind="categories" title={t('settings.dict.categories')} />
+        <DictSection kind="descriptions" title={t('settings.dict.descriptions')} />
+        <DictSection kind="units" title={t('settings.dict.units')} />
       </div>
     </div>
   )

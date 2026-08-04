@@ -7,6 +7,11 @@ import {
   viewport,
   useSignal,
 } from '@telegram-apps/sdk-react'
+import {
+  THEME_CHANGE_EVENT,
+  applyTheme,
+  getThemePreference,
+} from '@/lib/theme'
 
 type TelegramUser = {
   id: number
@@ -15,16 +20,12 @@ type TelegramUser = {
   username?: string
 }
 
-function applyColorScheme(isDark: boolean) {
-  document.documentElement.classList.toggle('dark', isDark)
-}
-
-function applySystemTheme() {
-  const mq = window.matchMedia('(prefers-color-scheme: dark)')
-  applyColorScheme(mq.matches)
-  const listener = (event: MediaQueryListEvent) => applyColorScheme(event.matches)
-  mq.addEventListener('change', listener)
-  return () => mq.removeEventListener('change', listener)
+function applyResolvedTheme(inTelegram: boolean, telegramIsDark?: boolean | null) {
+  const preference = getThemePreference()
+  const systemDark = inTelegram
+    ? Boolean(telegramIsDark ?? miniApp.isDark())
+    : null
+  applyTheme(preference, systemDark)
 }
 
 function tryInitTelegram(): boolean {
@@ -53,9 +54,7 @@ function tryInitTelegram(): boolean {
 
 /** Init once at module load so signals are safe to read in hooks. */
 const telegramReady = tryInitTelegram()
-if (!telegramReady) {
-  applyColorScheme(window.matchMedia('(prefers-color-scheme: dark)').matches)
-}
+applyResolvedTheme(telegramReady, telegramReady ? Boolean(miniApp.isDark()) : null)
 
 const DEV_FAKE_USER_ID = Number(import.meta.env.VITE_DEV_USER_ID ?? 334808852)
 
@@ -65,16 +64,25 @@ export function useTelegram() {
   const isDark = useSignal(miniApp.isDark)
 
   useEffect(() => {
-    if (!inTelegram) {
-      return applySystemTheme()
+    const apply = () => {
+      applyResolvedTheme(inTelegram, inTelegram ? Boolean(miniApp.isDark()) : null)
     }
-    applyColorScheme(Boolean(miniApp.isDark()))
-    return undefined
-  }, [inTelegram])
+    apply()
 
-  useEffect(() => {
-    if (!inTelegram) return
-    applyColorScheme(Boolean(isDark))
+    window.addEventListener(THEME_CHANGE_EVENT, apply)
+
+    let cleanupMq: (() => void) | undefined
+    if (!inTelegram) {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)')
+      const onChange = () => apply()
+      mq.addEventListener('change', onChange)
+      cleanupMq = () => mq.removeEventListener('change', onChange)
+    }
+
+    return () => {
+      window.removeEventListener(THEME_CHANGE_EVENT, apply)
+      cleanupMq?.()
+    }
   }, [inTelegram, isDark])
 
   const user = useMemo<TelegramUser | null>(() => {

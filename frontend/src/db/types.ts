@@ -1,79 +1,114 @@
-export type ReminderInterval = '3m' | '15m' | '30m' | '1h' | '2h' | '3h' | '4h' | 'daily'
-
-export type TaskStatus = 'active' | 'completed' | 'cancelled'
-
-export type Weekday =
-  | 'monday'
-  | 'tuesday'
-  | 'wednesday'
-  | 'thursday'
-  | 'friday'
-  | 'saturday'
-  | 'sunday'
-
-export interface DaySchedule {
-  enabled: boolean
-  start: string
-  end: string
+export interface UserSettings {
+  id: 'app'
+  hourlyRate: number
+  taxRate: number
+  currency: string
+  timezone: string
+  updatedAt: string
 }
 
-export interface ScheduleException {
-  date: string
-  start?: string
-  end?: string
-  isOff: boolean
-}
-
-export interface Task {
+export interface TimeEntry {
   id: string
   title: string
-  quantity: number
   coefficient: number
-  reminderInterval: ReminderInterval
-  startTime: string | null
-  deadline: string | null
-  status: TaskStatus
+  start: string
+  end: string | null
+  totalSeconds: number
+  pauseTotalSeconds: number
+  pauseStartedAt: string | null
+  date: string
   createdAt: string
-  completedAt: string | null
   updatedAt: string
-  lastReminderSent: string | null
-  startNotified: boolean
+  /** Present after server round-trip; recomputed locally for UI tick */
+  liveTotalSeconds?: number
+  isPaused?: boolean
+  isActive?: boolean
 }
 
-export type PendingOpType = 'create' | 'update' | 'complete' | 'delete'
+export interface WorkItem {
+  id: string
+  timeEntryId: string
+  categoryId: string
+  descriptionId: string
+  quantity: number
+  unitId: string
+}
+
+export interface DictItem {
+  id: string
+  name: string
+}
+
+export interface WorkItemInput {
+  id?: string
+  categoryId: string
+  descriptionId: string
+  quantity: number
+  unitId: string
+}
+
+export type PendingOpType =
+  | 'interval_start'
+  | 'interval_manual'
+  | 'interval_pause'
+  | 'interval_resume'
+  | 'interval_complete'
+  | 'interval_update'
+  | 'interval_delete'
+  | 'dict_create'
+  | 'dict_update'
+  | 'dict_delete'
+  | 'settings_put'
+
+export type DictKind = 'categories' | 'descriptions' | 'units'
 
 export interface PendingOp {
   id: string
   type: PendingOpType
-  taskId: string
+  entityId: string
   payload: unknown
   createdAt: string
   tries: number
 }
 
-export interface Settings {
-  id: 'app'
-  workSchedule: Record<Weekday, DaySchedule>
-  exceptions: ScheduleException[]
-  reminderLeadTime: number
-  /** Hours before deadline to notify */
-  deadlineLeadTime: number
-  newTaskReminder: {
-    enabled: boolean
-    interval: ReminderInterval
-    firstOffsetMinutes?: number
-  }
-  /** ISO timestamp of last "check new tasks" notification */
-  lastNewTaskReminderSent: string | null
-}
-
-export type CreateTaskInput = {
+export interface SalaryReportRow {
+  id: string
+  date: string
+  start?: string
+  end?: string | null
   title: string
-  quantity: number
+  hours: number
   coefficient: number
-  reminderInterval: ReminderInterval
-  startTime: string | null
-  deadline: string | null
+  amount: number
+  totalSeconds: number
 }
 
-export type UpdateTaskInput = Partial<Omit<Task, 'id' | 'createdAt'>>
+export interface SalaryReport {
+  year: number
+  month: number
+  currency: string
+  hourlyRate: number
+  taxRate: number
+  rows: SalaryReportRow[]
+  totalHours: number
+  monthSum: number
+  taxAmount: number
+  employerPay: number
+}
+
+export interface TaxReportRow {
+  categoryId: string | null
+  descriptionId: string | null
+  categoryName: string | null
+  descriptionName: string | null
+  unitId: string
+  unitName: string
+  quantity: number
+}
+
+export interface TaxReport {
+  year: number
+  month: number
+  groupBy: string
+  rows: TaxReportRow[]
+}

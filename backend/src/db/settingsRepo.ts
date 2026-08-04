@@ -1,29 +1,15 @@
 import { getDb } from './index'
-import {
-  createDefaultUserSettings,
-  type NewTaskReminderSettings,
-  type ScheduleException,
-  type UserSettings,
-  type UserSettingsRow,
-  type WorkScheduleMap,
-} from '../types'
-import { nowSec } from '../utils/time'
+import { createDefaultUserSettings, type UserSettings } from '../types'
+import { nowIso } from '../utils/iso'
 
-function parseRow(row: UserSettingsRow): UserSettings {
+function mapRow(row: Record<string, unknown>): UserSettings {
   return {
-    userId: row.userId,
-    workSchedule: JSON.parse(row.workSchedule) as WorkScheduleMap,
-    exceptions: JSON.parse(row.exceptions || '[]') as ScheduleException[],
-    newTaskReminder: JSON.parse(row.newTaskReminder) as NewTaskReminderSettings,
-    reminderLeadTime: row.reminderLeadTime,
-    deadlineLeadTime: row.deadlineLeadTime ?? 1,
-    nextNewTaskNotify:
-      row.nextNewTaskNotify == null ? null : Number(row.nextNewTaskNotify),
-    timezone: row.timezone || 'Europe/Moscow',
-    newTaskFailCount: row.newTaskFailCount ?? 0,
-    newTaskNextRetryAt:
-      row.newTaskNextRetryAt == null ? null : Number(row.newTaskNextRetryAt),
-    updatedAt: row.updatedAt,
+    userId: Number(row.userId),
+    hourlyRate: Number(row.hourlyRate ?? 0),
+    taxRate: Number(row.taxRate ?? 0),
+    currency: String(row.currency ?? 'BYN'),
+    timezone: String(row.timezone ?? 'Europe/Moscow'),
+    updatedAt: String(row.updatedAt),
   }
 }
 
@@ -31,103 +17,36 @@ export const settingsRepo = {
   get(userId: number): UserSettings | undefined {
     const row = getDb()
       .prepare('SELECT * FROM user_settings WHERE userId = ?')
-      .get(userId) as UserSettingsRow | undefined
-    return row ? parseRow(row) : undefined
+      .get(userId) as Record<string, unknown> | undefined
+    return row ? mapRow(row) : undefined
   },
 
   getOrCreate(userId: number): UserSettings {
     const existing = this.get(userId)
     if (existing) return existing
-
-    const defaults = createDefaultUserSettings(userId, nowSec())
+    const defaults = createDefaultUserSettings(userId)
     this.upsert(defaults)
-    console.log(`[settings] created defaults for userId=${userId}`)
     return defaults
   },
 
-  upsert(settings: Omit<UserSettings, 'updatedAt'> & { updatedAt?: number }): UserSettings {
-    const updatedAt = settings.updatedAt ?? nowSec()
+  upsert(settings: UserSettings): UserSettings {
+    const updatedAt = settings.updatedAt || nowIso()
     getDb()
       .prepare(
         `
-        INSERT INTO user_settings (
-          userId, workSchedule, exceptions, newTaskReminder,
-          reminderLeadTime, deadlineLeadTime, nextNewTaskNotify,
-          timezone, newTaskFailCount, newTaskNextRetryAt, updatedAt
-        ) VALUES (
-          @userId, @workSchedule, @exceptions, @newTaskReminder,
-          @reminderLeadTime, @deadlineLeadTime, @nextNewTaskNotify,
-          @timezone, @newTaskFailCount, @newTaskNextRetryAt, @updatedAt
-        )
+        INSERT INTO user_settings (userId, hourlyRate, taxRate, currency, timezone, updatedAt)
+        VALUES (@userId, @hourlyRate, @taxRate, @currency, @timezone, @updatedAt)
         ON CONFLICT(userId) DO UPDATE SET
-          workSchedule = excluded.workSchedule,
-          exceptions = excluded.exceptions,
-          newTaskReminder = excluded.newTaskReminder,
-          reminderLeadTime = excluded.reminderLeadTime,
-          deadlineLeadTime = excluded.deadlineLeadTime,
-          nextNewTaskNotify = excluded.nextNewTaskNotify,
+          hourlyRate = excluded.hourlyRate,
+          taxRate = excluded.taxRate,
+          currency = excluded.currency,
           timezone = excluded.timezone,
-          newTaskFailCount = excluded.newTaskFailCount,
-          newTaskNextRetryAt = excluded.newTaskNextRetryAt,
           updatedAt = excluded.updatedAt
         `,
       )
-      .run({
-        userId: settings.userId,
-        workSchedule: JSON.stringify(settings.workSchedule),
-        exceptions: JSON.stringify(settings.exceptions),
-        newTaskReminder: JSON.stringify(settings.newTaskReminder),
-        reminderLeadTime: settings.reminderLeadTime,
-        deadlineLeadTime: settings.deadlineLeadTime,
-        nextNewTaskNotify: settings.nextNewTaskNotify,
-        timezone: settings.timezone || 'Europe/Moscow',
-        newTaskFailCount: settings.newTaskFailCount ?? 0,
-        newTaskNextRetryAt: settings.newTaskNextRetryAt,
-        updatedAt,
-      })
-
+      .run({ ...settings, updatedAt })
     const saved = this.get(settings.userId)
-    if (!saved) throw new Error(`Failed to upsert settings for userId=${settings.userId}`)
-    console.log(`[settings] upserted userId=${settings.userId} tz=${saved.timezone}`)
+    if (!saved) throw new Error('Failed to upsert settings')
     return saved
-  },
-
-  updateNextNewTaskNotify(userId: number, nextNewTaskNotify: number | null): void {
-    getDb()
-      .prepare(
-        `
-        UPDATE user_settings
-        SET nextNewTaskNotify = ?, newTaskFailCount = 0, newTaskNextRetryAt = NULL
-        WHERE userId = ?
-        `,
-      )
-      .run(nextNewTaskNotify, userId)
-  },
-
-  markNewTaskSendFailure(userId: number, failCount: number, nextRetryAt: number): void {
-    getDb()
-      .prepare(
-        `
-        UPDATE user_settings
-        SET newTaskFailCount = ?, newTaskNextRetryAt = ?
-        WHERE userId = ?
-        `,
-      )
-      .run(failCount, nextRetryAt, userId)
-  },
-
-  findDueNewTaskReminders(now: number): UserSettings[] {
-    const rows = getDb()
-      .prepare(
-        `
-        SELECT * FROM user_settings
-        WHERE nextNewTaskNotify IS NOT NULL
-          AND nextNewTaskNotify <= ?
-          AND (newTaskNextRetryAt IS NULL OR newTaskNextRetryAt <= ?)
-        `,
-      )
-      .all(now, now) as UserSettingsRow[]
-
-    return rows.map(parseRow).filter((s) => s.newTaskReminder.enabled)
   },
 }

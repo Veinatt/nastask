@@ -1,7 +1,7 @@
 {
   "name": "nastask-backend",
   "version": "1.0.0",
-  "description": "NasTask API, Telegram bot and reminder cron",
+  "description": "NasTask time tracker API (Express + SQLite)",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -11,7 +11,7 @@
   "keywords": [
     "nastask",
     "telegram",
-    "reminders"
+    "time-tracker"
   ],
   "author": "",
   "license": "ISC",

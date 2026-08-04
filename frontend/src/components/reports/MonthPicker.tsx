@@ -1,42 +1,49 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { addMonthsSafe, monthLabel } from '@/utils/dateHelpers'
 import { Button } from '@/components/ui/button'
+import { useI18n } from '@/hooks/useI18n'
+import { addMonthsSafe, monthLabel } from '@/utils/dateHelpers'
 
 type MonthPickerProps = {
   year: number
   month: number
-  onChange: (year: number, month: number) => void
+  onChange: (next: { year: number; month: number }) => void
 }
 
 export function MonthPicker({ year, month, onChange }: MonthPickerProps) {
-  const label = monthLabel(year, month)
+  const { t, intlLocale } = useI18n()
+  const label = monthLabel(year, month, intlLocale)
+  const now = new Date()
+  const isCurrent =
+    year === now.getFullYear() && month === now.getMonth() + 1
 
   return (
-    <div className="flex items-center justify-between gap-2 rounded-xl border bg-card p-2">
+    <div className="flex w-full items-center gap-1 rounded-xl border border-primary/15 bg-gradient-to-r from-primary/10 via-card to-[hsl(var(--brand-end)/0.1)] p-1 shadow-sm">
       <Button
         type="button"
         variant="ghost"
         size="icon"
-        onClick={() => {
-          const next = addMonthsSafe(year, month, -1)
-          onChange(next.year, next.month)
-        }}
-        aria-label="Предыдущий месяц"
+        className="h-9 w-9 shrink-0 text-primary-soft hover:bg-primary/10"
+        aria-label={t('monthPicker.prev')}
+        onClick={() => onChange(addMonthsSafe(year, month, -1))}
       >
-        <ChevronLeft />
+        <ChevronLeft className="h-5 w-5" />
       </Button>
-      <div className="text-sm font-medium capitalize">{label}</div>
+      <div className="min-w-0 flex-1 px-2 text-center text-sm font-semibold tracking-tight">
+        {label}
+      </div>
       <Button
         type="button"
         variant="ghost"
         size="icon"
+        className="h-9 w-9 shrink-0 text-primary-soft hover:bg-primary/10"
+        aria-label={t('monthPicker.next')}
+        disabled={isCurrent}
         onClick={() => {
-          const next = addMonthsSafe(year, month, 1)
-          onChange(next.year, next.month)
+          if (isCurrent) return
+          onChange(addMonthsSafe(year, month, 1))
         }}
-        aria-label="Следующий месяц"
       >
-        <ChevronRight />
+        <ChevronRight className="h-5 w-5" />
       </Button>
     </div>
   )

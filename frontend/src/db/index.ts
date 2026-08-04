@@ -1,14 +1,25 @@
 import Dexie, { type EntityTable } from 'dexie'
 import { createDefaultSettings } from './defaults'
-import type { PendingOp, Settings, Task } from './types'
+import type {
+  DictItem,
+  PendingOp,
+  TimeEntry,
+  UserSettings,
+  WorkItem,
+} from './types'
 
 export class NasTaskDB extends Dexie {
-  tasks!: EntityTable<Task, 'id'>
-  settings!: EntityTable<Settings, 'id'>
+  timeEntries!: EntityTable<TimeEntry, 'id'>
+  workItems!: EntityTable<WorkItem, 'id'>
+  categories!: EntityTable<DictItem, 'id'>
+  descriptions!: EntityTable<DictItem, 'id'>
+  units!: EntityTable<DictItem, 'id'>
+  settings!: EntityTable<UserSettings, 'id'>
   pendingOps!: EntityTable<PendingOp, 'id'>
 
   constructor() {
     super('nastask')
+    // Legacy task tracker schema (v1–v2) — wiped on upgrade
     this.version(1).stores({
       tasks: 'id, status, completedAt, [status+completedAt], updatedAt',
       settings: 'id',
@@ -18,35 +29,41 @@ export class NasTaskDB extends Dexie {
       settings: 'id',
       pendingOps: 'id, taskId, createdAt',
     })
+    this.version(3)
+      .stores({
+        timeEntries: 'id, date, end, updatedAt',
+        workItems: 'id, timeEntryId',
+        categories: 'id, name',
+        descriptions: 'id, name',
+        units: 'id, name',
+        settings: 'id',
+        pendingOps: 'id, entityId, createdAt',
+        tasks: null,
+      })
+      .upgrade(async (tx) => {
+        await tx.table('settings').clear()
+        await tx.table('pendingOps').clear()
+      })
   }
 }
 
 export const db = new NasTaskDB()
 
-/** Ensures settings singleton exists and fills new fields for older records. */
-export async function ensureSettings(): Promise<Settings> {
+export async function ensureSettings(): Promise<UserSettings> {
   const defaults = createDefaultSettings()
   const existing = await db.settings.get('app')
   if (!existing) {
     await db.settings.put(defaults)
     return defaults
   }
-
-  const merged: Settings = {
-    ...defaults,
-    ...existing,
-    newTaskReminder: {
-      ...defaults.newTaskReminder,
-      ...existing.newTaskReminder,
-    },
-    deadlineLeadTime: existing.deadlineLeadTime ?? defaults.deadlineLeadTime,
-    reminderLeadTime: existing.reminderLeadTime ?? defaults.reminderLeadTime,
-  }
-
-  if (existing.deadlineLeadTime == null) {
+  const merged: UserSettings = { ...defaults, ...existing, id: 'app' }
+  if (
+    existing.hourlyRate == null ||
+    existing.currency == null ||
+    existing.timezone == null
+  ) {
     await db.settings.put(merged)
   }
-
   return merged
 }
 

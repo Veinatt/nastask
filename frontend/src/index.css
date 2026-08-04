@@ -3,7 +3,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "DM Sans", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-card: hsl(var(--card));
@@ -12,6 +12,8 @@
   --color-popover-foreground: hsl(var(--popover-foreground));
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
+  /* Lighter brand for text/icons on surfaces (dark differs from button fill) */
+  --color-primary-soft: hsl(var(--primary-soft));
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
   --color-muted: hsl(var(--muted));
@@ -30,48 +32,88 @@
 }
 
 :root {
-  --background: 210 40% 98%;
+  --background: 214 45% 97%;
   --foreground: 222 47% 11%;
   --card: 0 0% 100%;
   --card-foreground: 222 47% 11%;
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
-  --primary: 221 83% 53%;
+  --primary: 217 91% 50%;
   --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222 47% 11%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 47%;
-  --accent: 210 40% 96%;
-  --accent-foreground: 222 47% 11%;
+  --primary-soft: 217 91% 50%;
+  --secondary: 210 55% 94%;
+  --secondary-foreground: 222 47% 18%;
+  --muted: 214 32% 93%;
+  --muted-foreground: 215 16% 42%;
+  --accent: 199 89% 94%;
+  --accent-foreground: 201 90% 28%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 210 40% 98%;
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 221 83% 53%;
-  --radius: 0.625rem;
+  --border: 214 32% 88%;
+  --input: 214 32% 88%;
+  --ring: 217 91% 50%;
+  --brand-end: 199 89% 48%;
+  --glow-a: 217 91% 50%;
+  --glow-b: 199 89% 48%;
+  --glow-c: 221 83% 53%;
+  --radius: 0.75rem;
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .dark {
   --background: 222 47% 7%;
   --foreground: 210 40% 98%;
-  --card: 222 47% 10%;
+  --card: 222 44% 11%;
   --card-foreground: 210 40% 98%;
-  --popover: 222 47% 10%;
+  --popover: 222 44% 11%;
   --popover-foreground: 210 40% 98%;
-  --primary: 217 91% 60%;
-  --primary-foreground: 222 47% 11%;
+  --primary: 217 96% 56%;
+  --primary-foreground: 210 40% 98%;
+  --primary-soft: 213 94% 68%;
   --secondary: 217 33% 17%;
   --secondary-foreground: 210 40% 98%;
-  --muted: 217 33% 17%;
+  --muted: 217 33% 16%;
   --muted-foreground: 215 20% 65%;
-  --accent: 217 33% 17%;
-  --accent-foreground: 210 40% 98%;
+  --accent: 217 40% 16%;
+  --accent-foreground: 213 94% 78%;
   --destructive: 0 63% 45%;
   --destructive-foreground: 210 40% 98%;
-  --border: 217 33% 17%;
-  --input: 217 33% 17%;
-  --ring: 224 76% 48%;
+  --border: 217 33% 20%;
+  --input: 217 33% 20%;
+  --ring: 217 96% 56%;
+  --brand-end: 199 80% 55%;
+  --glow-a: 217 91% 50%;
+  --glow-b: 199 89% 48%;
+  --glow-c: 221 83% 53%;
+}
+
+/* Warm cozy: sand + moss green + brown */
+.cozy {
+  --background: 38 36% 93%;
+  --foreground: 24 32% 18%;
+  --card: 40 42% 97%;
+  --card-foreground: 24 32% 18%;
+  --popover: 40 42% 97%;
+  --popover-foreground: 24 32% 18%;
+  --primary: 148 32% 34%;
+  --primary-foreground: 40 45% 97%;
+  --primary-soft: 148 38% 28%;
+  --secondary: 34 30% 88%;
+  --secondary-foreground: 24 28% 22%;
+  --muted: 36 28% 89%;
+  --muted-foreground: 25 16% 38%;
+  --accent: 32 42% 86%;
+  --accent-foreground: 24 40% 22%;
+  --destructive: 8 58% 42%;
+  --destructive-foreground: 40 40% 98%;
+  --border: 33 24% 80%;
+  --input: 33 24% 80%;
+  --ring: 148 32% 34%;
+  --brand-end: 28 38% 42%;
+  --glow-a: 148 28% 42%;
+  --glow-b: 36 45% 55%;
+  --glow-c: 24 35% 40%;
 }
 
 @layer base {
@@ -85,7 +127,167 @@
     @apply min-h-dvh;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 0% -10%, hsl(var(--glow-a) / 0.14), transparent),
+      radial-gradient(ellipse 60% 40% at 100% 0%, hsl(var(--glow-b) / 0.12), transparent),
+      radial-gradient(ellipse 50% 30% at 50% 100%, hsl(var(--glow-c) / 0.08), transparent);
+    background-attachment: fixed;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.992);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes nav-bounce {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.22);
+  }
+  55% {
+    transform: scale(0.9);
+  }
+  75% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes dialog-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-content-in {
+  from {
+    opacity: 0;
+    scale: 0.96;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes dialog-content-out {
+  from {
+    opacity: 1;
+    scale: 1;
+  }
+  to {
+    opacity: 0;
+    scale: 0.97;
+  }
+}
+
+@layer utilities {
+  .surface-panel {
+    @apply rounded-2xl border border-primary/10 bg-card/90 shadow-sm backdrop-blur-sm;
+    transition:
+      box-shadow 0.25s var(--ease-out-soft),
+      border-color 0.25s var(--ease-out-soft),
+      transform 0.25s var(--ease-out-soft),
+      background-color 0.25s ease;
+  }
+
+  .surface-tint {
+    @apply rounded-2xl border shadow-sm;
+    border-color: hsl(var(--primary) / 0.15);
+    background-image: linear-gradient(
+      to bottom right,
+      hsl(var(--primary) / 0.1),
+      hsl(var(--card)),
+      hsl(var(--brand-end) / 0.12)
+    );
+    transition:
+      box-shadow 0.25s var(--ease-out-soft),
+      border-color 0.25s var(--ease-out-soft);
+  }
+
+  .section-label {
+    @apply text-xs font-semibold uppercase tracking-wider text-primary-soft/70;
+  }
+
+  .animate-fade-up {
+    animation: fade-up 0.28s var(--ease-out-soft) both;
+  }
+
+  .animate-page-in {
+    animation: page-in 0.32s var(--ease-out-soft) both;
+  }
+
+  .animate-nav-bounce {
+    animation: nav-bounce 0.48s var(--ease-bounce) both;
+  }
+
+  .dialog-overlay {
+    animation: dialog-overlay-in 0.22s var(--ease-out-soft) both;
+  }
+
+  .dialog-overlay[data-state='closed'] {
+    animation: dialog-overlay-out 0.18s ease-in both;
+  }
+
+  .dialog-content {
+    animation: dialog-content-in 0.28s var(--ease-out-soft) both;
+  }
+
+  .dialog-content[data-state='closed'] {
+    animation: dialog-content-out 0.18s ease-in both;
   }
 }

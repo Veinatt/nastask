@@ -1,26 +1,29 @@
 import { db } from '@/db'
 import { emitSyncStatus } from '@/components/layout/SyncStatusBanner'
-import { tasksRemote } from '@/api/tasksRemote'
-import type { PendingOp, PendingOpType, Task } from '@/db/types'
+import { intervalsRemote } from '@/api/intervalsRemote'
+import { dictsRemote } from '@/api/dictsRemote'
+import { settingsRemote } from '@/api/settingsApi'
+import { t } from '@/lib/i18n'
+import type { DictKind, PendingOp, PendingOpType, WorkItemInput } from '@/db/types'
 import { generateId } from '@/utils/idGenerator'
 import { ApiError } from '@/api/client'
 
 export async function enqueueOp(
   type: PendingOpType,
-  taskId: string,
+  entityId: string,
   payload: unknown,
 ): Promise<void> {
   const op: PendingOp = {
     id: generateId(),
     type,
-    taskId,
+    entityId,
     payload,
     createdAt: new Date().toISOString(),
     tries: 0,
   }
   await db.pendingOps.put(op)
-  emitSyncStatus('Не синхронизировано — будет отправлено при появлении сети')
-  console.warn(`[pending] queued ${type} taskId=${taskId}`)
+  emitSyncStatus(t('sync.queued'))
+  console.warn(`[pending] queued ${type} entityId=${entityId}`)
 }
 
 export async function pendingCount(): Promise<number> {
@@ -39,13 +42,13 @@ export async function flushPendingOps(): Promise<void> {
       await db.pendingOps.delete(op.id)
     } catch (error) {
       if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-        emitSyncStatus('Ошибка авторизации — откройте приложение из Telegram')
+        emitSyncStatus(t('sync.authError'))
         console.error('[pending] auth error, stop flush', error)
         return
       }
       await db.pendingOps.update(op.id, { tries: op.tries + 1 })
-      console.error(`[pending] ${op.type} failed taskId=${op.taskId}`, error)
-      emitSyncStatus('Не синхронизировано — повтор при следующем подключении')
+      console.error(`[pending] ${op.type} failed entityId=${op.entityId}`, error)
+      emitSyncStatus(t('sync.retryLater'))
       return
     }
   }
@@ -58,17 +61,63 @@ export async function flushPendingOps(): Promise<void> {
 
 async function applyOp(op: PendingOp): Promise<void> {
   switch (op.type) {
-    case 'create':
-      await tasksRemote.create(op.payload as Task)
+    case 'interval_start': {
+      const p = op.payload as { title: string; id: string }
+      await intervalsRemote.start(p.title, p.id)
       return
-    case 'update':
-      await tasksRemote.update(op.taskId, op.payload as Task)
+    }
+    case 'interval_manual': {
+      await intervalsRemote.manual(
+        op.payload as {
+          id: string
+          title: string
+          start: string
+          end: string
+          coefficient: number
+          workItems: WorkItemInput[]
+        },
+      )
       return
-    case 'complete':
-      await tasksRemote.complete(op.taskId)
+    }
+    case 'interval_pause':
+      await intervalsRemote.pause(op.entityId)
       return
-    case 'delete':
-      await tasksRemote.remove(op.taskId)
+    case 'interval_resume':
+      await intervalsRemote.resume(op.entityId)
+      return
+    case 'interval_complete': {
+      const p = op.payload as { coefficient: number; workItems: WorkItemInput[] }
+      await intervalsRemote.complete(op.entityId, p)
+      return
+    }
+    case 'interval_update':
+      await intervalsRemote.update(
+        op.entityId,
+        op.payload as Parameters<typeof intervalsRemote.update>[1],
+      )
+      return
+    case 'interval_delete':
+      await intervalsRemote.remove(op.entityId)
+      return
+    case 'dict_create': {
+      const p = op.payload as { kind: DictKind; name: string; id: string }
+      await dictsRemote.create(p.kind, p.name, p.id)
+      return
+    }
+    case 'dict_update': {
+      const p = op.payload as { kind: DictKind; name: string }
+      await dictsRemote.update(p.kind, op.entityId, p.name)
+      return
+    }
+    case 'dict_delete': {
+      const p = op.payload as { kind: DictKind }
+      await dictsRemote.remove(p.kind, op.entityId)
+      return
+    }
+    case 'settings_put':
+      await settingsRemote.put(
+        op.payload as Parameters<typeof settingsRemote.put>[0],
+      )
       return
   }
 }
