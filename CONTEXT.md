@@ -66,10 +66,13 @@ Mini App
 - Backend: новая схема, repos, routes intervals/dicts/settings; wipe legacy tasks/reminders/cron/bot.
 - Frontend: 4 вкладки (Главная / Статистика / Отчёты / Настройки), таймеры, справочники, отчёты + Excel, sync.
 
+### Сессия UX / i18n / темы (см. подробности)
+→ **[`SESSION_HANDOFF.md`](SESSION_HANDOFF.md)** — что допилили сегодня, Railway/Vercel checklist, промпт для нового чата.
+
 ### Дальше
 - Локальный чеклист из `refactoring.md`.
-- Деплой Vercel + Render/Railway; BotFather Menu Button после HTTPS URL.
-- Вне скоупа: Google Sheets, тяжёлые chart-библиотеки, миграция старых задач.
+- Деплой: push → Vercel + Railway (сервисы уже были; см. handoff: env + wipe legacy DB).
+- Вне скоупа: Google Sheets, тяжёлые chart-библиотеки, миграция старых задач, theme packs с PNG/SVG-цифрами.
 
 ---
 
@@ -140,9 +143,9 @@ cd frontend && npm install && npm run dev
 
 ## 8. Промпт для нового чата
 
-> Проект NasTask в `e:\minipets\nastask`.  
-> Прочитай `CONTEXT.md` и `refactoring.md`.  
-> Сейчас нужно: [локальный чеклист | деплой | фича X].
+> Проект NasTask в `nastask/`.  
+> Прочитай `SESSION_HANDOFF.md`, затем `CONTEXT.md` и при необходимости `refactoring.md`.  
+> Сейчас нужно: [деплой | чеклист | фича X].
 
 ---
 
