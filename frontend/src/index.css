@@ -127,6 +127,11 @@
     @apply min-h-dvh;
   }
 
+  /* Hide real brand title while splash logo occupies its slot */
+  html[data-splash='active'] #home-brand-title {
+    opacity: 0;
+  }
+
   html {
     scroll-behavior: smooth;
   }
@@ -163,6 +168,44 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes splash-logo-in {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes splash-cat-burst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.15) rotate(0deg);
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty)))
+      scale(0.92) rotate(var(--rot));
+  }
+}
+
+@keyframes splash-logo-morph {
+  to {
+    transform: translate(var(--mx, 0px), var(--my, 0px)) scale(var(--ms, 1));
+  }
+}
+
+@keyframes splash-fade-bg {
+  to {
+    opacity: 0;
   }
 }
 
@@ -265,6 +308,29 @@
 
   .animate-fade-up {
     animation: fade-up 0.28s var(--ease-out-soft) both;
+  }
+
+  .splash-logo-in {
+    animation: splash-logo-in 0.75s var(--ease-out-soft) both;
+  }
+
+  .splash-logo-morph {
+    animation: splash-logo-morph 0.9s var(--ease-out-soft) forwards;
+    will-change: transform;
+  }
+
+  .splash-cat {
+    animation: splash-cat-burst 1.15s var(--ease-out-soft) both;
+    will-change: transform, opacity;
+  }
+
+  .splash-cat-fade {
+    opacity: 0 !important;
+    transition: opacity 0.4s ease-out;
+  }
+
+  .splash-fade-bg {
+    animation: splash-fade-bg 0.9s var(--ease-out-soft) forwards;
   }
 
   .animate-page-in {

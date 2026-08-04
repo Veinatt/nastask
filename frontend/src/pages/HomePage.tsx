@@ -145,7 +145,12 @@ export function HomePage() {
     <div className="grid gap-6 lg:gap-8">
       <header className="flex flex-col gap-4">
         <div className="space-y-1 min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('home.title')}</h1>
+          <h1
+            id="home-brand-title"
+            className="w-fit text-2xl sm:text-3xl font-bold tracking-tight text-foreground"
+          >
+            {t('home.title')}
+          </h1>
           <p className="text-sm text-muted-foreground max-w-xl">
             {t('home.subtitle')}
           </p>
