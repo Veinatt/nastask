@@ -58,15 +58,13 @@ function MetricCard({
   label,
   value,
   hint,
-  tint,
 }: {
   label: string
   value: string
   hint?: string
-  tint?: boolean
 }) {
   return (
-    <div className={cn('px-4 py-3', tint ? 'surface-tint' : 'surface-panel')}>
+    <div className="surface-panel px-4 py-3">
       <p className="section-label">{label}</p>
       <p className="mt-1.5 text-xl font-bold tabular-nums tracking-tight">{value}</p>
       {hint && <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>}
@@ -416,7 +414,6 @@ export function StatsPage() {
           }
           value={t('stats.metric.hours', { value: formatHours(metrics.totalSeconds) })}
           hint={formatDuration(metrics.totalSeconds)}
-          tint
         />
         <MetricCard
           label={t('stats.metric.avgPerWorkedDay')}
@@ -436,7 +433,6 @@ export function StatsPage() {
           hint={t('stats.metric.employerPay', {
             amount: metrics.employerPay.toFixed(2),
           })}
-          tint
         />
         <MetricCard
           label={t('stats.metric.intervals')}
