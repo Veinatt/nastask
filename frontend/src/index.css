@@ -127,9 +127,14 @@
     @apply min-h-dvh;
   }
 
-  /* Hide real brand title while splash logo occupies its slot */
+  /* Hide real brand title while splash logo occupies its slot.
+     Never leave this stuck: SplashScreen must set data-splash=done. */
   html[data-splash='active'] #home-brand-title {
     opacity: 0;
+  }
+
+  html[data-splash='done'] #home-brand-title {
+    opacity: 1;
   }
 
   html {

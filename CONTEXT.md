@@ -93,7 +93,7 @@ Mini App
 | Клиент auth | Отложенный safe init SDK; `WebApp.ready()`; fallback initData из hash; ErrorBoundary |
 | Навигация | **Убран React Router** для вкладок → `AppTabProvider` + state (hash `#tgWebAppData` ломал BrowserRouter/MemoryRouter) |
 | Sync Home | Reconcile completed today/yesterday; flush не стопорится на мёртвых 4xx |
-| Splash | Включён снова (`SplashScreen` + `data-splash`) |
+| Splash | Включён; на macOS/tdesktop — lite (без morph), failsafe от blank beige |
 | UI | Статистика без градиентных карточек; running-таймер = flat emerald «как пауза»; кнопка паузы — фиксированный текст «Пауза», меняются иконка/фон; корзина не в `flex-wrap`+`ml-auto` |
 | Debug | Убраны `InitDataDebugPanel` и «NasTask loading…» из `index.html` |
 

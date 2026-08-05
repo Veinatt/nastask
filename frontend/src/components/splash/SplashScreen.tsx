@@ -54,12 +54,48 @@ function signalReady() {
   }
 }
 
+/** macOS / desktop Telegram WKWebView often breaks FLIP + opacity animations → blank beige. */
+function shouldUseLiteSplash(): boolean {
+  try {
+    const platform = String(
+      (
+        window as unknown as {
+          Telegram?: { WebApp?: { platform?: string } }
+        }
+      ).Telegram?.WebApp?.platform ?? '',
+    ).toLowerCase()
+    if (
+      platform === 'macos' ||
+      platform === 'tdesktop' ||
+      platform === 'web' ||
+      platform === 'weba' ||
+      platform === 'webk' ||
+      platform === 'unigram'
+    ) {
+      return true
+    }
+  } catch {
+    // ignore
+  }
+  try {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true
+    // Fine pointer + wide window ≈ desktop client embedding
+    if (window.matchMedia('(pointer: fine) and (min-width: 900px)').matches) {
+      return true
+    }
+  } catch {
+    // ignore
+  }
+  return false
+}
+
 export function SplashScreen({ onComplete }: SplashScreenProps) {
   const logoRef = useRef<HTMLHeadingElement>(null)
   const finishedRef = useRef(false)
   const [phase, setPhase] = useState<Phase>('hold')
   const [logoBox, setLogoBox] = useState<LogoBox | null>(null)
   const [burst, setBurst] = useState(false)
+  const [lite] = useState(() => shouldUseLiteSplash())
 
   const finish = () => {
     if (finishedRef.current) return
@@ -70,21 +106,22 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
   useEffect(() => {
     signalReady()
-    const img = new Image()
-    img.src = catSrc
-  }, [])
+    if (!lite) {
+      const img = new Image()
+      img.src = catSrc
+    }
+  }, [lite])
 
   useEffect(() => {
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const timers: number[] = []
     let raf1 = 0
     let raf2 = 0
 
-    // Absolute failsafe — never leave user on blank splash
-    timers.push(window.setTimeout(finish, reduced ? 500 : 4500))
+    // Hard failsafe — never leave blank overlay (esp. macOS TG)
+    timers.push(window.setTimeout(finish, lite ? 600 : 2800))
 
-    if (reduced) {
-      timers.push(window.setTimeout(finish, 400))
+    if (lite) {
+      timers.push(window.setTimeout(finish, 280))
       return () => timers.forEach(clearTimeout)
     }
 
@@ -92,7 +129,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       window.setTimeout(() => {
         setBurst(true)
         setPhase('burst')
-      }, 1200),
+      }, 900),
     )
 
     timers.push(
@@ -100,12 +137,25 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         const logo = logoRef.current
         const dest = document.getElementById('home-brand-title')
         if (!logo || !dest) {
-          setPhase('morph')
+          finish()
           return
         }
 
         const from = logo.getBoundingClientRect()
         const to = dest.getBoundingClientRect()
+        // Invalid / zero rects → skip FLIP (common in odd WebViews)
+        if (
+          from.width < 2 ||
+          from.height < 2 ||
+          to.width < 2 ||
+          to.height < 2 ||
+          !Number.isFinite(to.left) ||
+          !Number.isFinite(to.top)
+        ) {
+          finish()
+          return
+        }
+
         const fromCs = getComputedStyle(logo)
         const toCs = getComputedStyle(dest)
 
@@ -133,19 +183,18 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
             })
           })
         })
-      }, 2300),
+      }, 1800),
     )
 
-    timers.push(window.setTimeout(finish, 3400))
+    timers.push(window.setTimeout(finish, 2600))
 
     return () => {
       timers.forEach(clearTimeout)
       cancelAnimationFrame(raf1)
       cancelAnimationFrame(raf2)
     }
-    // finish/onComplete intentionally stable via ref + useCallback in App
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [lite])
 
   const logoStyle: CSSProperties | undefined = logoBox
     ? {
@@ -158,12 +207,14 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         fontWeight: logoBox.fontWeight,
         margin: 0,
         opacity: 1,
+        color: 'hsl(var(--foreground, 222 47% 11%))',
         transition: logoBox.animate
-          ? 'left 0.85s var(--ease-out-soft), top 0.85s var(--ease-out-soft), font-size 0.85s var(--ease-out-soft)'
+          ? 'left 0.7s var(--ease-out-soft), top 0.7s var(--ease-out-soft), font-size 0.7s var(--ease-out-soft)'
           : 'none',
       }
     : {
         opacity: 1,
+        color: 'hsl(var(--foreground, 222 47% 11%))',
       }
 
   return (
@@ -188,7 +239,8 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         }}
       />
 
-      {burst &&
+      {!lite &&
+        burst &&
         CATS.map((cat) => (
           <img
             key={cat.id}
@@ -215,7 +267,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       <h1
         ref={logoRef}
         className={cn(
-          'splash-logo relative z-10 select-none font-bold tracking-tight text-foreground',
+          'splash-logo relative z-10 select-none font-bold tracking-tight',
           !logoBox && 'text-6xl sm:text-7xl md:text-8xl splash-logo-pop',
         )}
         style={logoStyle}

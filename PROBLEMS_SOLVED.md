@@ -129,7 +129,21 @@
 
 ---
 
-## 10. Чеклист, если снова «не синхронится»
+## 10. Blank beige на MacBook (Telegram Desktop), на Android/Windows/телефоне ок
+
+**Симптом:** в Mini App на macOS — пустой светлый экран (только chrome Telegram: X / NasTask / …). На телефоне и Windows desktop всё работает.
+
+**Причина:** splash (FLIP morph + коты + `opacity`/`forwards`) в WKWebView Telegram macOS/`tdesktop` часто ломается: фон остаётся, логотип не рисуется, `#home-brand-title` скрыт через `html[data-splash=active]`.
+
+**Решение:**
+- lite-splash на `platform` macos/tdesktop/web/weba (+ wide fine-pointer): короткий показ без morph/котов;
+- при битых `getBoundingClientRect` — сразу `finish()`;
+- failsafe в `SplashScreen` (~2.8s) и запасной в `App` (3.5s) → `data-splash=done`;
+- явный цвет логотипа; `html[data-splash=done] #home-brand-title { opacity: 1 }`.
+
+---
+
+## 11. Чеклист, если снова «не синхронится»
 
 1. Сравнить Home и Stats: если Stats ок, а Home нет → смотреть Dexie / pending_ops / последний `pullAll`.
 2. Railway: есть ли `PUT …/complete` или только локальные записи.
