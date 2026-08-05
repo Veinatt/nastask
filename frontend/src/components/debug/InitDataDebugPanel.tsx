@@ -110,7 +110,7 @@ export function InitDataDebugPanel() {
 
   const log = useMemo(
     () => collectInitDataLog(telegram),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- tick forces refresh; rawSignal tracks SDK updates
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [telegram, tick, rawSignal],
   )
 

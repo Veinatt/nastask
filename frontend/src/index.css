@@ -182,6 +182,16 @@
   }
 }
 
+/* Visible immediately — WebView often freezes fill-mode:both at opacity 0 */
+@keyframes splash-logo-pop {
+  from {
+    transform: scale(0.92);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
 @keyframes splash-cat-burst {
   0% {
     opacity: 0;
@@ -312,6 +322,11 @@
 
   .splash-logo-in {
     animation: splash-logo-in 0.75s var(--ease-out-soft) both;
+  }
+
+  .splash-logo-pop {
+    animation: splash-logo-pop 0.55s var(--ease-out-soft) both;
+    opacity: 1;
   }
 
   .splash-logo-morph {

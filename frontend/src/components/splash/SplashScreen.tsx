@@ -4,7 +4,6 @@ import catSrc from '@/assets/cat.jpg'
 
 const CAT_COUNT = 16
 
-/** Classic parametric heart → screen offsets (vmin). */
 function buildCats() {
   return Array.from({ length: CAT_COUNT }, (_, i) => {
     const t = (i / CAT_COUNT) * Math.PI * 2
@@ -45,58 +44,59 @@ type SplashScreenProps = {
   onComplete: () => void
 }
 
+function signalReady() {
+  try {
+    ;(
+      window as unknown as { Telegram?: { WebApp?: { ready?: () => void } } }
+    ).Telegram?.WebApp?.ready?.()
+  } catch {
+    // ignore
+  }
+}
+
 export function SplashScreen({ onComplete }: SplashScreenProps) {
   const logoRef = useRef<HTMLHeadingElement>(null)
+  const finishedRef = useRef(false)
   const [phase, setPhase] = useState<Phase>('hold')
   const [logoBox, setLogoBox] = useState<LogoBox | null>(null)
-  const reducedMotion = useRef(
-    typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-  )
+  const [burst, setBurst] = useState(false)
+
+  const finish = () => {
+    if (finishedRef.current) return
+    finishedRef.current = true
+    document.documentElement.dataset.splash = 'done'
+    onComplete()
+  }
 
   useEffect(() => {
+    signalReady()
     const img = new Image()
     img.src = catSrc
-    // Ensure Telegram loader is dismissed while splash runs
-    try {
-      ;(
-        window as unknown as { Telegram?: { WebApp?: { ready?: () => void } } }
-      ).Telegram?.WebApp?.ready?.()
-    } catch {
-      // ignore
-    }
   }, [])
 
   useEffect(() => {
-    let cancelled = false
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const timers: number[] = []
     let raf1 = 0
     let raf2 = 0
 
-    const finish = () => {
-      if (cancelled) return
-      // Reveal real title first, then parent unmounts splash (same turn)
-      document.documentElement.dataset.splash = 'done'
-      onComplete()
-    }
+    // Absolute failsafe — never leave user on blank splash
+    timers.push(window.setTimeout(finish, reduced ? 500 : 4500))
 
-    if (reducedMotion.current) {
+    if (reduced) {
       timers.push(window.setTimeout(finish, 400))
-      return () => {
-        cancelled = true
-        timers.forEach(clearTimeout)
-      }
+      return () => timers.forEach(clearTimeout)
     }
 
     timers.push(
       window.setTimeout(() => {
-        if (!cancelled) setPhase('burst')
-      }, 1400),
+        setBurst(true)
+        setPhase('burst')
+      }, 1200),
     )
 
     timers.push(
       window.setTimeout(() => {
-        if (cancelled) return
         const logo = logoRef.current
         const dest = document.getElementById('home-brand-title')
         if (!logo || !dest) {
@@ -109,11 +109,10 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         const fromCs = getComputedStyle(logo)
         const toCs = getComputedStyle(dest)
 
-        // Match the real h1 box (includes main/header padding offset in viewport)
         setLogoBox({
           left: from.left,
           top: from.top,
-          fontSize: parseFloat(fromCs.fontSize),
+          fontSize: parseFloat(fromCs.fontSize) || 48,
           lineHeight: fromCs.lineHeight,
           letterSpacing: fromCs.letterSpacing,
           fontWeight: fromCs.fontWeight,
@@ -123,11 +122,10 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
         raf1 = requestAnimationFrame(() => {
           raf2 = requestAnimationFrame(() => {
-            if (cancelled) return
             setLogoBox({
               left: to.left,
               top: to.top,
-              fontSize: parseFloat(toCs.fontSize),
+              fontSize: parseFloat(toCs.fontSize) || 24,
               lineHeight: toCs.lineHeight,
               letterSpacing: toCs.letterSpacing,
               fontWeight: toCs.fontWeight,
@@ -135,18 +133,19 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
             })
           })
         })
-      }, 2550),
+      }, 2300),
     )
 
-    timers.push(window.setTimeout(finish, 3550))
+    timers.push(window.setTimeout(finish, 3400))
 
     return () => {
-      cancelled = true
       timers.forEach(clearTimeout)
       cancelAnimationFrame(raf1)
       cancelAnimationFrame(raf2)
     }
-  }, [onComplete])
+    // finish/onComplete intentionally stable via ref + useCallback in App
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const logoStyle: CSSProperties | undefined = logoBox
     ? {
@@ -158,11 +157,14 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         letterSpacing: logoBox.letterSpacing,
         fontWeight: logoBox.fontWeight,
         margin: 0,
+        opacity: 1,
         transition: logoBox.animate
-          ? 'left 0.9s var(--ease-out-soft), top 0.9s var(--ease-out-soft), font-size 0.9s var(--ease-out-soft), line-height 0.9s var(--ease-out-soft)'
+          ? 'left 0.85s var(--ease-out-soft), top 0.85s var(--ease-out-soft), font-size 0.85s var(--ease-out-soft)'
           : 'none',
       }
-    : undefined
+    : {
+        opacity: 1,
+      }
 
   return (
     <div
@@ -186,7 +188,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         }}
       />
 
-      {(phase === 'burst' || phase === 'morph') &&
+      {burst &&
         CATS.map((cat) => (
           <img
             key={cat.id}
@@ -214,8 +216,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         ref={logoRef}
         className={cn(
           'splash-logo relative z-10 select-none font-bold tracking-tight text-foreground',
-          !logoBox && 'text-6xl sm:text-7xl md:text-8xl',
-          phase === 'hold' && 'splash-logo-in',
+          !logoBox && 'text-6xl sm:text-7xl md:text-8xl splash-logo-pop',
         )}
         style={logoStyle}
       >
