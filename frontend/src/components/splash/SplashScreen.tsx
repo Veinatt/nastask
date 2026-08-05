@@ -57,6 +57,14 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   useEffect(() => {
     const img = new Image()
     img.src = catSrc
+    // Ensure Telegram loader is dismissed while splash runs
+    try {
+      ;(
+        window as unknown as { Telegram?: { WebApp?: { ready?: () => void } } }
+      ).Telegram?.WebApp?.ready?.()
+    } catch {
+      // ignore
+    }
   }, [])
 
   useEffect(() => {

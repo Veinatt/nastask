@@ -3,6 +3,7 @@ import {
   init,
   initData,
   miniApp,
+  restoreInitData,
   themeParams,
   viewport,
   useSignal,
@@ -28,17 +29,37 @@ function applyResolvedTheme(inTelegram: boolean, telegramIsDark?: boolean | null
   applyTheme(preference, systemDark)
 }
 
+/** Hide Telegram's native loading placeholder even if SDK init failed. */
+function signalNativeReady(): void {
+  try {
+    const tg = (
+      window as unknown as { Telegram?: { WebApp?: { ready?: () => void } } }
+    ).Telegram?.WebApp
+    tg?.ready?.()
+  } catch {
+    // ignore
+  }
+}
+
 function tryInitTelegram(): boolean {
   try {
     init()
 
-    if (miniApp.mount.isAvailable()) {
-      void miniApp.mount()
-    }
+    // themeParams before miniApp (SDK docs)
     if (themeParams.mount.isAvailable()) {
       themeParams.mount()
       themeParams.bindCssVars.ifAvailable()
     }
+    if (miniApp.mount.isAvailable()) {
+      void miniApp.mount()
+    }
+
+    try {
+      restoreInitData()
+    } catch {
+      // outside Telegram / no launch params yet
+    }
+
     if (viewport.mount.isAvailable()) {
       void viewport.mount().then(() => {
         viewport.bindCssVars.ifAvailable()
@@ -46,8 +67,13 @@ function tryInitTelegram(): boolean {
       })
     }
 
+    // Critical for Main App / mobile: otherwise Telegram keeps its loader forever
+    miniApp.ready.ifAvailable()
+    signalNativeReady()
+
     return true
   } catch {
+    signalNativeReady()
     return false
   }
 }
@@ -64,6 +90,15 @@ export function useTelegram() {
   const isDark = useSignal(miniApp.isDark)
 
   useEffect(() => {
+    // Re-signal ready after first React paint (covers late WebView injection)
+    miniApp.ready.ifAvailable()
+    signalNativeReady()
+    try {
+      restoreInitData()
+    } catch {
+      // ignore
+    }
+
     const apply = () => {
       applyResolvedTheme(inTelegram, inTelegram ? Boolean(miniApp.isDark()) : null)
     }

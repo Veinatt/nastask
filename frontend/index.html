@@ -15,6 +15,22 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Hide Telegram native loader ASAP (Main App / mobile otherwise hang) -->
+    <script>
+      (function () {
+        function signalReady() {
+          try {
+            var wa = window.Telegram && window.Telegram.WebApp
+            if (wa && typeof wa.ready === 'function') wa.ready()
+          } catch (e) {}
+        }
+        signalReady()
+        document.addEventListener('DOMContentLoaded', signalReady)
+        setTimeout(signalReady, 0)
+        setTimeout(signalReady, 300)
+        setTimeout(signalReady, 1200)
+      })()
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -1,4 +1,4 @@
-import { initData } from '@telegram-apps/sdk-react'
+import { initData, retrieveRawInitData, restoreInitData } from '@telegram-apps/sdk-react'
 
 export const API_BASE_URL =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ||
@@ -14,16 +14,45 @@ export class ApiError extends Error {
   }
 }
 
-function getTelegramAuthHeader(): string | null {
+function readNativeInitData(): string | null {
   try {
-    const raw = typeof initData.raw === 'function' ? initData.raw() : null
-    if (raw && String(raw).trim()) {
-      return `tma ${raw}`
-    }
+    const raw = (
+      window as unknown as { Telegram?: { WebApp?: { initData?: string } } }
+    ).Telegram?.WebApp?.initData
+    if (raw && String(raw).trim()) return String(raw)
   } catch {
-    // SDK not ready / outside Telegram
+    // ignore
   }
   return null
+}
+
+function getTelegramInitDataRaw(): string | null {
+  try {
+    restoreInitData()
+  } catch {
+    // ignore
+  }
+
+  try {
+    const fromSdk = typeof initData.raw === 'function' ? initData.raw() : null
+    if (fromSdk && String(fromSdk).trim()) return String(fromSdk)
+  } catch {
+    // ignore
+  }
+
+  try {
+    const retrieved = retrieveRawInitData()
+    if (retrieved && String(retrieved).trim()) return String(retrieved)
+  } catch {
+    // ignore
+  }
+
+  return readNativeInitData()
+}
+
+function getTelegramAuthHeader(): string | null {
+  const raw = getTelegramInitDataRaw()
+  return raw ? `tma ${raw}` : null
 }
 
 /** Local DEV without Telegram initData — matches VITE_DEV_USER_ID / useTelegram fake user. */
