@@ -1,23 +1,40 @@
 import { useEffect, useRef, useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
 import { Navigation } from './Navigation'
 import { SyncStatusBanner } from '@/components/layout/SyncStatusBanner'
 import { NAV_ROUTES } from '@/components/layout/navItems'
+import { useAppTab } from '@/components/layout/AppTabContext'
 import { useSplashDone } from '@/components/splash/SplashDoneContext'
 import { useSync } from '@/hooks/useSync'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation'
+import { HomePage } from '@/pages/HomePage'
+import { StatsPage } from '@/pages/StatsPage'
+import { ReportsPage } from '@/pages/ReportsPage'
+import { SettingsPage } from '@/pages/SettingsPage'
 import { cn } from '@/lib/utils'
+
+function TabPage({ tab }: { tab: (typeof NAV_ROUTES)[number] }) {
+  switch (tab) {
+    case '/stats':
+      return <StatsPage />
+    case '/reports':
+      return <ReportsPage />
+    case '/settings':
+      return <SettingsPage />
+    case '/':
+    default:
+      return <HomePage />
+  }
+}
 
 export function AppLayout() {
   useTelegram()
   useSync()
-  const location = useLocation()
+  const { tab } = useAppTab()
   const splashDone = useSplashDone()
   const mainRef = useRef<HTMLElement>(null)
-  useSwipeNavigation(NAV_ROUTES, mainRef)
+  useSwipeNavigation(mainRef)
 
-  // page-in after splash restart caused a jump — only animate on later navigations
   const skipFirstPageIn = useRef(true)
   const [pageIn, setPageIn] = useState(false)
 
@@ -32,7 +49,7 @@ export function AppLayout() {
       return
     }
     setPageIn(true)
-  }, [location.pathname, splashDone])
+  }, [tab, splashDone])
 
   return (
     <div className="min-h-dvh flex flex-col">
@@ -46,11 +63,8 @@ export function AppLayout() {
             'calc(5.5rem + var(--tg-safe-area-inset-bottom, 0px) + var(--tg-content-safe-area-inset-bottom, 0px))',
         }}
       >
-        <div
-          key={location.pathname}
-          className={cn('min-w-0', pageIn && 'animate-page-in')}
-        >
-          <Outlet />
+        <div key={tab} className={cn('min-w-0', pageIn && 'animate-page-in')}>
+          <TabPage tab={tab} />
         </div>
       </main>
     </div>

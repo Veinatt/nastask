@@ -119,7 +119,10 @@ export function InitDataDebugPanel() {
   const json = useMemo(() => (log ? JSON.stringify(log, null, 2) : '{}'), [log])
 
   return (
-    <section className="surface-panel border border-amber-500/40 bg-amber-500/5 px-3 py-3 sm:px-4">
+    <section
+      data-no-swipe
+      className="surface-panel border border-amber-500/40 bg-amber-500/5 px-3 py-3 sm:px-4"
+    >
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
           InitData debug

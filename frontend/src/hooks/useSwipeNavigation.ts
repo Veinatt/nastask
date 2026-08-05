@@ -1,14 +1,10 @@
 import { useEffect, useRef, type RefObject } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { NAV_ROUTES } from '@/components/layout/navItems'
+import { useAppTab } from '@/components/layout/AppTabContext'
 
 const MIN_DX = 56
 const MAX_DURATION_MS = 800
 const HORIZONTAL_RATIO = 1.25
-
-function normalizePath(pathname: string): string {
-  if (pathname === '' || pathname === '/') return '/'
-  return pathname.replace(/\/$/, '') || '/'
-}
 
 function shouldIgnoreTarget(target: EventTarget | null): boolean {
   const el = target instanceof Element ? target : null
@@ -35,15 +31,11 @@ function shouldIgnoreTarget(target: EventTarget | null): boolean {
 type Point = { x: number; y: number; t: number; ignore: boolean }
 
 /** Horizontal swipe / drag between primary app tabs. */
-export function useSwipeNavigation(
-  routes: readonly string[],
-  containerRef: RefObject<HTMLElement | null>,
-) {
-  const navigate = useNavigate()
-  const location = useLocation()
+export function useSwipeNavigation(containerRef: RefObject<HTMLElement | null>) {
+  const { tabIndex, setTabIndex } = useAppTab()
   const startRef = useRef<Point | null>(null)
-  const pathRef = useRef(location.pathname)
-  pathRef.current = location.pathname
+  const indexRef = useRef(tabIndex)
+  indexRef.current = tabIndex
 
   useEffect(() => {
     const root = containerRef.current
@@ -62,14 +54,11 @@ export function useSwipeNavigation(
       if (Math.abs(dx) < MIN_DX) return
       if (Math.abs(dx) < Math.abs(dy) * HORIZONTAL_RATIO) return
 
-      const current = normalizePath(pathRef.current)
-      const index = routes.findIndex((r) => normalizePath(r) === current)
-      if (index < 0) return
-
-      if (dx < 0 && index < routes.length - 1) {
-        navigate(routes[index + 1]!)
+      const index = indexRef.current
+      if (dx < 0 && index < NAV_ROUTES.length - 1) {
+        setTabIndex(index + 1)
       } else if (dx > 0 && index > 0) {
-        navigate(routes[index - 1]!)
+        setTabIndex(index - 1)
       }
     }
 
@@ -97,7 +86,7 @@ export function useSwipeNavigation(
     }
 
     const onPointerDown = (e: PointerEvent) => {
-      if (e.pointerType === 'touch') return // handled by touch events
+      if (e.pointerType === 'touch') return
       if (e.button !== 0) return
       startRef.current = {
         x: e.clientX,
@@ -131,5 +120,5 @@ export function useSwipeNavigation(
       root.removeEventListener('pointerup', onPointerUp)
       root.removeEventListener('pointercancel', onCancel)
     }
-  }, [containerRef, navigate, routes])
+  }, [containerRef, setTabIndex])
 }
