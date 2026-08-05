@@ -1,21 +1,24 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AppErrorBoundary } from '@/components/AppErrorBoundary'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { AppTabProvider } from '@/components/layout/AppTabContext'
 import { SplashDoneProvider } from '@/components/splash/SplashDoneContext'
-
-/** Temporary: splash disabled to debug blank Mini App screen. */
-const SPLASH_ENABLED = false
+import { SplashScreen } from '@/components/splash/SplashScreen'
 
 export default function App() {
-  const splashDone = !SPLASH_ENABLED
+  const [splashDone, setSplashDone] = useState(false)
 
   useEffect(() => {
-    document.documentElement.dataset.splash = splashDone ? 'done' : 'active'
+    document.documentElement.dataset.splash = 'active'
     return () => {
       delete document.documentElement.dataset.splash
     }
-  }, [splashDone])
+  }, [])
+
+  const onSplashComplete = useCallback(() => {
+    document.documentElement.dataset.splash = 'done'
+    setSplashDone(true)
+  }, [])
 
   return (
     <AppErrorBoundary>
@@ -24,6 +27,7 @@ export default function App() {
           <div className="min-h-dvh">
             <AppLayout />
           </div>
+          {!splashDone && <SplashScreen onComplete={onSplashComplete} />}
         </AppTabProvider>
       </SplashDoneProvider>
     </AppErrorBoundary>
