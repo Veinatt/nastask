@@ -1,28 +1,25 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppErrorBoundary } from '@/components/AppErrorBoundary'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { SplashDoneProvider } from '@/components/splash/SplashDoneContext'
-import { SplashScreen } from '@/components/splash/SplashScreen'
 import { HomePage } from '@/pages/HomePage'
 import { StatsPage } from '@/pages/StatsPage'
 import { ReportsPage } from '@/pages/ReportsPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 
+/** Temporary: splash disabled to debug blank Mini App screen. */
+const SPLASH_ENABLED = false
+
 export default function App() {
-  const [splashDone, setSplashDone] = useState(false)
+  const splashDone = !SPLASH_ENABLED
 
   useEffect(() => {
-    document.documentElement.dataset.splash = 'active'
+    document.documentElement.dataset.splash = splashDone ? 'done' : 'active'
     return () => {
       delete document.documentElement.dataset.splash
     }
-  }, [])
-
-  const onSplashComplete = useCallback(() => {
-    document.documentElement.dataset.splash = 'done'
-    setSplashDone(true)
-  }, [])
+  }, [splashDone])
 
   return (
     <AppErrorBoundary>
@@ -39,7 +36,6 @@ export default function App() {
               </Route>
             </Routes>
           </div>
-          {!splashDone && <SplashScreen onComplete={onSplashComplete} />}
         </BrowserRouter>
       </SplashDoneProvider>
     </AppErrorBoundary>
