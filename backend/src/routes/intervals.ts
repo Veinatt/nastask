@@ -4,6 +4,7 @@ import { telegramAuth } from '../middleware/telegramAuth'
 import { intervalsRepo, liveTotalSeconds } from '../db/intervalsRepo'
 import { settingsRepo } from '../db/settingsRepo'
 import { categoriesRepo, descriptionsRepo, unitsRepo } from '../db/dictRepo'
+import { salaryExpensesRepo } from '../db/expensesRepo'
 import type { WorkItemInput } from '../types'
 import { dateInTimezone, nowIso, secondsBetween } from '../utils/iso'
 
@@ -254,9 +255,12 @@ intervalsRouter.get('/report/salary', (req, res) => {
     }
     const settings = settingsRepo.getOrCreate(userId)
     const entries = intervalsRepo.listCompletedInMonth(userId, year, month)
+    const round3 = (n: number) => Math.round(n * 1000) / 1000
+    const round2 = (n: number) => Math.round(n * 100) / 100
     const rows = entries.map((e) => {
-      const hours = e.totalSeconds / 3600
-      const amount = hours * e.coefficient * settings.hourlyRate
+      const hours = round3(e.totalSeconds / 3600)
+      const coefficient = round3(e.coefficient)
+      const amount = round2(hours * coefficient * settings.hourlyRate)
       return {
         id: e.id,
         date: e.date,
@@ -264,15 +268,17 @@ intervalsRouter.get('/report/salary', (req, res) => {
         end: e.end,
         title: e.title,
         hours,
-        coefficient: e.coefficient,
+        coefficient,
         amount,
         totalSeconds: e.totalSeconds,
       }
     })
-    const monthSum = rows.reduce((s, r) => s + r.amount, 0)
-    const totalHours = rows.reduce((s, r) => s + r.hours, 0)
-    const taxAmount = (monthSum * settings.taxRate) / 100
-    const employerPay = monthSum + taxAmount
+    const monthSum = round2(rows.reduce((s, r) => s + r.amount, 0))
+    const totalHours = round3(rows.reduce((s, r) => s + r.hours, 0))
+    const taxAmount = round2((monthSum * settings.taxRate) / 100)
+    const expenses = salaryExpensesRepo.listMonth(userId, year, month)
+    const expensesSum = salaryExpensesRepo.sumMonth(userId, year, month)
+    const employerPay = round2(monthSum + taxAmount + expensesSum)
     res.json({
       success: true,
       report: {
@@ -285,6 +291,8 @@ intervalsRouter.get('/report/salary', (req, res) => {
         totalHours,
         monthSum,
         taxAmount,
+        expenses,
+        expensesSum,
         employerPay,
       },
     })
@@ -331,7 +339,7 @@ intervalsRouter.get('/report/tax', (req, res) => {
         const key = `${catKey}|${descKey}|${w.unitId}`
         const prev = map.get(key)
         if (prev) {
-          prev.quantity += w.quantity
+          prev.quantity = Math.round((prev.quantity + w.quantity) * 1000) / 1000
         } else {
           map.set(key, {
             categoryId: catKey || null,
@@ -340,7 +348,7 @@ intervalsRouter.get('/report/tax', (req, res) => {
             descriptionName: descKey ? (descs.get(descKey) ?? null) : null,
             unitId: w.unitId,
             unitName: units.get(w.unitId) ?? '',
-            quantity: w.quantity,
+            quantity: Math.round(w.quantity * 1000) / 1000,
           })
         }
       }

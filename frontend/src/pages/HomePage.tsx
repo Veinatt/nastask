@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Pencil, Plus, Play } from 'lucide-react'
+import { Pencil, Plus, Play, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -15,17 +15,21 @@ import { CompleteIntervalDialog } from '@/components/intervals/CompleteIntervalD
 import { ManualEntryDialog } from '@/components/intervals/ManualEntryDialog'
 import { useActiveIntervals } from '@/hooks/useActiveIntervals'
 import { useI18n } from '@/hooks/useI18n'
-import { formatDuration, formatTimeRange } from '@/utils/timeDisplay'
+import { SoftDivider } from '@/components/ui/soft-divider'
+import { formatDecimal } from '@/utils/formatNumber'
+import { formatDuration, getTimeRangeParts } from '@/utils/timeDisplay'
 import type { TimeEntry } from '@/db/types'
 
 function CompletedList({
   title,
   entries,
   onEdit,
+  onDelete,
 }: {
   title: string
   entries: TimeEntry[]
   onEdit: (e: TimeEntry) => void
+  onDelete: (id: string) => void
 }) {
   const { t } = useI18n()
 
@@ -44,32 +48,60 @@ function CompletedList({
           {entries
             .slice()
             .sort((a, b) => (b.end ?? '').localeCompare(a.end ?? ''))
-            .map((e) => (
-              <div
-                key={e.id}
-                className="surface-panel flex items-center justify-between gap-3 px-4 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">
-                    {formatTimeRange(e.start, e.end)}
-                  </p>
-                  <p className="text-xs text-muted-foreground tabular-nums mt-0.5">
-                    {formatDuration(e.totalSeconds)}
-                    {e.coefficient !== 1 ? ` · ×${e.coefficient}` : ''}
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  className="h-9 w-9 shrink-0 text-primary-soft"
-                  aria-label={t('common.edit')}
-                  onClick={() => onEdit(e)}
+            .map((e) => {
+              const range = getTimeRangeParts(e.start, e.end)
+              return (
+                <div
+                  key={e.id}
+                  className="surface-panel flex items-center justify-between gap-3 px-4 py-3"
                 >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+                  <div className="min-w-0 space-y-1">
+                    <p className="flex min-w-0 items-center text-sm font-medium">
+                      {range.dateLabel ? (
+                        <>
+                          <span className="shrink-0 tabular-nums">{range.dateLabel}</span>
+                          <SoftDivider />
+                          <span className="min-w-0 truncate tabular-nums">{range.timeLabel}</span>
+                        </>
+                      ) : (
+                        <span className="truncate tabular-nums">{range.timeLabel}</span>
+                      )}
+                    </p>
+                    <p className="flex items-center text-xs text-muted-foreground tabular-nums">
+                      <span>{formatDuration(e.totalSeconds)}</span>
+                      {e.coefficient !== 1 ? (
+                        <>
+                          <SoftDivider />
+                          <span>×{formatDecimal(e.coefficient)}</span>
+                        </>
+                      ) : null}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-9 w-9 text-primary-soft"
+                      aria-label={t('common.edit')}
+                      onClick={() => onEdit(e)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-9 w-9 text-destructive hover:text-destructive"
+                      aria-label={t('timer.deleteAria')}
+                      onClick={() => onDelete(e.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )
+            })}
         </div>
       )}
     </section>
@@ -210,11 +242,13 @@ export function HomePage() {
         title={t('home.completedToday')}
         entries={completedToday}
         onEdit={setEditTarget}
+        onDelete={setDeleteId}
       />
       <CompletedList
         title={t('home.completedYesterday')}
         entries={completedYesterday}
         onEdit={setEditTarget}
+        onDelete={setDeleteId}
       />
 
       <CompleteIntervalDialog

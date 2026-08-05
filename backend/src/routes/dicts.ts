@@ -1,7 +1,12 @@
 import { Router, type Request, type Response } from 'express'
 import { randomUUID } from 'node:crypto'
 import { telegramAuth } from '../middleware/telegramAuth'
-import { categoriesRepo, descriptionsRepo, unitsRepo } from '../db/dictRepo'
+import {
+  categoriesRepo,
+  descriptionsRepo,
+  expenseArticlesRepo,
+  unitsRepo,
+} from '../db/dictRepo'
 
 function makeDictRouter(
   repo: typeof categoriesRepo,
@@ -123,3 +128,7 @@ function makeDictRouter(
 export const categoriesRouter = makeDictRouter(categoriesRepo, 'categories')
 export const descriptionsRouter = makeDictRouter(descriptionsRepo, 'descriptions')
 export const unitsRouter = makeDictRouter(unitsRepo, 'units')
+export const expenseArticlesRouter = makeDictRouter(
+  expenseArticlesRepo,
+  'expense-articles',
+)

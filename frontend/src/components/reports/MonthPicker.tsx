@@ -10,8 +10,8 @@ type MonthPickerProps = {
 }
 
 export function MonthPicker({ year, month, onChange }: MonthPickerProps) {
-  const { t, intlLocale } = useI18n()
-  const label = monthLabel(year, month, intlLocale)
+  const { t, locale } = useI18n()
+  const label = monthLabel(year, month, locale)
   const now = new Date()
   const isCurrent =
     year === now.getFullYear() && month === now.getMonth() + 1

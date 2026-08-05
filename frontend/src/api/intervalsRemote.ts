@@ -131,7 +131,12 @@ export const intervalsRemote = {
     const res = await apiFetch<{ success: true; report: SalaryReport }>(
       `/api/intervals/report/salary?year=${year}&month=${month}`,
     )
-    return res!.report
+    const report = res!.report
+    return {
+      ...report,
+      expenses: report.expenses ?? [],
+      expensesSum: report.expensesSum ?? 0,
+    }
   },
 
   async taxReport(

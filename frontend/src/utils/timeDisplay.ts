@@ -31,6 +31,39 @@ export function formatHours(totalSeconds: number, digits = 2): string {
   return (totalSeconds / 3600).toFixed(digits)
 }
 
+/** Duration as чч:мм (e.g. 06:42). Hours grow beyond 99 without truncation. */
+export function formatHoursMinutes(totalSeconds: number): string {
+  const s = Math.max(0, Math.round(totalSeconds))
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+/** Same as formatHoursMinutes, but input is decimal hours (e.g. 6.7). */
+export function formatDecimalHoursAsClock(hours: number): string {
+  if (!Number.isFinite(hours)) return '00:00'
+  return formatHoursMinutes(hours * 3600)
+}
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0')
+}
+
+/** Local calendar date as dd.mm (intervals — no year). */
+export function formatDateDdMm(d: Date): string {
+  return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}`
+}
+
+/** Local calendar date as dd.mm.yyyy */
+export function formatDateDdMmYyyy(d: Date): string {
+  return `${formatDateDdMm(d)}.${d.getFullYear()}`
+}
+
+/** Local time as HH:mm */
+export function formatTimeHhMm(d: Date): string {
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+}
+
 export function formatIntervalWhen(
   startIso: string,
   opts?: { withDate?: boolean },
@@ -38,28 +71,62 @@ export function formatIntervalWhen(
   const d = new Date(startIso)
   if (!Number.isFinite(d.getTime())) return '—'
   const withDate = opts?.withDate ?? true
-  return d.toLocaleString([], {
-    ...(withDate
-      ? { day: '2-digit', month: '2-digit', year: 'numeric' }
-      : {}),
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  const time = formatTimeHhMm(d)
+  if (!withDate) return time
+  return `${formatDateDdMm(d)}, ${time}`
+}
+
+/** Parts for UI with a visual delimiter between date and time range. */
+export type TimeRangeParts = {
+  dateLabel: string | null
+  timeLabel: string
+  crossDay: boolean
+}
+
+export function getTimeRangeParts(
+  startIso: string,
+  endIso: string | null | undefined,
+): TimeRangeParts {
+  const start = new Date(startIso)
+  if (!Number.isFinite(start.getTime())) {
+    return { dateLabel: null, timeLabel: '—', crossDay: false }
+  }
+  const startPart = formatTimeHhMm(start)
+  if (!endIso) {
+    return {
+      dateLabel: formatDateDdMm(start),
+      timeLabel: t('timeDisplay.from', { time: startPart }),
+      crossDay: false,
+    }
+  }
+  const end = new Date(endIso)
+  if (!Number.isFinite(end.getTime())) {
+    return {
+      dateLabel: formatDateDdMm(start),
+      timeLabel: t('timeDisplay.from', { time: startPart }),
+      crossDay: false,
+    }
+  }
+  const endPart = formatTimeHhMm(end)
+  const sameDay = start.toDateString() === end.toDateString()
+  if (sameDay) {
+    return {
+      dateLabel: formatDateDdMm(start),
+      timeLabel: `${startPart}–${endPart}`,
+      crossDay: false,
+    }
+  }
+  return {
+    dateLabel: null,
+    timeLabel: `${formatIntervalWhen(startIso)} – ${formatIntervalWhen(endIso)}`,
+    crossDay: true,
+  }
 }
 
 export function formatTimeRange(startIso: string, endIso: string | null | undefined): string {
-  const start = new Date(startIso)
-  if (!Number.isFinite(start.getTime())) return '—'
-  const startPart = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  if (!endIso) return t('timeDisplay.from', { time: startPart })
-  const end = new Date(endIso)
-  if (!Number.isFinite(end.getTime())) return t('timeDisplay.from', { time: startPart })
-  const endPart = end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  const sameDay = start.toDateString() === end.toDateString()
-  if (sameDay) {
-    return `${start.toLocaleDateString([], { day: '2-digit', month: '2-digit' })} · ${startPart}–${endPart}`
-  }
-  return `${formatIntervalWhen(startIso)} – ${formatIntervalWhen(endIso)}`
+  const parts = getTimeRangeParts(startIso, endIso)
+  if (parts.crossDay || !parts.dateLabel) return parts.timeLabel
+  return `${parts.dateLabel} ${parts.timeLabel}`
 }
 
 /** IANA timezone of the current device (browser). */

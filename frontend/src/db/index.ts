@@ -14,6 +14,7 @@ export class NasTaskDB extends Dexie {
   categories!: EntityTable<DictItem, 'id'>
   descriptions!: EntityTable<DictItem, 'id'>
   units!: EntityTable<DictItem, 'id'>
+  expenses!: EntityTable<DictItem, 'id'>
   settings!: EntityTable<UserSettings, 'id'>
   pendingOps!: EntityTable<PendingOp, 'id'>
 
@@ -44,6 +45,16 @@ export class NasTaskDB extends Dexie {
         await tx.table('settings').clear()
         await tx.table('pendingOps').clear()
       })
+    this.version(4).stores({
+      timeEntries: 'id, date, end, updatedAt',
+      workItems: 'id, timeEntryId',
+      categories: 'id, name',
+      descriptions: 'id, name',
+      units: 'id, name',
+      expenses: 'id, name',
+      settings: 'id',
+      pendingOps: 'id, entityId, createdAt',
+    })
   }
 }
 

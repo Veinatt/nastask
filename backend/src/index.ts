@@ -6,9 +6,11 @@ import { intervalsRouter } from './routes/intervals'
 import {
   categoriesRouter,
   descriptionsRouter,
+  expenseArticlesRouter,
   unitsRouter,
 } from './routes/dicts'
 import { settingsRouter } from './routes/settings'
+import { expensesRouter } from './routes/expenses'
 
 async function main(): Promise<void> {
   console.log('[boot] ===== NasTask backend starting =====')
@@ -34,7 +36,9 @@ async function main(): Promise<void> {
   app.use('/api/categories', categoriesRouter)
   app.use('/api/descriptions', descriptionsRouter)
   app.use('/api/units', unitsRouter)
+  app.use('/api/expense-articles', expenseArticlesRouter)
   app.use('/api/settings', settingsRouter)
+  app.use('/api/expenses', expensesRouter)
 
   app.use(
     (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -43,7 +47,7 @@ async function main(): Promise<void> {
     },
   )
   console.log(
-    '[boot] routes: /health /api/intervals /api/categories /api/descriptions /api/units /api/settings',
+    '[boot] routes: /health /api/intervals /api/categories /api/descriptions /api/units /api/expense-articles /api/settings /api/expenses',
   )
 
   console.log('[boot] stage 4/4 — HTTP listen')

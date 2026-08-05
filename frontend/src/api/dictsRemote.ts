@@ -5,6 +5,7 @@ const paths: Record<DictKind, string> = {
   categories: '/api/categories',
   descriptions: '/api/descriptions',
   units: '/api/units',
+  expenses: '/api/expense-articles',
 }
 
 export const dictsRemote = {

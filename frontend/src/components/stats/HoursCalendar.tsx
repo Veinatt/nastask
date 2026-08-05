@@ -34,10 +34,11 @@ type Props = {
 }
 
 function formatHoursShort(seconds: number): string {
-  const h = seconds / 3600
-  if (h <= 0) return ''
-  if (h < 10) return h.toFixed(1).replace(/\.0$/, '')
-  return String(Math.round(h))
+  if (seconds <= 0) return ''
+  const s = Math.round(seconds)
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
 function isWeekend(day: Date): boolean {

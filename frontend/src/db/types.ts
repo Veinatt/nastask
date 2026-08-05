@@ -60,7 +60,7 @@ export type PendingOpType =
   | 'dict_delete'
   | 'settings_put'
 
-export type DictKind = 'categories' | 'descriptions' | 'units'
+export type DictKind = 'categories' | 'descriptions' | 'units' | 'expenses'
 
 export interface PendingOp {
   id: string
@@ -83,6 +83,22 @@ export interface SalaryReportRow {
   totalSeconds: number
 }
 
+export interface SalaryExpense {
+  id: string
+  userId: number
+  year: number
+  month: number
+  name: string
+  amount: number
+  createdAt: string
+}
+
+export interface ExpenseArticle {
+  id: string
+  userId: number
+  name: string
+}
+
 export interface SalaryReport {
   year: number
   month: number
@@ -93,6 +109,8 @@ export interface SalaryReport {
   totalHours: number
   monthSum: number
   taxAmount: number
+  expenses: SalaryExpense[]
+  expensesSum: number
   employerPay: number
 }
 

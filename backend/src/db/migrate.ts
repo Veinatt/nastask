@@ -94,6 +94,25 @@ export function runMigrations(db: Database.Database): void {
       FOREIGN KEY (unitId) REFERENCES units(id)
     );
     CREATE INDEX IF NOT EXISTS idx_work_items_entry ON work_items(timeEntryId);
+
+    CREATE TABLE IF NOT EXISTS expense_articles (
+      id TEXT PRIMARY KEY,
+      userId INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      UNIQUE(userId, name)
+    );
+
+    CREATE TABLE IF NOT EXISTS salary_expenses (
+      id TEXT PRIMARY KEY,
+      userId INTEGER NOT NULL,
+      year INTEGER NOT NULL,
+      month INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      amount REAL NOT NULL,
+      createdAt TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_salary_expenses_user_ym
+      ON salary_expenses(userId, year, month);
   `)
 
   console.log('[migrate] READY')

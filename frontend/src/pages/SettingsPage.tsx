@@ -278,10 +278,11 @@ export function SettingsPage() {
         </div>
       </section>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <DictSection kind="categories" title={t('settings.dict.categories')} />
         <DictSection kind="descriptions" title={t('settings.dict.descriptions')} />
         <DictSection kind="units" title={t('settings.dict.units')} />
+        <DictSection kind="expenses" title={t('settings.dict.expenses')} />
       </div>
     </div>
   )

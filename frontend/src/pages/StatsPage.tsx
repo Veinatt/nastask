@@ -29,12 +29,15 @@ import { useDictionaries } from '@/hooks/useDictionaries'
 import { useIntervals } from '@/hooks/useIntervals'
 import { useI18n } from '@/hooks/useI18n'
 import {
+  formatDecimalHoursAsClock,
   formatDuration,
-  formatHours,
-  formatTimeRange,
+  formatHoursMinutes,
+  getTimeRangeParts,
   todayDateString,
 } from '@/utils/timeDisplay'
 import { monthLabel } from '@/utils/dateHelpers'
+import { formatDecimal } from '@/utils/formatNumber'
+import { SoftDivider } from '@/components/ui/soft-divider'
 import {
   computeStatsMetrics,
   filterAndSortIntervals,
@@ -73,7 +76,7 @@ function MetricCard({
 }
 
 export function StatsPage() {
-  const { t, intlLocale } = useI18n()
+  const { t, locale, intlLocale } = useI18n()
   const now = useMemo(() => currentYearMonth(), [])
   const today = todayDateString()
   const { settings } = useSettings()
@@ -412,14 +415,12 @@ export function StatsPage() {
               ? t('stats.metric.totalHoursAll')
               : t('stats.metric.totalHoursPeriod')
           }
-          value={t('stats.metric.hours', { value: formatHours(metrics.totalSeconds) })}
+          value={formatHoursMinutes(metrics.totalSeconds)}
           hint={formatDuration(metrics.totalSeconds)}
         />
         <MetricCard
           label={t('stats.metric.avgPerWorkedDay')}
-          value={t('stats.metric.hours', {
-            value: metrics.avgHoursPerWorkedDay.toFixed(2),
-          })}
+          value={formatDecimalHoursAsClock(metrics.avgHoursPerWorkedDay)}
           hint={t('stats.metric.workedDays', { count: metrics.workedDays })}
         />
         <MetricCard
@@ -438,30 +439,13 @@ export function StatsPage() {
           label={t('stats.metric.intervals')}
           value={String(metrics.intervalCount)}
           hint={t('stats.metric.avgLength', {
-            hours: metrics.avgIntervalHours.toFixed(2),
+            hours: formatDecimalHoursAsClock(metrics.avgIntervalHours),
           })}
         />
         <MetricCard
           label={t('stats.metric.avgPerCalendarDay')}
-          value={t('stats.metric.hours', {
-            value: metrics.avgHoursPerCalendarDay.toFixed(2),
-          })}
+          value={formatDecimalHoursAsClock(metrics.avgHoursPerCalendarDay)}
           hint={t('stats.metric.calendarDays', { count: metrics.calendarDays })}
-        />
-        <MetricCard
-          label={t('stats.metric.pauses')}
-          value={t('stats.metric.hours', {
-            value: formatHours(metrics.pauseSeconds),
-          })}
-          hint={formatDuration(metrics.pauseSeconds)}
-        />
-        <MetricCard
-          label={t('stats.metric.rate')}
-          value={t('stats.metric.rateValue', {
-            rate: settings.hourlyRate,
-            currency: settings.currency,
-          })}
-          hint={t('stats.metric.taxHint', { rate: settings.taxRate })}
         />
       </section>
 
@@ -485,12 +469,10 @@ export function StatsPage() {
               <div key={monthGroup.key} className="grid gap-3">
                 <div className="flex items-baseline justify-between gap-3 border-b border-primary/15 pb-2">
                   <h3 className="text-base font-semibold">
-                    {monthLabel(monthGroup.year, monthGroup.month, intlLocale)}
+                    {monthLabel(monthGroup.year, monthGroup.month, locale)}
                   </h3>
                   <span className="text-sm tabular-nums text-muted-foreground">
-                    {t('stats.metric.hours', {
-                      value: formatHours(monthGroup.totalSeconds),
-                    })}
+                    {formatHoursMinutes(monthGroup.totalSeconds)}
                   </span>
                 </div>
                 {monthGroup.days.map((day) => (
@@ -500,9 +482,7 @@ export function StatsPage() {
                         {formatDayLabel(day.date)}
                       </h4>
                       <span className="text-xs tabular-nums text-muted-foreground">
-                        {t('stats.metric.hours', {
-                          value: formatHours(day.totalSeconds),
-                        })}
+                        {formatHoursMinutes(day.totalSeconds)}
                       </span>
                     </div>
                     <ul className="grid gap-2">
@@ -511,23 +491,46 @@ export function StatsPage() {
                           (entry.totalSeconds / 3600) *
                           entry.coefficient *
                           settings.hourlyRate
+                        const range = getTimeRangeParts(entry.start, entry.end)
                         return (
                           <li
                             key={entry.id}
                             className="surface-panel flex items-center justify-between gap-3 px-4 py-3"
                           >
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium truncate">
-                                {formatTimeRange(entry.start, entry.end)}
+                            <div className="min-w-0 space-y-1">
+                              <p className="flex min-w-0 items-center text-sm font-medium">
+                                {range.dateLabel ? (
+                                  <>
+                                    <span className="shrink-0 tabular-nums">
+                                      {range.dateLabel}
+                                    </span>
+                                    <SoftDivider />
+                                    <span className="min-w-0 truncate tabular-nums">
+                                      {range.timeLabel}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="truncate tabular-nums">
+                                    {range.timeLabel}
+                                  </span>
+                                )}
                               </p>
-                              <p className="text-xs text-muted-foreground tabular-nums mt-0.5">
-                                {formatDuration(entry.totalSeconds)}
-                                {entry.coefficient !== 1
-                                  ? ` · ×${entry.coefficient}`
-                                  : ''}
-                                {settings.hourlyRate > 0
-                                  ? ` · ${amount.toFixed(2)} ${settings.currency}`
-                                  : ''}
+                              <p className="flex flex-wrap items-center text-xs text-muted-foreground tabular-nums">
+                                <span>{formatDuration(entry.totalSeconds)}</span>
+                                {entry.coefficient !== 1 ? (
+                                  <>
+                                    <SoftDivider />
+                                    <span>×{formatDecimal(entry.coefficient)}</span>
+                                  </>
+                                ) : null}
+                                {settings.hourlyRate > 0 ? (
+                                  <>
+                                    <SoftDivider />
+                                    <span>
+                                      {amount.toFixed(2)} {settings.currency}
+                                    </span>
+                                  </>
+                                ) : null}
                               </p>
                             </div>
                             <div className="flex items-center gap-0.5 shrink-0">

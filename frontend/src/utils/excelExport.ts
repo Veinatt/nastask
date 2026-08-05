@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx'
 import type { SalaryReport, TaxReport } from '@/db/types'
 import { t } from '@/lib/i18n'
+import { roundDecimal } from '@/utils/formatNumber'
 import { formatIntervalWhen } from '@/utils/timeDisplay'
 
 export function exportSalaryExcel(report: SalaryReport): void {
@@ -12,7 +13,7 @@ export function exportSalaryExcel(report: SalaryReport): void {
   const rows = report.rows.map((r) => ({
     [colDateTime]: r.start ? formatIntervalWhen(r.start) : r.date,
     [colHours]: Number(r.hours.toFixed(4)),
-    [colCoef]: r.coefficient,
+    [colCoef]: roundDecimal(r.coefficient),
     [colAmount]: Number(r.amount.toFixed(2)),
   }))
   rows.push({
@@ -27,6 +28,14 @@ export function exportSalaryExcel(report: SalaryReport): void {
     [colCoef]: '' as unknown as number,
     [colAmount]: Number(report.taxAmount.toFixed(2)),
   })
+  if ((report.expensesSum ?? 0) > 0) {
+    rows.push({
+      [colDateTime]: t('excel.salary.expenses'),
+      [colHours]: '' as unknown as number,
+      [colCoef]: '' as unknown as number,
+      [colAmount]: Number(report.expensesSum.toFixed(2)),
+    })
+  }
   rows.push({
     [colDateTime]: t('excel.salary.employer'),
     [colHours]: '' as unknown as number,
@@ -52,7 +61,7 @@ export function exportTaxExcel(report: TaxReport): void {
   const rows = report.rows.map((r) => ({
     [colCategory]: r.categoryName ?? '',
     [colDescription]: r.descriptionName ?? '',
-    [colQuantity]: r.quantity,
+    [colQuantity]: roundDecimal(r.quantity),
     [colUnit]: r.unitName,
   }))
   const sheet = XLSX.utils.json_to_sheet(rows)

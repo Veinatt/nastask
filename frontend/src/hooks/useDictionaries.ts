@@ -69,7 +69,11 @@ export function useDictionaries(kind: DictKind) {
       await dictsLocal.remove(kind, id)
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
-        throw new Error(t('dicts.deleteInUse'))
+        throw new Error(
+          kind === 'expenses'
+            ? t('dicts.deleteInUseExpenses')
+            : t('dicts.deleteInUse'),
+        )
       }
       if (!navigator.onLine || error instanceof TypeError) {
         await dictsLocal.remove(kind, id)

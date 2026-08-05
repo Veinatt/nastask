@@ -21,9 +21,11 @@ export function TimerCard({ entry, onPause, onResume, onComplete, onDelete }: Pr
     <div
       className={cn(
         'animate-fade-up rounded-2xl border p-4 sm:p-5 space-y-4 shadow-sm transition-[colors,box-shadow,border-color] duration-300 ease-[var(--ease-out-soft)]',
+        // Explicit alpha colors — avoid Tailwind color-mix + light/dark class fights
+        // (light bg-amber-50 was winning in dark theme → white timer on cream)
         paused
-          ? 'border-amber-400/35 bg-amber-50/90 dark:bg-amber-950/35'
-          : 'border-emerald-500/40 bg-emerald-50/90 dark:bg-emerald-950/35',
+          ? 'border-[rgb(251_191_36_/0.45)] bg-[rgb(251_191_36_/0.14)]'
+          : 'border-[rgb(16_185_129_/0.45)] bg-[rgb(16_185_129_/0.14)]',
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -31,7 +33,9 @@ export function TimerCard({ entry, onPause, onResume, onComplete, onDelete }: Pr
           <p
             className={cn(
               'text-xs font-semibold uppercase tracking-wide',
-              paused ? 'text-amber-700/80 dark:text-amber-300/80' : 'text-emerald-700/80 dark:text-emerald-300/80',
+              paused
+                ? 'text-[rgb(217_119_6)] dark:text-[rgb(252_211_77)]'
+                : 'text-[rgb(5_150_105)] dark:text-[rgb(110_231_183)]',
             )}
           >
             {paused ? t('timer.paused') : t('timer.running')}
@@ -49,11 +53,11 @@ export function TimerCard({ entry, onPause, onResume, onComplete, onDelete }: Pr
           <Button
             size="sm"
             variant="secondary"
-            className={
+            className={cn(
               paused
-                ? 'bg-amber-500/15 hover:bg-amber-500/25'
-                : 'bg-emerald-500/15 hover:bg-emerald-500/25'
-            }
+                ? 'bg-[rgb(251_191_36_/0.22)] text-[rgb(120_53_15)] hover:bg-[rgb(251_191_36_/0.32)] dark:text-[rgb(254_243_199)]'
+                : 'bg-[rgb(16_185_129_/0.22)] text-[rgb(6_78_59)] hover:bg-[rgb(16_185_129_/0.32)] dark:text-[rgb(209_250_229)]',
+            )}
             onClick={paused ? onResume : onPause}
             aria-label={paused ? t('timer.resume') : t('timer.pause')}
           >

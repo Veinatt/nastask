@@ -1,7 +1,14 @@
-/** Localized month label, e.g. «август 2026» */
-export function monthLabel(year: number, month: number, locale = 'ru-RU'): string {
+import { format } from 'date-fns'
+import { dateFnsLocale, getLocale, type AppLocale } from '@/lib/i18n'
+
+/** Localized month label via date-fns (avoids broken Intl be-BY → "2026 MO8"). */
+export function monthLabel(
+  year: number,
+  month: number,
+  locale: AppLocale = getLocale(),
+): string {
   const d = new Date(year, month - 1, 1)
-  const label = d.toLocaleDateString(locale, { month: 'long', year: 'numeric' })
+  const label = format(d, 'LLLL yyyy', { locale: dateFnsLocale(locale) })
   return label.charAt(0).toUpperCase() + label.slice(1)
 }
 

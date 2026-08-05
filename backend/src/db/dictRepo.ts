@@ -2,7 +2,7 @@ import { getDb } from './index'
 import type { DictItem } from '../types'
 import { randomUUID } from 'node:crypto'
 
-type DictTable = 'categories' | 'work_descriptions' | 'units'
+type DictTable = 'categories' | 'work_descriptions' | 'units' | 'expense_articles'
 
 function mapRow(row: Record<string, unknown>): DictItem {
   return {
@@ -56,6 +56,16 @@ function createDictRepo(table: DictTable) {
     },
 
     isUsed(id: string): boolean {
+      if (table === 'expense_articles') {
+        const item = this.get(id)
+        if (!item) return false
+        const row = getDb()
+          .prepare(
+            `SELECT 1 FROM salary_expenses WHERE userId = ? AND name = ? LIMIT 1`,
+          )
+          .get(item.userId, item.name)
+        return Boolean(row)
+      }
       const column =
         table === 'categories'
           ? 'categoryId'
@@ -73,3 +83,4 @@ function createDictRepo(table: DictTable) {
 export const categoriesRepo = createDictRepo('categories')
 export const descriptionsRepo = createDictRepo('work_descriptions')
 export const unitsRepo = createDictRepo('units')
+export const expenseArticlesRepo = createDictRepo('expense_articles')

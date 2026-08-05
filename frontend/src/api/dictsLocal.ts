@@ -9,6 +9,8 @@ function table(kind: DictKind) {
       return db.descriptions
     case 'units':
       return db.units
+    case 'expenses':
+      return db.expenses
   }
 }
 

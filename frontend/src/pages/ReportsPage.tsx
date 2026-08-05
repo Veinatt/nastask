@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Download } from 'lucide-react'
+import { Download, List, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
@@ -18,10 +18,13 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { MonthPicker } from '@/components/reports/MonthPicker'
+import { AddExpenseDialog } from '@/components/reports/AddExpenseDialog'
+import { ExpensesListDialog } from '@/components/reports/ExpensesListDialog'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { useReports } from '@/hooks/useReports'
 import { useI18n } from '@/hooks/useI18n'
 import { exportTaxExcel } from '@/utils/excelExport'
+import { formatDecimal } from '@/utils/formatNumber'
 import { formatIntervalWhen } from '@/utils/timeDisplay'
 
 function currentYearMonth() {
@@ -35,7 +38,21 @@ export function ReportsPage() {
   const [year, setYear] = useState(now.year)
   const [month, setMonth] = useState(now.month)
   const [tab, setTab] = useState<'salary' | 'tax'>('salary')
-  const { salary, tax, groupBy, setGroupBy, loading, error } = useReports(year, month)
+  const { salary, tax, groupBy, setGroupBy, loading, error, reload } = useReports(
+    year,
+    month,
+  )
+  const [addExpenseOpen, setAddExpenseOpen] = useState(false)
+  const [listExpensesOpen, setListExpensesOpen] = useState(false)
+
+  const employerLabel =
+    salary && salary.expensesSum > 0
+      ? t('reports.employerWithExpenses', {
+          taxRate: salary.taxRate,
+          expenses: formatDecimal(salary.expensesSum, 2),
+          currency: salary.currency,
+        })
+      : t('reports.employer', { taxRate: salary?.taxRate ?? 0 })
 
   return (
     <div className="grid gap-6">
@@ -71,26 +88,37 @@ export function ReportsPage() {
 
       {tab === 'salary' && salary && (
         <section key="salary" className="grid gap-4 animate-fade-up">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="surface-panel px-4 py-3">
-              <p className="section-label">{t('reports.rate')}</p>
-              <p className="mt-1 text-lg font-semibold tabular-nums">
-                {t('reports.rateValue', {
-                  rate: salary.hourlyRate,
-                  currency: salary.currency,
-                })}
-              </p>
-            </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-[hsl(var(--primary)/0.2)]"
+              onClick={() => setAddExpenseOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              {t('expenses.add')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-[hsl(var(--primary)/0.2)]"
+              disabled={salary.expenses.length === 0}
+              onClick={() => setListExpensesOpen(true)}
+            >
+              <List className="h-4 w-4 mr-1" />
+              {t('expenses.list')}
+            </Button>
+          </div>
+
+          <div className="grid gap-3">
             <div className="surface-panel px-4 py-3">
               <p className="section-label">{t('reports.total')}</p>
               <p className="mt-1 text-lg font-semibold tabular-nums text-primary-soft">
                 {salary.monthSum.toFixed(2)} {salary.currency}
               </p>
             </div>
-            <div className="surface-tint px-4 py-3">
-              <p className="section-label">
-                {t('reports.employer', { taxRate: salary.taxRate })}
-              </p>
+            <div className="surface-panel px-4 py-3">
+              <p className="section-label">{employerLabel}</p>
               <p className="mt-1 text-lg font-semibold tabular-nums">
                 {salary.employerPay.toFixed(2)} {salary.currency}
               </p>
@@ -114,7 +142,9 @@ export function ReportsPage() {
                       {r.start ? formatIntervalWhen(r.start) : r.date}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{r.hours.toFixed(2)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{r.coefficient}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatDecimal(r.coefficient)}
+                    </TableCell>
                     <TableCell className="text-right tabular-nums font-medium">
                       {r.amount.toFixed(2)}
                     </TableCell>
@@ -128,6 +158,23 @@ export function ReportsPage() {
               </p>
             )}
           </div>
+
+          <AddExpenseDialog
+            open={addExpenseOpen}
+            onOpenChange={setAddExpenseOpen}
+            year={year}
+            month={month}
+            currency={salary.currency}
+            onCreated={() => reload()}
+          />
+          <ExpensesListDialog
+            open={listExpensesOpen}
+            onOpenChange={setListExpensesOpen}
+            currency={salary.currency}
+            expenses={salary.expenses}
+            expensesSum={salary.expensesSum}
+            onChanged={() => reload()}
+          />
         </section>
       )}
 
@@ -186,7 +233,9 @@ export function ReportsPage() {
                     {(groupBy === 'both' || groupBy === 'description') && (
                       <TableCell>{r.descriptionName ?? '—'}</TableCell>
                     )}
-                    <TableCell className="text-right tabular-nums">{r.quantity}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatDecimal(r.quantity)}
+                    </TableCell>
                     <TableCell>{r.unitName}</TableCell>
                   </TableRow>
                 ))}

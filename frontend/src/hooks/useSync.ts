@@ -14,7 +14,7 @@ import {
 } from '@/utils/timeDisplay'
 import type { DictKind, TimeEntry, WorkItem } from '@/db/types'
 
-const DICTS: DictKind[] = ['categories', 'descriptions', 'units']
+const DICTS: DictKind[] = ['categories', 'descriptions', 'units', 'expenses']
 
 async function fetchCompletedDay(
   date: string,
