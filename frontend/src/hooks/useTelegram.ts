@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   init,
   initData,
@@ -6,7 +6,6 @@ import {
   restoreInitData,
   themeParams,
   viewport,
-  useSignal,
 } from '@telegram-apps/sdk-react'
 import {
   THEME_CHANGE_EVENT,
@@ -21,15 +20,8 @@ type TelegramUser = {
   username?: string
 }
 
-function applyResolvedTheme(inTelegram: boolean, telegramIsDark?: boolean | null) {
-  const preference = getThemePreference()
-  const systemDark = inTelegram
-    ? Boolean(telegramIsDark ?? miniApp.isDark())
-    : null
-  applyTheme(preference, systemDark)
-}
+const DEV_FAKE_USER_ID = Number(import.meta.env.VITE_DEV_USER_ID ?? 334808852)
 
-/** Hide Telegram's native loading placeholder even if SDK init failed. */
 function signalNativeReady(): void {
   try {
     const tg = (
@@ -41,11 +33,42 @@ function signalNativeReady(): void {
   }
 }
 
+function readNativeUser(): TelegramUser | null {
+  try {
+    const unsafe = (
+      window as unknown as {
+        Telegram?: {
+          WebApp?: {
+            initDataUnsafe?: {
+              user?: {
+                id?: number
+                first_name?: string
+                last_name?: string
+                username?: string
+              }
+            }
+          }
+        }
+      }
+    ).Telegram?.WebApp?.initDataUnsafe?.user
+    if (unsafe?.id != null && Number.isFinite(unsafe.id)) {
+      return {
+        id: unsafe.id,
+        firstName: unsafe.first_name,
+        lastName: unsafe.last_name,
+        username: unsafe.username,
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null
+}
+
 function tryInitTelegram(): boolean {
   try {
     init()
 
-    // themeParams before miniApp (SDK docs)
     if (themeParams.mount.isAvailable()) {
       themeParams.mount()
       themeParams.bindCssVars.ifAvailable()
@@ -57,81 +80,71 @@ function tryInitTelegram(): boolean {
     try {
       restoreInitData()
     } catch {
-      // outside Telegram / no launch params yet
+      // ignore
     }
 
     if (viewport.mount.isAvailable()) {
-      void viewport.mount().then(() => {
-        viewport.bindCssVars.ifAvailable()
-        viewport.expand.ifAvailable()
-      })
+      void viewport
+        .mount()
+        .then(() => {
+          viewport.bindCssVars.ifAvailable()
+          viewport.expand.ifAvailable()
+        })
+        .catch(() => {
+          // ignore viewport errors on odd clients
+        })
     }
 
-    // Critical for Main App / mobile: otherwise Telegram keeps its loader forever
     miniApp.ready.ifAvailable()
     signalNativeReady()
-
     return true
-  } catch {
+  } catch (e) {
+    console.warn('[telegram] init failed', e)
     signalNativeReady()
     return false
   }
 }
 
-/** Init once at module load so signals are safe to read in hooks. */
-const telegramReady = tryInitTelegram()
-applyResolvedTheme(telegramReady, telegramReady ? Boolean(miniApp.isDark()) : null)
+function readSdkUser(): TelegramUser | null {
+  try {
+    const u = initData.user()
+    if (!u) return null
+    return {
+      id: u.id,
+      firstName: u.first_name,
+      lastName: u.last_name,
+      username: u.username,
+    }
+  } catch {
+    return null
+  }
+}
 
-const DEV_FAKE_USER_ID = Number(import.meta.env.VITE_DEV_USER_ID ?? 334808852)
+function readInitDataRaw(): string | null {
+  try {
+    const raw = initData.raw()
+    if (raw && String(raw).trim()) return String(raw)
+  } catch {
+    // ignore
+  }
+  try {
+    const raw = (
+      window as unknown as { Telegram?: { WebApp?: { initData?: string } } }
+    ).Telegram?.WebApp?.initData
+    if (raw && String(raw).trim()) return String(raw)
+  } catch {
+    // ignore
+  }
+  return null
+}
 
+/**
+ * Safe Telegram hook: no module-level SDK init, no useSignal
+ * (signals can crash the whole tree if init() never succeeded).
+ */
 export function useTelegram() {
-  const [inTelegram] = useState(telegramReady)
-  const tgUser = useSignal(initData.user)
-  const isDark = useSignal(miniApp.isDark)
-
-  useEffect(() => {
-    // Re-signal ready after first React paint (covers late WebView injection)
-    miniApp.ready.ifAvailable()
-    signalNativeReady()
-    try {
-      restoreInitData()
-    } catch {
-      // ignore
-    }
-
-    const apply = () => {
-      applyResolvedTheme(inTelegram, inTelegram ? Boolean(miniApp.isDark()) : null)
-    }
-    apply()
-
-    window.addEventListener(THEME_CHANGE_EVENT, apply)
-
-    let cleanupMq: (() => void) | undefined
-    if (!inTelegram) {
-      const mq = window.matchMedia('(prefers-color-scheme: dark)')
-      const onChange = () => apply()
-      mq.addEventListener('change', onChange)
-      cleanupMq = () => mq.removeEventListener('change', onChange)
-    }
-
-    return () => {
-      window.removeEventListener(THEME_CHANGE_EVENT, apply)
-      cleanupMq?.()
-    }
-  }, [inTelegram, isDark])
-
-  const user = useMemo<TelegramUser | null>(() => {
-    // Prefer real Telegram user even on localhost (e.g. Telegram Desktop WebView)
-    if (tgUser) {
-      return {
-        id: tgUser.id,
-        firstName: tgUser.first_name,
-        lastName: tgUser.last_name,
-        username: tgUser.username,
-      }
-    }
-
-    // Browser DEV without Telegram — fake user for local API testing
+  const [inTelegram, setInTelegram] = useState(false)
+  const [user, setUser] = useState<TelegramUser | null>(() => {
     if (import.meta.env.DEV) {
       return {
         id: DEV_FAKE_USER_ID,
@@ -140,18 +153,77 @@ export function useTelegram() {
         username: 'devuser',
       }
     }
-
     return null
-  }, [tgUser])
+  })
+  const [initDataRaw, setInitDataRaw] = useState<string | null>(null)
+  const [isDark, setIsDark] = useState<boolean | undefined>(undefined)
 
-  const initDataRaw =
-    typeof initData.raw === 'function' ? initData.raw() ?? null : null
+  useEffect(() => {
+    const ok = tryInitTelegram()
+    setInTelegram(ok)
+
+    const refreshUser = () => {
+      const next = readSdkUser() ?? readNativeUser()
+      if (next) {
+        setUser(next)
+      } else if (import.meta.env.DEV) {
+        setUser({
+          id: DEV_FAKE_USER_ID,
+          firstName: 'Dev',
+          lastName: 'User',
+          username: 'devuser',
+        })
+      }
+      setInitDataRaw(readInitDataRaw())
+      try {
+        if (ok) setIsDark(Boolean(miniApp.isDark()))
+      } catch {
+        // ignore
+      }
+    }
+
+    refreshUser()
+    applyTheme(getThemePreference(), ok ? isDark ?? null : null)
+
+    const apply = () => {
+      let telegramDark: boolean | null = null
+      try {
+        if (ok) telegramDark = Boolean(miniApp.isDark())
+      } catch {
+        telegramDark = null
+      }
+      applyTheme(getThemePreference(), telegramDark)
+      refreshUser()
+    }
+
+    window.addEventListener(THEME_CHANGE_EVENT, apply)
+
+    let cleanupMq: (() => void) | undefined
+    if (!ok) {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)')
+      const onChange = () => apply()
+      mq.addEventListener('change', onChange)
+      cleanupMq = () => mq.removeEventListener('change', onChange)
+    }
+
+    // Late WebView injection — retry a few times
+    const t1 = window.setTimeout(refreshUser, 300)
+    const t2 = window.setTimeout(refreshUser, 1000)
+
+    return () => {
+      window.removeEventListener(THEME_CHANGE_EVENT, apply)
+      cleanupMq?.()
+      window.clearTimeout(t1)
+      window.clearTimeout(t2)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return {
     inTelegram,
     user,
     userId: user?.id ?? null,
     initDataRaw,
-    isDark: inTelegram ? Boolean(isDark) : undefined,
+    isDark: inTelegram ? isDark : undefined,
   }
 }

@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   initData,
-  initDataRaw,
   restoreInitData,
   retrieveRawInitData,
   retrieveLaunchParams,
-  useSignal,
 } from '@telegram-apps/sdk-react'
 import { API_BASE_URL } from '@/api/client'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -20,9 +18,10 @@ type TgWebApp = {
 
 function readTelegramWebApp(): TgWebApp | null {
   try {
-    const tg = (window as unknown as { Telegram?: { WebApp?: TgWebApp } }).Telegram
-      ?.WebApp
-    return tg ?? null
+    return (
+      (window as unknown as { Telegram?: { WebApp?: TgWebApp } }).Telegram
+        ?.WebApp ?? null
+    )
   } catch {
     return null
   }
@@ -45,9 +44,7 @@ function collectInitDataLog(telegramHook: ReturnType<typeof useTelegram>) {
     restoreInitData()
     return true
   })
-
   const sdkRawFn = safeCall(() => initData.raw())
-  const sdkRawSignal = safeCall(() => initDataRaw())
   const retrieveRaw = safeCall(() => retrieveRawInitData())
   const launchParams = safeCall(() => retrieveLaunchParams())
 
@@ -55,6 +52,7 @@ function collectInitDataLog(telegramHook: ReturnType<typeof useTelegram>) {
     (sdkRawFn.ok && sdkRawFn.value && String(sdkRawFn.value).trim()) ||
     (retrieveRaw.ok && retrieveRaw.value && String(retrieveRaw.value).trim()) ||
     (webApp?.initData && String(webApp.initData).trim()) ||
+    (telegramHook.initDataRaw && String(telegramHook.initDataRaw).trim()) ||
     ''
 
   return {
@@ -85,7 +83,6 @@ function collectInitDataLog(telegramHook: ReturnType<typeof useTelegram>) {
     sdk: {
       restoreInitData: restore,
       'initData.raw()': sdkRawFn,
-      'initDataRaw()': sdkRawSignal,
       'retrieveRawInitData()': retrieveRaw,
       'retrieveLaunchParams()': launchParams,
     },
@@ -104,21 +101,22 @@ function collectInitDataLog(telegramHook: ReturnType<typeof useTelegram>) {
 
 export function InitDataDebugPanel() {
   const telegram = useTelegram()
-  const rawSignal = useSignal(initDataRaw)
   const [tick, setTick] = useState(0)
   const [copied, setCopied] = useState(false)
-
-  const log = useMemo(
-    () => collectInitDataLog(telegram),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [telegram, tick, rawSignal],
-  )
+  const [log, setLog] = useState<ReturnType<typeof collectInitDataLog> | null>(null)
 
   useEffect(() => {
-    console.log('[init-data-debug]', log)
-  }, [log])
+    try {
+      const next = collectInitDataLog(telegram)
+      setLog(next)
+      console.log('[init-data-debug]', next)
+    } catch (e) {
+      console.error('[init-data-debug] failed', e)
+      setLog(null)
+    }
+  }, [telegram, tick])
 
-  const json = useMemo(() => JSON.stringify(log, null, 2), [log])
+  const json = useMemo(() => (log ? JSON.stringify(log, null, 2) : '{}'), [log])
 
   return (
     <section className="surface-panel border border-amber-500/40 bg-amber-500/5 px-3 py-3 sm:px-4">
@@ -156,35 +154,40 @@ export function InitDataDebugPanel() {
         </div>
       </div>
 
-      <div className="mb-2 grid gap-1 text-xs">
-        <p>
-          <span className="text-muted-foreground">inTelegram:</span>{' '}
-          <b>{String(log.hook.inTelegram)}</b>
-        </p>
-        <p>
-          <span className="text-muted-foreground">userId:</span>{' '}
-          <b>{log.hook.userId ?? 'null'}</b>
-        </p>
-        <p>
-          <span className="text-muted-foreground">WebApp.initData length:</span>{' '}
-          <b>
-            {log.windowTelegramWebApp.present
-              ? log.windowTelegramWebApp.initDataLength
-              : 'no WebApp'}
-          </b>
-        </p>
-        <p>
-          <span className="text-muted-foreground">auth header:</span>{' '}
-          <b className={log.authHeaderOk ? 'text-emerald-600' : 'text-destructive'}>
-            {log.authHeaderOk ? 'OK' : 'MISSING'}
-          </b>
-        </p>
-        <p className="break-all text-muted-foreground">API: {log.apiBaseUrl}</p>
-      </div>
-
-      <pre className="max-h-72 overflow-auto rounded-lg bg-background/80 p-2 text-[10px] leading-snug text-foreground whitespace-pre-wrap break-all">
-        {json}
-      </pre>
+      {log ? (
+        <>
+          <div className="mb-2 grid gap-1 text-xs">
+            <p>
+              <span className="text-muted-foreground">inTelegram:</span>{' '}
+              <b>{String(log.hook.inTelegram)}</b>
+            </p>
+            <p>
+              <span className="text-muted-foreground">userId:</span>{' '}
+              <b>{log.hook.userId ?? 'null'}</b>
+            </p>
+            <p>
+              <span className="text-muted-foreground">WebApp.initData length:</span>{' '}
+              <b>
+                {log.windowTelegramWebApp.present
+                  ? log.windowTelegramWebApp.initDataLength
+                  : 'no WebApp'}
+              </b>
+            </p>
+            <p>
+              <span className="text-muted-foreground">auth header:</span>{' '}
+              <b className={log.authHeaderOk ? 'text-emerald-600' : 'text-destructive'}>
+                {log.authHeaderOk ? 'OK' : 'MISSING'}
+              </b>
+            </p>
+            <p className="break-all text-muted-foreground">API: {log.apiBaseUrl}</p>
+          </div>
+          <pre className="max-h-72 overflow-auto rounded-lg bg-background/80 p-2 text-[10px] leading-snug text-foreground whitespace-pre-wrap break-all">
+            {json}
+          </pre>
+        </>
+      ) : (
+        <p className="text-xs text-muted-foreground">Collecting…</p>
+      )}
     </section>
   )
 }
