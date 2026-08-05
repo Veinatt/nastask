@@ -13,6 +13,7 @@ import {
 import { TimerCard } from '@/components/intervals/TimerCard'
 import { CompleteIntervalDialog } from '@/components/intervals/CompleteIntervalDialog'
 import { ManualEntryDialog } from '@/components/intervals/ManualEntryDialog'
+import { InitDataDebugPanel } from '@/components/debug/InitDataDebugPanel'
 import { useActiveIntervals } from '@/hooks/useActiveIntervals'
 import { useI18n } from '@/hooks/useI18n'
 import { formatDuration, formatTimeRange } from '@/utils/timeDisplay'
@@ -176,6 +177,8 @@ export function HomePage() {
           </Button>
         </div>
       </header>
+
+      <InitDataDebugPanel />
 
       {error && (
         <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
