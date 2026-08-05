@@ -40,7 +40,11 @@ export function AppLayout() {
       <SyncStatusBanner />
       <main
         ref={mainRef}
-        className="mx-auto w-full min-w-0 max-w-6xl flex-1 overflow-x-clip px-4 py-5 pb-24 md:px-6 md:py-8 md:pb-10 touch-pan-y"
+        className="mx-auto w-full min-w-0 max-w-6xl flex-1 overflow-x-clip px-4 py-5 md:px-6 md:py-8 md:pb-10 touch-pan-y"
+        style={{
+          paddingBottom:
+            'calc(5.5rem + var(--tg-safe-area-inset-bottom, 0px) + var(--tg-content-safe-area-inset-bottom, 0px))',
+        }}
       >
         <div
           key={location.pathname}

@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppErrorBoundary } from '@/components/AppErrorBoundary'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { SplashDoneProvider } from '@/components/splash/SplashDoneContext'
@@ -24,7 +24,12 @@ export default function App() {
   return (
     <AppErrorBoundary>
       <SplashDoneProvider value={splashDone}>
-        <BrowserRouter>
+        {/*
+          MemoryRouter: Telegram puts launch params in location.hash (#tgWebAppData=…).
+          BrowserRouter pathname navigations fight that hash / WebView history and
+          tab switches silently fail inside Mini Apps.
+        */}
+        <MemoryRouter initialEntries={['/']} initialIndex={0}>
           <div className="min-h-dvh">
             <Routes>
               <Route element={<AppLayout />}>
@@ -36,7 +41,7 @@ export default function App() {
               </Route>
             </Routes>
           </div>
-        </BrowserRouter>
+        </MemoryRouter>
       </SplashDoneProvider>
     </AppErrorBoundary>
   )

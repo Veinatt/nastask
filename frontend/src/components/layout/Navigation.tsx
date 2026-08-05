@@ -1,10 +1,11 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/hooks/useI18n'
 import { NAV_ITEMS } from '@/components/layout/navItems'
 
 export function Navigation() {
   const { t } = useI18n()
+  const navigate = useNavigate()
 
   return (
     <>
@@ -17,6 +18,10 @@ export function Navigation() {
             key={to}
             to={to}
             end={end}
+            onClick={(e) => {
+              e.preventDefault()
+              navigate(to)
+            }}
             className={({ isActive }) =>
               cn(
                 'inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200',
@@ -39,13 +44,28 @@ export function Navigation() {
         ))}
       </nav>
 
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-primary/10 bg-card/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
+      {/*
+        Sit above Telegram Mini App bottom chrome (bot name bar / home indicator).
+        --tg-* vars are bound by viewport.bindCssVars when available.
+      */}
+      <nav
+        className="md:hidden fixed inset-x-0 z-40 border-t border-primary/10 bg-card/95 backdrop-blur-md"
+        style={{
+          bottom: 'var(--tg-safe-area-inset-bottom, 0px)',
+          paddingBottom:
+            'max(0.25rem, var(--tg-content-safe-area-inset-bottom, 0px))',
+        }}
+      >
         <div className="grid grid-cols-4 max-w-lg mx-auto">
           {NAV_ITEMS.map(({ to, labelKey, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
+              onClick={(e) => {
+                e.preventDefault()
+                navigate(to)
+              }}
               className={({ isActive }) =>
                 cn(
                   'flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors duration-200',

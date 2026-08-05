@@ -6,6 +6,8 @@ import {
   restoreInitData,
   themeParams,
   viewport,
+  requestSafeAreaInsets,
+  requestContentSafeAreaInsets,
 } from '@telegram-apps/sdk-react'
 import {
   THEME_CHANGE_EVENT,
@@ -89,6 +91,8 @@ function tryInitTelegram(): boolean {
         .then(() => {
           viewport.bindCssVars.ifAvailable()
           viewport.expand.ifAvailable()
+          requestSafeAreaInsets.ifAvailable()
+          requestContentSafeAreaInsets.ifAvailable()
         })
         .catch(() => {
           // ignore viewport errors on odd clients
