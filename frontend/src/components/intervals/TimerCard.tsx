@@ -46,17 +46,20 @@ export function TimerCard({ entry, onPause, onResume, onComplete, onDelete }: Pr
       </div>
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 flex-wrap gap-2">
-          {paused ? (
-            <Button size="sm" variant="secondary" className="bg-amber-500/15 hover:bg-amber-500/25" onClick={onResume}>
-              <Play className="h-4 w-4 mr-1" />
-              {t('timer.resume')}
-            </Button>
-          ) : (
-            <Button size="sm" variant="secondary" className="bg-emerald-500/15 hover:bg-emerald-500/25" onClick={onPause}>
-              <Pause className="h-4 w-4 mr-1" />
-              {t('timer.pause')}
-            </Button>
-          )}
+          <Button
+            size="sm"
+            variant="secondary"
+            className={
+              paused
+                ? 'bg-amber-500/15 hover:bg-amber-500/25'
+                : 'bg-emerald-500/15 hover:bg-emerald-500/25'
+            }
+            onClick={paused ? onResume : onPause}
+            aria-label={paused ? t('timer.resume') : t('timer.pause')}
+          >
+            {paused ? <Play className="h-4 w-4 mr-1" /> : <Pause className="h-4 w-4 mr-1" />}
+            {t('timer.pause')}
+          </Button>
           <Button
             size="sm"
             className="bg-emerald-600 text-white hover:bg-emerald-600/90"
