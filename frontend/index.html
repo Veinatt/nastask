@@ -19,19 +19,69 @@
       #boot-fallback {
         font-family: system-ui, -apple-system, Segoe UI, sans-serif;
         padding: 28px 20px;
-        text-align: center;
+        text-align: left;
         color: #0f172a;
       }
-      #boot-fallback strong { display: block; font-size: 22px; margin-bottom: 8px; }
-      #boot-fallback span { font-size: 14px; color: #64748b; }
+      #boot-fallback strong { display: block; font-size: 22px; margin-bottom: 8px; text-align: center; }
+      #boot-fallback .boot-msg { font-size: 14px; color: #64748b; text-align: center; margin-bottom: 12px; }
+      #boot-fallback pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 12px;
+        line-height: 1.4;
+        color: #b91c1c;
+        background: #fff1f2;
+        border-radius: 8px;
+        padding: 12px;
+        margin: 0;
+      }
     </style>
+    <!-- Must run BEFORE the app module so load/parse errors are visible in Mini App -->
+    <script>
+      (function () {
+        function esc(s) {
+          return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+        }
+        window.__showBootError = function (title, detail) {
+          var el = document.getElementById('boot-fallback')
+          if (!el) return
+          el.innerHTML =
+            '<strong>NasTask</strong>' +
+            '<div class="boot-msg">' +
+            esc(title) +
+            '</div>' +
+            (detail ? '<pre>' + esc(detail) + '</pre>' : '')
+        }
+        window.addEventListener('error', function (ev) {
+          var detail =
+            (ev && ev.error && (ev.error.stack || ev.error.message)) ||
+            (ev && ev.message) ||
+            'unknown error'
+          if (ev && ev.filename) {
+            detail += '\n\n@ ' + ev.filename + ':' + (ev.lineno || '?')
+          }
+          window.__showBootError('Ошибка загрузки JS', detail)
+        })
+        window.addEventListener('unhandledrejection', function (ev) {
+          var r = ev && ev.reason
+          var detail =
+            r && (r.stack || r.message)
+              ? r.stack || r.message
+              : String(r)
+          window.__showBootError('Unhandled promise', detail)
+        })
+      })()
+    </script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
   <body>
     <div id="root">
       <div id="boot-fallback">
         <strong>NasTask</strong>
-        <span>Загрузка…</span>
+        <div class="boot-msg">Загрузка…</div>
       </div>
     </div>
     <script>
@@ -48,16 +98,26 @@
         setTimeout(signalReady, 0)
         setTimeout(signalReady, 300)
         setTimeout(signalReady, 1200)
-        // If the app bundle never mounts, leave a clear message (not blank beige)
         setTimeout(function () {
           var el = document.getElementById('boot-fallback')
           if (el && el.parentNode && el.parentNode.id === 'root' && el.isConnected) {
-            el.innerHTML =
-              '<strong>NasTask</strong><span>Не загрузился интерфейс. Закройте Mini App и откройте снова, либо пришлите скрин.</span>'
+            if (window.__showBootError) {
+              window.__showBootError(
+                'Интерфейс не поднялся за 8с (бандл не смонтировался). Пришлите текст ниже, если появится.',
+                'boot-fallback still in #root — module did not run createRoot()',
+              )
+            }
           }
         }, 8000)
       })()
     </script>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module">
+      import('./src/main.tsx').catch(function (err) {
+        var detail = err && (err.stack || err.message) ? err.stack || err.message : String(err)
+        if (window.__showBootError) {
+          window.__showBootError('Не удалось импортировать приложение', detail)
+        }
+      })
+    </script>
   </body>
 </html>

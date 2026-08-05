@@ -4,14 +4,20 @@ import './index.css'
 import App from './App'
 
 function showBootError(err: unknown) {
-  const root = document.getElementById('root')
-  const message = err instanceof Error ? err.message : String(err)
+  const message = err instanceof Error ? err.stack || err.message : String(err)
   console.error('[boot]', err)
+  const show = (
+    window as unknown as { __showBootError?: (title: string, detail?: string) => void }
+  ).__showBootError
+  if (show) {
+    show('NasTask boot error', message)
+    return
+  }
+  const root = document.getElementById('root')
   if (root) {
     root.innerHTML = `<div style="padding:24px;font-family:sans-serif">
       <h1 style="font-size:18px;margin:0 0 8px">NasTask boot error</h1>
-      <pre style="white-space:pre-wrap;font-size:12px;color:#b91c1c">${message.replace(/</g, '&lt;')}</pre>
-      <p style="font-size:13px;color:#666">Если видишь это — пришли текст ошибки.</p>
+      <pre style="white-space:pre-wrap;font-size:12px;color:#b91c1c">${String(message).replace(/</g, '&lt;')}</pre>
     </div>`
   }
 }
@@ -29,10 +35,3 @@ try {
 } catch (err) {
   showBootError(err)
 }
-
-window.addEventListener('error', (ev) => {
-  console.error('[window.error]', ev.error || ev.message)
-})
-window.addEventListener('unhandledrejection', (ev) => {
-  console.error('[unhandledrejection]', ev.reason)
-})

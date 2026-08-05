@@ -13,4 +13,8 @@ export default defineConfig({
       '@': path.resolve(rootDir, './src'),
     },
   },
+  // Broader Safari / Telegram WKWebView support (macOS desktop client)
+  build: {
+    target: 'es2020',
+  },
 })
