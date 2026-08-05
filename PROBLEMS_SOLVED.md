@@ -135,11 +135,16 @@
 
 **Причина:** splash (FLIP morph + коты + `opacity`/`forwards`) в WKWebView Telegram macOS/`tdesktop` часто ломается: фон остаётся, логотип не рисуется, `#home-brand-title` скрыт через `html[data-splash=active]`.
 
-**Решение:**
-- lite-splash на `platform` macos/tdesktop/web/weba (+ wide fine-pointer): короткий показ без morph/котов;
-- при битых `getBoundingClientRect` — сразу `finish()`;
-- failsafe в `SplashScreen` (~2.8s) и запасной в `App` (3.5s) → `data-splash=done`;
-- явный цвет логотипа; `html[data-splash=done] #home-brand-title { opacity: 1 }`.
+**Решение (итерации):**
+1. lite-splash / failsafe — **не хватило** (на Mac у девушки всё ещё blank после деплоя).
+2. **Splash полностью отключён** в `App.tsx` (провайдер `splashDone=true`, без `SplashScreen`, без `data-splash=active`).
+3. В `index.html`: статический `#boot-fallback` («Загрузка…» → через 8s сообщение об ошибке), подключение `telegram-web-app.js`, `WebApp.ready()/expand()`.
+4. `min-height: 100vh/100dvh` fallback для WKWebView.
+
+Если после этого на Mac всё ещё пусто:
+- проверить, что Vercel задеплоил **новый** commit (не кэш старого бандла);
+- если видно «Загрузка…» и потом текст про ошибку — JS-бандл не монтируется (сеть/блокировка);
+- если «Загрузка…» сразу сменяется UI — ок; если вечный blank без fallback — открывается не тот URL / старый кэш WebView.
 
 ---
 

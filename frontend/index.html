@@ -12,16 +12,33 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap"
       rel="stylesheet"
     />
+    <!-- Critical: visible even if JS modules fail (Mac Telegram diagnosis) -->
+    <style>
+      html, body { margin: 0; min-height: 100%; background: #f4f7fb; color: #0f172a; }
+      #boot-fallback {
+        font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+        padding: 28px 20px;
+        text-align: center;
+      }
+      #boot-fallback strong { display: block; font-size: 22px; margin-bottom: 8px; }
+      #boot-fallback span { font-size: 14px; color: #64748b; }
+    </style>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
   <body>
-    <div id="root"></div>
-    <!-- Hide Telegram native loader ASAP (Main App / mobile otherwise hang) -->
+    <div id="root">
+      <div id="boot-fallback">
+        <strong>NasTask</strong>
+        <span>Загрузка…</span>
+      </div>
+    </div>
     <script>
       (function () {
         function signalReady() {
           try {
             var wa = window.Telegram && window.Telegram.WebApp
             if (wa && typeof wa.ready === 'function') wa.ready()
+            if (wa && typeof wa.expand === 'function') wa.expand()
           } catch (e) {}
         }
         signalReady()
@@ -29,6 +46,14 @@
         setTimeout(signalReady, 0)
         setTimeout(signalReady, 300)
         setTimeout(signalReady, 1200)
+        // If the app bundle never mounts, leave a clear message (not blank beige)
+        setTimeout(function () {
+          var el = document.getElementById('boot-fallback')
+          if (el && el.parentNode && el.parentNode.id === 'root' && el.isConnected) {
+            el.innerHTML =
+              '<strong>NasTask</strong><span>Не загрузился интерфейс. Закройте Mini App и откройте снова, либо пришлите скрин.</span>'
+          }
+        }, 8000)
       })()
     </script>
     <script type="module" src="/src/main.tsx"></script>

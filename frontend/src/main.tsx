@@ -19,6 +19,8 @@ function showBootError(err: unknown) {
 try {
   const el = document.getElementById('root')
   if (!el) throw new Error('#root not found')
+  // Clear static HTML fallback before React takes over
+  el.innerHTML = ''
   createRoot(el).render(
     <StrictMode>
       <App />
