@@ -275,10 +275,12 @@ intervalsRouter.get('/report/salary', (req, res) => {
     })
     const monthSum = round2(rows.reduce((s, r) => s + r.amount, 0))
     const totalHours = round3(rows.reduce((s, r) => s + r.hours, 0))
-    const taxAmount = round2((monthSum * settings.taxRate) / 100)
     const expenses = salaryExpensesRepo.listMonth(userId, year, month)
     const expensesSum = salaryExpensesRepo.sumMonth(userId, year, month)
-    const employerPay = round2(monthSum + taxAmount + expensesSum)
+    // Tax applies to (earnings + expenses): 3000 + 200 → tax 10% of 3200 → employer 3520
+    const taxableBase = round2(monthSum + expensesSum)
+    const taxAmount = round2((taxableBase * settings.taxRate) / 100)
+    const employerPay = round2(taxableBase + taxAmount)
     res.json({
       success: true,
       report: {

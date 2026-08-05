@@ -22,12 +22,6 @@ export function exportSalaryExcel(report: SalaryReport): void {
     [colCoef]: '' as unknown as number,
     [colAmount]: Number(report.monthSum.toFixed(2)),
   })
-  rows.push({
-    [colDateTime]: t('excel.salary.tax', { rate: report.taxRate }),
-    [colHours]: '' as unknown as number,
-    [colCoef]: '' as unknown as number,
-    [colAmount]: Number(report.taxAmount.toFixed(2)),
-  })
   if ((report.expensesSum ?? 0) > 0) {
     rows.push({
       [colDateTime]: t('excel.salary.expenses'),
@@ -36,6 +30,12 @@ export function exportSalaryExcel(report: SalaryReport): void {
       [colAmount]: Number(report.expensesSum.toFixed(2)),
     })
   }
+  rows.push({
+    [colDateTime]: t('excel.salary.tax', { rate: report.taxRate }),
+    [colHours]: '' as unknown as number,
+    [colCoef]: '' as unknown as number,
+    [colAmount]: Number(report.taxAmount.toFixed(2)),
+  })
   rows.push({
     [colDateTime]: t('excel.salary.employer'),
     [colHours]: '' as unknown as number,
