@@ -21,9 +21,9 @@ export function validateInitData(
     throw new Error('initData missing hash')
   }
 
+  // Only `hash` is excluded from the data-check-string.
+  // `signature` (Ed25519, newer clients) MUST remain — excluding it breaks HMAC validation.
   params.delete('hash')
-  // Newer clients may also send signature — exclude from check string like hash
-  params.delete('signature')
 
   const dataCheckString = [...params.entries()]
     .map(([key, value]) => `${key}=${value}`)
