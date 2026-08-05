@@ -55,7 +55,7 @@ export function SegmentedControl<T extends string>({
       ref={rootRef}
       role="tablist"
       className={cn(
-        'relative inline-flex rounded-xl border border-primary/15 bg-muted/50 p-1',
+        'relative inline-flex rounded-xl border border-[hsl(var(--primary)/0.15)] bg-[hsl(var(--muted)/0.5)] p-1 shadow-sm',
         fullWidth && 'flex w-full',
         className,
       )}

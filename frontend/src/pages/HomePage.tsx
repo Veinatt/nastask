@@ -33,9 +33,7 @@ function CompletedList({
     <section className="grid gap-3">
       <div className="flex items-center justify-between gap-3">
         <h2 className="section-label">{title}</h2>
-        <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary-soft">
-          {entries.length}
-        </span>
+        <span className="count-chip">{entries.length}</span>
       </div>
       {entries.length === 0 ? (
         <div className="surface-panel px-5 py-8 text-center text-sm text-muted-foreground">
@@ -168,7 +166,7 @@ export function HomePage() {
           <Button
             size="lg"
             variant="outline"
-            className="w-full border-primary/20 bg-card/80"
+            className="w-full border-[hsl(var(--primary)/0.2)] bg-[hsl(var(--card)/0.8)] shadow-sm"
             onClick={() => setManualOpen(true)}
           >
             <Plus className="h-4 w-4 mr-1" />
@@ -186,9 +184,7 @@ export function HomePage() {
       <section className="grid gap-3">
         <div className="flex items-center justify-between gap-3">
           <h2 className="section-label">{t('home.active')}</h2>
-          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary-soft">
-            {views.length}
-          </span>
+          <span className="count-chip">{views.length}</span>
         </div>
         {views.length === 0 ? (
           <div className="surface-panel px-5 py-10 text-center text-sm text-muted-foreground">

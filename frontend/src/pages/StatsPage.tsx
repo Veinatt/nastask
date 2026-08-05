@@ -470,7 +470,7 @@ export function StatsPage() {
           <h2 className="section-label">
             {mode === 'all' ? t('stats.list.all') : t('stats.list.period')}
           </h2>
-          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary-soft">
+          <span className="count-chip">
             {filtered.length}
           </span>
         </div>

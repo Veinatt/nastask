@@ -291,8 +291,18 @@
 }
 
 @layer utilities {
+  /*
+   * Do NOT @apply border-primary/10 or bg-primary/10 here.
+   * Tailwind v4 emits solid primary as fallback and only upgrades via
+   * color-mix(); macOS Telegram WKWebView skips that → bright blue borders
+   * and solid blue count chips. Use hsl(var(--token) / a) instead.
+   */
   .surface-panel {
-    @apply rounded-2xl border border-primary/10 bg-card/90 shadow-sm backdrop-blur-sm;
+    @apply rounded-2xl bg-card backdrop-blur-sm;
+    border: 1px solid hsl(var(--border) / 0.7);
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.05),
+      0 6px 18px rgb(0 0 0 / 0.07);
     transition:
       box-shadow 0.25s var(--ease-out-soft),
       border-color 0.25s var(--ease-out-soft),
@@ -301,8 +311,11 @@
   }
 
   .surface-tint {
-    @apply rounded-2xl border shadow-sm;
-    border-color: hsl(var(--primary) / 0.15);
+    @apply rounded-2xl;
+    border: 1px solid hsl(var(--primary) / 0.12);
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.05),
+      0 6px 18px rgb(0 0 0 / 0.07);
     background-image: linear-gradient(
       to bottom right,
       hsl(var(--primary) / 0.1),
@@ -315,7 +328,14 @@
   }
 
   .section-label {
-    @apply text-xs font-semibold uppercase tracking-wider text-primary-soft/70;
+    @apply text-xs font-semibold uppercase tracking-wider;
+    color: hsl(var(--primary-soft) / 0.72);
+  }
+
+  .count-chip {
+    @apply inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-semibold tabular-nums;
+    background-color: hsl(var(--primary) / 0.12);
+    color: hsl(var(--primary-soft));
   }
 
   .animate-fade-up {
@@ -373,4 +393,142 @@
   .dialog-content[data-state='closed'] {
     animation: dialog-content-out 0.18s ease-in both;
   }
+}
+
+/*
+ * Unlayered overrides beat Tailwind @layer utilities.
+ * Replaces color-mix() opacity utilities with hsl(alpha) so WKWebView
+ * (macOS Telegram) does not keep the solid-color fallback.
+ */
+.border-primary\/10 {
+  border-color: hsl(var(--primary) / 0.1);
+}
+.border-primary\/15 {
+  border-color: hsl(var(--primary) / 0.15);
+}
+.border-primary\/20 {
+  border-color: hsl(var(--primary) / 0.2);
+}
+.border-b.border-primary\/10,
+.border-t.border-primary\/10 {
+  border-color: hsl(var(--primary) / 0.1);
+}
+.border-b.border-primary\/15 {
+  border-color: hsl(var(--primary) / 0.15);
+}
+.border-destructive\/30 {
+  border-color: hsl(var(--destructive) / 0.3);
+}
+.border-border\/60 {
+  border-color: hsl(var(--border) / 0.6);
+}
+
+.bg-primary\/5 {
+  background-color: hsl(var(--primary) / 0.05);
+}
+.bg-primary\/8 {
+  background-color: hsl(var(--primary) / 0.08);
+}
+.bg-primary\/10 {
+  background-color: hsl(var(--primary) / 0.1);
+}
+.bg-primary\/15 {
+  background-color: hsl(var(--primary) / 0.15);
+}
+.bg-destructive\/10 {
+  background-color: hsl(var(--destructive) / 0.1);
+}
+.bg-muted\/50 {
+  background-color: hsl(var(--muted) / 0.5);
+}
+.bg-card\/70 {
+  background-color: hsl(var(--card) / 0.7);
+}
+.bg-card\/80 {
+  background-color: hsl(var(--card) / 0.8);
+}
+.bg-card\/90 {
+  background-color: hsl(var(--card) / 0.9);
+}
+.bg-card\/95 {
+  background-color: hsl(var(--card) / 0.95);
+}
+
+.hover\:bg-primary\/5:hover {
+  background-color: hsl(var(--primary) / 0.05);
+}
+.hover\:bg-primary\/8:hover {
+  background-color: hsl(var(--primary) / 0.08);
+}
+.hover\:bg-primary\/10:hover {
+  background-color: hsl(var(--primary) / 0.1);
+}
+.hover\:bg-primary\/90:hover {
+  background-color: hsl(var(--primary) / 0.9);
+}
+.hover\:bg-destructive\/90:hover {
+  background-color: hsl(var(--destructive) / 0.9);
+}
+.hover\:bg-secondary\/80:hover {
+  background-color: hsl(var(--secondary) / 0.8);
+}
+.hover\:bg-muted\/50:hover {
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+.text-primary-soft\/90 {
+  color: hsl(var(--primary-soft) / 0.9);
+}
+.text-primary-soft\/70 {
+  color: hsl(var(--primary-soft) / 0.7);
+}
+.text-primary-foreground\/90 {
+  color: hsl(var(--primary-foreground) / 0.9);
+}
+
+.from-primary\/10 {
+  --tw-gradient-from: hsl(var(--primary) / 0.1);
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-from), var(--tw-gradient-to));
+}
+
+.ring-primary\/40 {
+  --tw-ring-color: hsl(var(--primary) / 0.4);
+}
+.shadow-primary\/25 {
+  --tw-shadow-color: hsl(var(--primary) / 0.25);
+}
+.shadow-primary\/30 {
+  --tw-shadow-color: hsl(var(--primary) / 0.3);
+}
+
+/* Timer status cards — same color-mix fallback issue */
+.border-amber-400\/35 {
+  border-color: rgb(251 191 36 / 0.35);
+}
+.border-emerald-500\/40 {
+  border-color: rgb(16 185 129 / 0.4);
+}
+.bg-amber-50\/90 {
+  background-color: rgb(255 251 235 / 0.9);
+}
+.bg-emerald-50\/90 {
+  background-color: rgb(236 253 245 / 0.9);
+}
+.dark .bg-amber-950\/35 {
+  background-color: rgb(69 26 3 / 0.35);
+}
+.dark .bg-emerald-950\/35 {
+  background-color: rgb(2 44 34 / 0.35);
+}
+.text-amber-700\/80 {
+  color: rgb(180 83 9 / 0.8);
+}
+.text-emerald-700\/80 {
+  color: rgb(4 120 87 / 0.8);
+}
+.dark .text-amber-300\/80 {
+  color: rgb(252 211 77 / 0.8);
+}
+.dark .text-emerald-300\/80 {
+  color: rgb(110 231 183 / 0.8);
 }
