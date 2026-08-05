@@ -42,4 +42,30 @@ export const intervalsLocal = {
       }
     })
   },
+
+  /**
+   * Upsert server completed rows for a date and drop local completed orphans
+   * that are not waiting in the pending queue (so Home matches Stats/server).
+   */
+  async replaceCompletedForDate(
+    date: string,
+    entries: Array<{ entry: TimeEntry; workItems: WorkItem[] }>,
+    keepIds: Set<string>,
+  ): Promise<void> {
+    const serverIds = new Set(entries.map(({ entry }) => entry.id))
+    await db.transaction('rw', db.timeEntries, db.workItems, async () => {
+      const local = await db.timeEntries.where('date').equals(date).toArray()
+      for (const row of local) {
+        if (row.end == null) continue
+        if (serverIds.has(row.id) || keepIds.has(row.id)) continue
+        await db.workItems.where('timeEntryId').equals(row.id).delete()
+        await db.timeEntries.delete(row.id)
+      }
+      for (const { entry, workItems } of entries) {
+        await db.timeEntries.put(entry)
+        await db.workItems.where('timeEntryId').equals(entry.id).delete()
+        if (workItems.length) await db.workItems.bulkPut(workItems)
+      }
+    })
+  },
 }

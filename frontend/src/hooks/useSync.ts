@@ -6,31 +6,52 @@ import { dictsRemote } from '@/api/dictsRemote'
 import { dictsLocal } from '@/api/dictsLocal'
 import { settingsRemote, settingsLocal } from '@/api/settingsApi'
 import { useTelegram } from '@/hooks/useTelegram'
+import { db } from '@/db'
 import {
   getDeviceTimezone,
   todayDateString,
   yesterdayDateString,
 } from '@/utils/timeDisplay'
-import type { DictKind } from '@/db/types'
+import type { DictKind, TimeEntry, WorkItem } from '@/db/types'
 
 const DICTS: DictKind[] = ['categories', 'descriptions', 'units']
+
+async function fetchCompletedDay(
+  date: string,
+): Promise<Array<{ entry: TimeEntry; workItems: WorkItem[] }> | null> {
+  try {
+    return await intervalsRemote.listCompleted(date)
+  } catch (error) {
+    console.error('[sync] listCompleted failed', date, error)
+    return null
+  }
+}
+
+async function pendingEntityIds(): Promise<Set<string>> {
+  const ops = await db.pendingOps.toArray()
+  return new Set(ops.map((op) => op.entityId))
+}
 
 async function pullAll(): Promise<void> {
   await flushPendingOps()
 
   const today = todayDateString()
   const yesterday = yesterdayDateString()
+  const keepIds = await pendingEntityIds()
 
   const [active, settings, completedToday, completedYesterday] = await Promise.all([
     intervalsRemote.listActive(),
     settingsRemote.get(),
-    intervalsRemote.listCompleted(today).catch(() => []),
-    intervalsRemote.listCompleted(yesterday).catch(() => []),
+    fetchCompletedDay(today),
+    fetchCompletedDay(yesterday),
   ])
   await intervalsLocal.replaceActive(active)
 
-  for (const { entry, workItems } of [...completedToday, ...completedYesterday]) {
-    await intervalsLocal.putEntry(entry, workItems)
+  if (completedToday) {
+    await intervalsLocal.replaceCompletedForDate(today, completedToday, keepIds)
+  }
+  if (completedYesterday) {
+    await intervalsLocal.replaceCompletedForDate(yesterday, completedYesterday, keepIds)
   }
 
   const deviceTz = getDeviceTimezone()
