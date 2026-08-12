@@ -54,6 +54,7 @@ export function TimerCard({ entry, onPause, onResume, onComplete, onDelete }: Pr
             size="sm"
             variant="secondary"
             className={cn(
+              'min-w-[5.75rem] justify-center',
               paused
                 ? 'bg-[rgb(251_191_36_/0.22)] text-[rgb(120_53_15)] hover:bg-[rgb(251_191_36_/0.32)] dark:text-[rgb(254_243_199)]'
                 : 'bg-[rgb(16_185_129_/0.22)] text-[rgb(6_78_59)] hover:bg-[rgb(16_185_129_/0.32)] dark:text-[rgb(209_250_229)]',
@@ -62,7 +63,7 @@ export function TimerCard({ entry, onPause, onResume, onComplete, onDelete }: Pr
             aria-label={paused ? t('timer.resume') : t('timer.pause')}
           >
             {paused ? <Play className="h-4 w-4 mr-1" /> : <Pause className="h-4 w-4 mr-1" />}
-            {t('timer.pause')}
+            {paused ? t('timer.resume') : t('timer.pause')}
           </Button>
           <Button
             size="sm"

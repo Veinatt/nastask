@@ -5,7 +5,7 @@ export function nowIso(): string {
 }
 
 export function dateInTimezone(iso: string, timeZone: string): string {
-  return formatInTimeZone(new Date(iso), timeZone || 'Europe/Moscow', 'yyyy-MM-dd')
+  return formatInTimeZone(new Date(iso), timeZone || 'Europe/Minsk', 'yyyy-MM-dd')
 }
 
 export function secondsBetween(fromIso: string, toIso: string): number {

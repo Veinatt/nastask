@@ -68,4 +68,28 @@ export const intervalsLocal = {
       }
     })
   },
+
+  /**
+   * Replace all completed entries (end != null): keep keepIds pending,
+   * upsert server rows, delete orphans.
+   */
+  async replaceAllCompleted(
+    entries: Array<{ entry: TimeEntry; workItems: WorkItem[] }>,
+    keepIds: Set<string>,
+  ): Promise<void> {
+    const serverIds = new Set(entries.map(({ entry }) => entry.id))
+    await db.transaction('rw', db.timeEntries, db.workItems, async () => {
+      const local = await db.timeEntries.filter((e) => e.end != null).toArray()
+      for (const row of local) {
+        if (serverIds.has(row.id) || keepIds.has(row.id)) continue
+        await db.workItems.where('timeEntryId').equals(row.id).delete()
+        await db.timeEntries.delete(row.id)
+      }
+      for (const { entry, workItems } of entries) {
+        await db.timeEntries.put(entry)
+        await db.workItems.where('timeEntryId').equals(entry.id).delete()
+        if (workItems.length) await db.workItems.bulkPut(workItems)
+      }
+    })
+  },
 }

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { StickyNote } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -26,11 +27,13 @@ import { intervalsLocal } from '@/api/intervalsLocal'
 import { intervalsRemote } from '@/api/intervalsRemote'
 import { generateId } from '@/utils/idGenerator'
 import type { TimeEntry, WorkItemInput } from '@/db/types'
+import { recomputeWorkAndPause, sameEditInstant } from '@/utils/intervalDuration'
 import { formatDuration, formatTimeRange } from '@/utils/timeDisplay'
 
 export type IntervalDialogPayload = {
   coefficient: number
   workItems: WorkItemInput[]
+  notes?: string | null
   start?: string
   end?: string
 }
@@ -58,13 +61,14 @@ export function CompleteIntervalDialog({
   const { t } = useI18n()
   const [coefficient, setCoefficient] = useState('1')
   const [items, setItems] = useState<WorkItemDraft[]>([emptyWorkItemDraft()])
+  const [notes, setNotes] = useState('')
+  const [showNotes, setShowNotes] = useState(false)
   const [startDate, setStartDate] = useState('')
   const [startTime, setStartTime] = useState('')
   const [endDate, setEndDate] = useState('')
   const [endTime, setEndTime] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // Keep last entry while Radix plays close animation (parent clears entry immediately)
   const [viewEntry, setViewEntry] = useState<TimeEntry | null>(entry)
   const [viewSeconds, setViewSeconds] = useState(displaySeconds)
   const cats = useDictionaries('categories')
@@ -83,8 +87,33 @@ export function CompleteIntervalDialog({
     if (!open || !entry) return
     let cancelled = false
 
+    const nameOf = (list: { id: string; name: string }[], id: string) =>
+      list.find((x) => x.id === id)?.name ?? ''
+
+    const toDrafts = (
+      workItems: {
+        id?: string
+        categoryId: string
+        descriptionId: string
+        unitId: string
+        quantity: number
+      }[],
+    ) =>
+      workItems.map((w) => ({
+        key: w.id || generateId(),
+        categoryId: w.categoryId,
+        categoryName: nameOf(cats.items, w.categoryId),
+        descriptionId: w.descriptionId,
+        descriptionName: nameOf(descs.items, w.descriptionId),
+        unitId: w.unitId,
+        unitName: nameOf(units.items, w.unitId),
+        quantity: String(w.quantity),
+      }))
+
     const load = async () => {
       setCoefficient(String(entry.coefficient ?? 1))
+      setNotes(entry.notes ?? '')
+      setShowNotes(Boolean(entry.notes?.trim()))
       setError(null)
       const s = splitLocalDateTime(entry.start)
       setStartDate(s.date)
@@ -93,7 +122,6 @@ export function CompleteIntervalDialog({
       setEndDate(e.date)
       setEndTime(e.time)
 
-      // Load existing works for completed/edit; fresh complete starts empty
       if (!editTime && !entry.end) {
         setItems([emptyWorkItemDraft()])
         return
@@ -109,6 +137,10 @@ export function CompleteIntervalDialog({
             workItems = found.workItems
             await intervalsLocal.putEntry(found.entry, found.workItems)
           }
+          if (found?.entry.notes != null && !cancelled) {
+            setNotes(found.entry.notes ?? '')
+            setShowNotes(Boolean(found.entry.notes?.trim()))
+          }
         } catch {
           // keep empty
         }
@@ -121,21 +153,7 @@ export function CompleteIntervalDialog({
         return
       }
 
-      const nameOf = (list: { id: string; name: string }[], id: string) =>
-        list.find((x) => x.id === id)?.name ?? ''
-
-      setItems(
-        workItems.map((w) => ({
-          key: w.id || generateId(),
-          categoryId: w.categoryId,
-          categoryName: nameOf(cats.items, w.categoryId),
-          descriptionId: w.descriptionId,
-          descriptionName: nameOf(descs.items, w.descriptionId),
-          unitId: w.unitId,
-          unitName: nameOf(units.items, w.unitId),
-          quantity: String(w.quantity),
-        })),
-      )
+      setItems(toDrafts(workItems))
     }
 
     void load()
@@ -155,7 +173,12 @@ export function CompleteIntervalDialog({
         throw new Error(t('completeDialog.coefInvalid'))
       }
       const workItems = draftsToWorkItems(items)
-      const payload: IntervalDialogPayload = { coefficient: coef, workItems }
+      const notesValue = notes.trim() ? notes.trim() : null
+      const payload: IntervalDialogPayload = {
+        coefficient: coef,
+        workItems,
+        notes: notesValue,
+      }
       if (editTime) {
         const start = joinLocalDateTime(startDate, startTime)
         const end = joinLocalDateTime(endDate, endTime)
@@ -174,13 +197,44 @@ export function CompleteIntervalDialog({
     }
   }
 
+  const notesNonEmpty = Boolean(notes.trim())
+
+  const editDurationPreview = useMemo(() => {
+    if (!editTime || !entry) return null
+    try {
+      const start = joinLocalDateTime(startDate, startTime)
+      const end = joinLocalDateTime(endDate, endTime)
+      const startMs = Date.parse(start)
+      const endMs = Date.parse(end)
+      if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
+        return null
+      }
+      const timesUnchanged =
+        sameEditInstant(start, entry.start) && sameEditInstant(end, entry.end)
+      if (timesUnchanged) {
+        return {
+          totalSeconds: entry.totalSeconds,
+          pauseTotalSeconds: entry.pauseTotalSeconds,
+        }
+      }
+      const wall = Math.max(0, Math.floor((endMs - startMs) / 1000))
+      return recomputeWorkAndPause({
+        wallSeconds: wall,
+        prevTotalSeconds: entry.totalSeconds,
+        prevPauseSeconds: entry.pauseTotalSeconds,
+      })
+    } catch {
+      return null
+    }
+  }, [editTime, entry, startDate, startTime, endDate, endTime])
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg border-primary/15">
+      <DialogContent className="max-h-[90vh] overflow-x-hidden overflow-y-auto sm:max-w-lg border-primary/15">
         <DialogHeader>
           <DialogTitle>{dialogTitle ?? t('completeDialog.title')}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {!editTime && viewEntry && (
             <div className="rounded-xl bg-primary/5 border border-primary/10 px-3 py-2 text-sm">
               <span className="font-medium">
@@ -213,6 +267,17 @@ export function CompleteIntervalDialog({
                 onDateChange={setEndDate}
                 onTimeChange={setEndTime}
               />
+              {editDurationPreview && (
+                <p className="text-xs text-muted-foreground tabular-nums">
+                  {t('completeDialog.workTime', {
+                    time: formatDuration(editDurationPreview.totalSeconds),
+                  })}
+                  {' · '}
+                  {t('completeDialog.pauseTime', {
+                    time: formatDuration(editDurationPreview.pauseTotalSeconds),
+                  })}
+                </p>
+              )}
             </div>
           )}
 
@@ -227,7 +292,36 @@ export function CompleteIntervalDialog({
               onChange={(e) => setCoefficient(e.target.value)}
             />
           </div>
+
           <WorkItemsEditor items={items} onChange={setItems} />
+
+          <div className="space-y-2">
+            <Button
+              type="button"
+              variant={showNotes || notesNonEmpty ? 'secondary' : 'outline'}
+              className="h-10 w-full justify-start gap-2"
+              aria-pressed={showNotes}
+              onClick={() => setShowNotes((v) => !v)}
+            >
+              <StickyNote className="h-4 w-4" />
+              {notesNonEmpty ? t('notes.label') : t('notes.toggle')}
+              {notesNonEmpty ? (
+                <span className="ml-auto min-w-0 max-w-[50%] truncate text-xs text-muted-foreground">
+                  {notes.trim()}
+                </span>
+              ) : null}
+            </Button>
+            {showNotes && (
+              <textarea
+                id="notes"
+                className="flex min-h-[100px] w-full min-w-0 max-w-full break-words [overflow-wrap:anywhere] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                placeholder={t('notes.placeholder')}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            )}
+          </div>
+
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
         <DialogFooter>

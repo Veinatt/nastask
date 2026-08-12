@@ -129,8 +129,13 @@
     min-height: 100dvh;
   }
 
-  /* Splash currently disabled — keep title always visible */
-  #home-brand-title {
+  /* Hide real brand title while splash logo occupies its slot.
+     Never leave this stuck: SplashScreen / App must set data-splash=done. */
+  html[data-splash='active'] #home-brand-title {
+    opacity: 0;
+  }
+
+  html[data-splash='done'] #home-brand-title {
     opacity: 1;
   }
 

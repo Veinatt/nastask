@@ -4,6 +4,10 @@ import { intervalsRemote } from '@/api/intervalsRemote'
 import { enqueueOp } from '@/api/pendingOps'
 import { generateId } from '@/utils/idGenerator'
 import { todayDateString, yesterdayDateString } from '@/utils/timeDisplay'
+import {
+  recomputeWorkAndPause,
+  sameEditInstant,
+} from '@/utils/intervalDuration'
 import type { TimeEntry, WorkItem, WorkItemInput } from '@/db/types'
 import { ApiError } from '@/api/client'
 
@@ -98,6 +102,7 @@ export function useIntervals() {
       pauseTotalSeconds: 0,
       pauseStartedAt: null,
       date: today,
+      notes: null,
       createdAt: now,
       updatedAt: now,
       isActive: true,
@@ -146,7 +151,7 @@ export function useIntervals() {
 
   const complete = async (
     id: string,
-    payload: { coefficient: number; workItems: WorkItemInput[] },
+    payload: { coefficient: number; workItems: WorkItemInput[]; notes?: string | null },
   ): Promise<TimeEntry> => {
     try {
       return await applyRemote(() => intervalsRemote.complete(id, payload))
@@ -171,6 +176,7 @@ export function useIntervals() {
         const done: TimeEntry = {
           ...entry,
           coefficient: payload.coefficient,
+          notes: payload.notes !== undefined ? payload.notes : entry.notes ?? null,
           end: now,
           totalSeconds,
           pauseTotalSeconds: pauseTotal,
@@ -200,9 +206,10 @@ export function useIntervals() {
     end: string
     coefficient: number
     workItems: WorkItemInput[]
+    notes?: string | null
   }): Promise<TimeEntry> => {
     const id = generateId()
-    const withTitle = { ...payload, title: '' }
+    const withTitle = { ...payload, title: '', notes: payload.notes ?? null }
     try {
       return await applyRemote(() =>
         intervalsRemote.manual({ ...withTitle, id }),
@@ -224,6 +231,7 @@ export function useIntervals() {
           pauseTotalSeconds: 0,
           pauseStartedAt: null,
           date: payload.start.slice(0, 10),
+          notes: payload.notes ?? null,
           createdAt: now,
           updatedAt: now,
           isActive: false,
@@ -252,6 +260,7 @@ export function useIntervals() {
       start: string
       end: string | null
       workItems: WorkItemInput[]
+      notes: string | null
     }>,
   ): Promise<TimeEntry> => {
     try {
@@ -267,11 +276,21 @@ export function useIntervals() {
         const start = payload.start ?? found.start
         const end = payload.end !== undefined ? payload.end : found.end
         let totalSeconds = found.totalSeconds
-        if (end) {
-          totalSeconds = Math.max(
+        let pauseTotalSeconds = found.pauseTotalSeconds
+        const timesUnchanged =
+          sameEditInstant(start, found.start) && sameEditInstant(end, found.end)
+        if (end && !timesUnchanged) {
+          const wall = Math.max(
             0,
             Math.floor((Date.parse(end) - Date.parse(start)) / 1000),
           )
+          const next = recomputeWorkAndPause({
+            wallSeconds: wall,
+            prevTotalSeconds: found.totalSeconds,
+            prevPauseSeconds: found.pauseTotalSeconds,
+          })
+          totalSeconds = next.totalSeconds
+          pauseTotalSeconds = next.pauseTotalSeconds
         }
         const next: TimeEntry = {
           ...found,
@@ -279,6 +298,8 @@ export function useIntervals() {
           start,
           end,
           totalSeconds,
+          pauseTotalSeconds,
+          pauseStartedAt: end ? null : found.pauseStartedAt,
           date: start.slice(0, 10),
           updatedAt: new Date().toISOString(),
         }

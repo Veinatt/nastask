@@ -11,6 +11,7 @@ import {
 } from 'date-fns'
 import { useI18n } from '@/hooks/useI18n'
 import { cn } from '@/lib/utils'
+import { formatHoursMinutes } from '@/utils/timeDisplay'
 
 const WEEKDAY_KEYS = [
   'weekday.mon',
@@ -35,10 +36,7 @@ type Props = {
 
 function formatHoursShort(seconds: number): string {
   if (seconds <= 0) return ''
-  const s = Math.round(seconds)
-  const h = Math.floor(s / 3600)
-  const m = Math.floor((s % 3600) / 60)
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+  return formatHoursMinutes(seconds)
 }
 
 function isWeekend(day: Date): boolean {
@@ -72,6 +70,16 @@ export function HoursCalendar({
     return eachDayOfInterval({ start: gridStart, end: gridEnd })
   }, [year, month])
 
+  const maxSeconds = useMemo(() => {
+    let max = 0
+    for (const day of days) {
+      if (!isSameMonth(day, new Date(year, month - 1, 1))) continue
+      const key = format(day, 'yyyy-MM-dd')
+      max = Math.max(max, hoursByDay.get(key) ?? 0)
+    }
+    return max
+  }, [days, hoursByDay, year, month])
+
   const selectedLabel = selectedDate
     ? format(new Date(`${selectedDate}T12:00:00`), 'EEEE, d MMMM yyyy', {
         locale: dateFnsLocale,
@@ -103,23 +111,32 @@ export function HoursCalendar({
           const ranged = inRange(key, rangeFrom, rangeTo)
           const isToday = isSameDay(day, new Date())
           const weekend = isWeekend(day)
+          const intensity =
+            inMonth && maxSeconds > 0 && seconds > 0
+              ? Math.max(0.12, seconds / maxSeconds)
+              : 0
 
           return (
             <button
               key={key}
               type="button"
+              title={hoursLabel || undefined}
               onClick={() => onSelectDate(key)}
               className={cn(
                 'relative flex min-h-14 items-center justify-center rounded-lg px-1 text-sm transition-colors',
                 'hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 !inMonth && 'opacity-40',
-                !selected && !ranged && seconds > 0 && inMonth && 'bg-primary/8',
                 ranged && !selected && 'bg-primary/15',
                 selected && 'bg-primary text-primary-foreground hover:bg-primary/90',
                 !selected && isToday && 'ring-1 ring-primary/40',
                 !selected && weekend && 'text-red-500 dark:text-red-400',
                 !selected && !weekend && inMonth && 'text-foreground',
               )}
+              style={
+                !selected && !ranged && intensity > 0
+                  ? { backgroundColor: `hsl(var(--primary) / ${0.08 + intensity * 0.42})` }
+                  : undefined
+              }
             >
               <span className="leading-none font-medium">{format(day, 'd')}</span>
               {hoursLabel && (
@@ -135,6 +152,21 @@ export function HoursCalendar({
             </button>
           )
         })}
+      </div>
+      <div className="flex items-center gap-2 px-1 text-[10px] text-muted-foreground">
+        <span>{t('stats.heatmap.less')}</span>
+        <div className="flex gap-0.5">
+          {[0.15, 0.3, 0.5, 0.7, 0.95].map((level) => (
+            <span
+              key={level}
+              className="h-3 w-3 rounded-sm"
+              style={{
+                backgroundColor: `hsl(var(--primary) / ${0.08 + level * 0.42})`,
+              }}
+            />
+          ))}
+        </div>
+        <span>{t('stats.heatmap.more')}</span>
       </div>
       {selectedLabel && (
         <p className="text-xs text-muted-foreground px-1 capitalize">{selectedLabel}</p>

@@ -1,5 +1,5 @@
 import type { UserSettings } from './types'
-import { getDeviceTimezone } from '@/utils/timeDisplay'
+import { ACCOUNTING_TIMEZONE } from '@/lib/timezone'
 
 export function createDefaultSettings(): UserSettings {
   return {
@@ -7,7 +7,7 @@ export function createDefaultSettings(): UserSettings {
     hourlyRate: 0,
     taxRate: 0,
     currency: 'BYN',
-    timezone: getDeviceTimezone(),
+    timezone: ACCOUNTING_TIMEZONE,
     updatedAt: new Date().toISOString(),
   }
 }

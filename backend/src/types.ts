@@ -18,8 +18,20 @@ export interface TimeEntry {
   pauseTotalSeconds: number
   pauseStartedAt: string | null
   date: string
+  notes: string | null
   createdAt: string
   updatedAt: string
+}
+
+export interface WorkTemplate {
+  id: string
+  userId: number
+  name: string
+  categoryId: string
+  descriptionId: string
+  unitId: string
+  defaultQuantity: number
+  createdAt: string
 }
 
 export interface WorkItem {
@@ -51,7 +63,7 @@ export function createDefaultUserSettings(userId: number): UserSettings {
     hourlyRate: 0,
     taxRate: 0,
     currency: 'BYN',
-    timezone: 'Europe/Moscow',
+    timezone: 'Europe/Minsk',
     updatedAt: new Date().toISOString(),
   }
 }

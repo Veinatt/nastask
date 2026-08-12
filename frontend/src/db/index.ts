@@ -6,6 +6,7 @@ import type {
   TimeEntry,
   UserSettings,
   WorkItem,
+  WorkTemplate,
 } from './types'
 
 export class NasTaskDB extends Dexie {
@@ -15,6 +16,7 @@ export class NasTaskDB extends Dexie {
   descriptions!: EntityTable<DictItem, 'id'>
   units!: EntityTable<DictItem, 'id'>
   expenses!: EntityTable<DictItem, 'id'>
+  workTemplates!: EntityTable<WorkTemplate, 'id'>
   settings!: EntityTable<UserSettings, 'id'>
   pendingOps!: EntityTable<PendingOp, 'id'>
 
@@ -52,6 +54,17 @@ export class NasTaskDB extends Dexie {
       descriptions: 'id, name',
       units: 'id, name',
       expenses: 'id, name',
+      settings: 'id',
+      pendingOps: 'id, entityId, createdAt',
+    })
+    this.version(5).stores({
+      timeEntries: 'id, date, end, updatedAt',
+      workItems: 'id, timeEntryId',
+      categories: 'id, name',
+      descriptions: 'id, name',
+      units: 'id, name',
+      expenses: 'id, name',
+      workTemplates: 'id, name',
       settings: 'id',
       pendingOps: 'id, entityId, createdAt',
     })

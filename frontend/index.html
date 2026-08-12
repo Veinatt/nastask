@@ -16,15 +16,40 @@
          unlayered rules beat @layer base theme (dark/cozy break). -->
     <style>
       html, body { margin: 0; min-height: 100%; }
-      #boot-fallback {
-        font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      #boot-error-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        box-sizing: border-box;
         padding: 28px 20px;
-        text-align: left;
+        overflow: auto;
+        font-family: system-ui, -apple-system, Segoe UI, sans-serif;
         color: #0f172a;
+        background: rgb(15 23 42 / 0.45);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
       }
-      #boot-fallback strong { display: block; font-size: 22px; margin-bottom: 8px; text-align: center; }
-      #boot-fallback .boot-msg { font-size: 14px; color: #64748b; text-align: center; margin-bottom: 12px; }
-      #boot-fallback pre {
+      #boot-error-overlay[data-open='1'] { display: block; }
+      #boot-error-overlay .boot-card {
+        max-width: 32rem;
+        margin: 12vh auto 0;
+        padding: 20px;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 12px 40px rgb(0 0 0 / 0.2);
+      }
+      #boot-error-overlay strong {
+        display: block;
+        font-size: 18px;
+        margin-bottom: 8px;
+      }
+      #boot-error-overlay .boot-msg {
+        font-size: 14px;
+        color: #64748b;
+        margin-bottom: 12px;
+      }
+      #boot-error-overlay pre {
         white-space: pre-wrap;
         word-break: break-word;
         font-size: 12px;
@@ -33,7 +58,17 @@
         background: #fff1f2;
         border-radius: 8px;
         padding: 12px;
-        margin: 0;
+        margin: 0 0 12px;
+      }
+      #boot-error-overlay button {
+        font: inherit;
+        font-size: 14px;
+        padding: 8px 14px;
+        border: 0;
+        border-radius: 8px;
+        background: #2563eb;
+        color: #fff;
+        cursor: pointer;
       }
     </style>
     <!-- Must run BEFORE the app module so load/parse errors are visible in Mini App -->
@@ -46,14 +81,30 @@
             .replace(/>/g, '&gt;')
         }
         window.__showBootError = function (title, detail) {
-          var el = document.getElementById('boot-fallback')
-          if (!el) return
+          var el = document.getElementById('boot-error-overlay')
+          if (!el) {
+            el = document.createElement('div')
+            el.id = 'boot-error-overlay'
+            document.body.appendChild(el)
+          }
+          el.setAttribute('data-open', '1')
+          el.setAttribute('role', 'alertdialog')
+          el.setAttribute('aria-modal', 'true')
           el.innerHTML =
+            '<div class="boot-card">' +
             '<strong>NasTask</strong>' +
             '<div class="boot-msg">' +
             esc(title) +
             '</div>' +
-            (detail ? '<pre>' + esc(detail) + '</pre>' : '')
+            (detail ? '<pre>' + esc(detail) + '</pre>' : '') +
+            '<button type="button" id="boot-error-reload">Обновить</button>' +
+            '</div>'
+          var btn = document.getElementById('boot-error-reload')
+          if (btn) {
+            btn.onclick = function () {
+              window.location.reload()
+            }
+          }
         }
         window.addEventListener('error', function (ev) {
           var detail =
@@ -78,12 +129,8 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
   <body>
-    <div id="root">
-      <div id="boot-fallback">
-        <strong>NasTask</strong>
-        <div class="boot-msg">Загрузка…</div>
-      </div>
-    </div>
+    <div id="root"></div>
+    <div id="boot-error-overlay"></div>
     <script>
       (function () {
         function signalReady() {
@@ -99,12 +146,12 @@
         setTimeout(signalReady, 300)
         setTimeout(signalReady, 1200)
         setTimeout(function () {
-          var el = document.getElementById('boot-fallback')
-          if (el && el.parentNode && el.parentNode.id === 'root' && el.isConnected) {
+          var root = document.getElementById('root')
+          if (root && !root.querySelector('.app-shell')) {
             if (window.__showBootError) {
               window.__showBootError(
                 'Интерфейс не поднялся за 8с (бандл не смонтировался). Пришлите текст ниже, если появится.',
-                'boot-fallback still in #root — module did not run createRoot()',
+                'no .app-shell in #root — module did not run createRoot()',
               )
             }
           }

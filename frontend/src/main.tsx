@@ -10,7 +10,7 @@ function showBootError(err: unknown) {
     window as unknown as { __showBootError?: (title: string, detail?: string) => void }
   ).__showBootError
   if (show) {
-    show('NasTask boot error', message)
+    show('Ошибка запуска', message)
     return
   }
   const root = document.getElementById('root')
@@ -25,8 +25,6 @@ function showBootError(err: unknown) {
 try {
   const el = document.getElementById('root')
   if (!el) throw new Error('#root not found')
-  // Clear static HTML fallback before React takes over
-  el.innerHTML = ''
   createRoot(el).render(
     <StrictMode>
       <App />

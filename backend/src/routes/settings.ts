@@ -60,10 +60,8 @@ settingsRouter.put('/', (req: Request, res: Response) => {
       typeof body.currency === 'string' && body.currency.trim()
         ? body.currency.trim()
         : current.currency || defaults.currency
-    const timezone =
-      typeof body.timezone === 'string' && body.timezone.trim()
-        ? body.timezone.trim()
-        : current.timezone || defaults.timezone
+    // Accounting timezone is fixed to Europe/Minsk; ignore client overrides.
+    const timezone = defaults.timezone
 
     if (!Number.isFinite(hourlyRate) || hourlyRate < 0) {
       res.status(400).json({ success: false, error: 'hourlyRate must be ≥ 0' })

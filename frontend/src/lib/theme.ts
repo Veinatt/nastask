@@ -56,10 +56,3 @@ export function applyTheme(
   }
   root.classList.toggle('dark', resolveIsDark(preference, telegramIsDark))
 }
-
-/** @deprecated use applyTheme */
-export function applyColorScheme(isDark: boolean): void {
-  const root = document.documentElement
-  root.classList.remove('cozy')
-  root.classList.toggle('dark', isDark)
-}

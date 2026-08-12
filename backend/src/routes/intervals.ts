@@ -7,6 +7,10 @@ import { categoriesRepo, descriptionsRepo, unitsRepo } from '../db/dictRepo'
 import { salaryExpensesRepo } from '../db/expensesRepo'
 import type { WorkItemInput } from '../types'
 import { dateInTimezone, nowIso, secondsBetween } from '../utils/iso'
+import {
+  recomputeWorkAndPause,
+  sameEditInstant,
+} from '../utils/intervalDuration'
 
 export const intervalsRouter = Router()
 intervalsRouter.use(telegramAuth)
@@ -111,6 +115,10 @@ intervalsRouter.post('/manual', (req, res) => {
     const totalSeconds = secondsBetween(start, end)
     const now = nowIso()
     const id = body.id ? String(body.id) : randomUUID()
+    const notes =
+      body.notes === undefined || body.notes === null
+        ? null
+        : String(body.notes)
     const entry = intervalsRepo.insert({
       id,
       userId,
@@ -122,6 +130,7 @@ intervalsRouter.post('/manual', (req, res) => {
       pauseTotalSeconds: Number(body.pauseTotalSeconds ?? 0),
       pauseStartedAt: null,
       date: dateInTimezone(start, settings.timezone),
+      notes,
       createdAt: now,
       updatedAt: now,
     })
@@ -178,7 +187,15 @@ intervalsRouter.put('/:id/complete', (req, res) => {
       res.status(400).json({ success: false, error: workItems.error })
       return
     }
-    const result = intervalsRepo.complete(ctx.entry, { coefficient, workItems })
+    const completeOpts: {
+      coefficient: number
+      workItems: WorkItemInput[]
+      notes?: string | null
+    } = { coefficient, workItems }
+    if (body.notes !== undefined) {
+      completeOpts.notes = body.notes == null ? null : String(body.notes)
+    }
+    const result = intervalsRepo.complete(ctx.entry, completeOpts)
     console.log(`[api:intervals] COMPLETE id=${result.entry.id}`)
     res.json({
       success: true,
@@ -383,6 +400,12 @@ intervalsRouter.put('/:id', (req, res) => {
     let entry = ctx.entry
 
     if (body.title != null) entry = { ...entry, title: String(body.title).trim() }
+    if (body.notes !== undefined) {
+      entry = {
+        ...entry,
+        notes: body.notes == null ? null : String(body.notes),
+      }
+    }
     if (body.coefficient != null) {
       const coefficient = Number(body.coefficient)
       if (!Number.isFinite(coefficient) || coefficient <= 0) {
@@ -396,14 +419,25 @@ intervalsRouter.put('/:id', (req, res) => {
       const end = body.end !== undefined ? (body.end ? String(body.end) : null) : entry.end
       const settings = settingsRepo.getOrCreate(ctx.userId)
       let totalSeconds = entry.totalSeconds
-      if (end) {
-        totalSeconds = secondsBetween(start, end)
+      let pauseTotalSeconds = entry.pauseTotalSeconds
+      const timesUnchanged =
+        sameEditInstant(start, entry.start) && sameEditInstant(end, entry.end)
+      if (end && !timesUnchanged) {
+        const wall = secondsBetween(start, end)
+        const next = recomputeWorkAndPause({
+          wallSeconds: wall,
+          prevTotalSeconds: entry.totalSeconds,
+          prevPauseSeconds: entry.pauseTotalSeconds,
+        })
+        totalSeconds = next.totalSeconds
+        pauseTotalSeconds = next.pauseTotalSeconds
       }
       entry = {
         ...entry,
         start,
         end,
         totalSeconds,
+        pauseTotalSeconds,
         date: dateInTimezone(start, settings.timezone),
         pauseStartedAt: end ? null : entry.pauseStartedAt,
       }

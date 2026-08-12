@@ -46,6 +46,7 @@ export const intervalsRemote = {
     end: string
     coefficient: number
     workItems: WorkItemInput[]
+    notes?: string | null
   }): Promise<{ entry: TimeEntry; workItems: WorkItem[] }> {
     const res = await apiFetch<OkInterval>('/api/intervals/manual', {
       method: 'POST',
@@ -70,7 +71,7 @@ export const intervalsRemote = {
 
   async complete(
     id: string,
-    payload: { coefficient: number; workItems: WorkItemInput[] },
+    payload: { coefficient: number; workItems: WorkItemInput[]; notes?: string | null },
   ): Promise<{ entry: TimeEntry; workItems: WorkItem[] }> {
     const res = await apiFetch<OkInterval>(`/api/intervals/${id}/complete`, {
       method: 'PUT',
@@ -87,6 +88,7 @@ export const intervalsRemote = {
       start: string
       end: string | null
       workItems: WorkItemInput[]
+      notes: string | null
     }>,
   ): Promise<{ entry: TimeEntry; workItems: WorkItem[] }> {
     const res = await apiFetch<OkInterval>(`/api/intervals/${id}`, {

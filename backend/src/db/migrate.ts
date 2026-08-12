@@ -39,7 +39,7 @@ export function runMigrations(db: Database.Database): void {
       hourlyRate REAL NOT NULL DEFAULT 0,
       taxRate REAL NOT NULL DEFAULT 0,
       currency TEXT NOT NULL DEFAULT 'BYN',
-      timezone TEXT NOT NULL DEFAULT 'Europe/Moscow',
+      timezone TEXT NOT NULL DEFAULT 'Europe/Minsk',
       updatedAt TEXT NOT NULL
     );
 
@@ -113,6 +113,30 @@ export function runMigrations(db: Database.Database): void {
     );
     CREATE INDEX IF NOT EXISTS idx_salary_expenses_user_ym
       ON salary_expenses(userId, year, month);
+  `)
+
+  // ALTER-safe: notes on time_entries (older DBs created without it)
+  if (tableExists(db, 'time_entries')) {
+    const cols = columnNames(db, 'time_entries')
+    if (!cols.includes('notes')) {
+      console.log('[migrate] add time_entries.notes')
+      db.exec(`ALTER TABLE time_entries ADD COLUMN notes TEXT`)
+    }
+  }
+
+  console.log('[migrate] ensure work_templates')
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS work_templates (
+      id TEXT PRIMARY KEY,
+      userId INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      categoryId TEXT NOT NULL,
+      descriptionId TEXT NOT NULL,
+      unitId TEXT NOT NULL,
+      defaultQuantity REAL NOT NULL DEFAULT 1,
+      createdAt TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_work_templates_user ON work_templates(userId);
   `)
 
   console.log('[migrate] READY')

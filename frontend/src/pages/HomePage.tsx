@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Pencil, Plus, Play, Trash2 } from 'lucide-react'
+import { Plus, Play, StickyNote, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -50,10 +50,21 @@ function CompletedList({
             .sort((a, b) => (b.end ?? '').localeCompare(a.end ?? ''))
             .map((e) => {
               const range = getTimeRangeParts(e.start, e.end)
+              const hasNotes = Boolean(e.notes?.trim())
               return (
                 <div
                   key={e.id}
-                  className="surface-panel flex items-center justify-between gap-3 px-4 py-3"
+                  role="button"
+                  tabIndex={0}
+                  className="surface-panel flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-accent/40"
+                  aria-label={t('common.edit')}
+                  onClick={() => onEdit(e)}
+                  onKeyDown={(ev) => {
+                    if (ev.key === 'Enter' || ev.key === ' ') {
+                      ev.preventDefault()
+                      onEdit(e)
+                    }
+                  }}
                 >
                   <div className="min-w-0 space-y-1">
                     <p className="flex min-w-0 items-center text-sm font-medium">
@@ -66,6 +77,12 @@ function CompletedList({
                       ) : (
                         <span className="truncate tabular-nums">{range.timeLabel}</span>
                       )}
+                      {hasNotes ? (
+                        <StickyNote
+                          className="ml-1.5 h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                          aria-label={t('list.notesIndicator')}
+                        />
+                      ) : null}
                     </p>
                     <p className="flex items-center text-xs text-muted-foreground tabular-nums">
                       <span>{formatDuration(e.totalSeconds)}</span>
@@ -77,17 +94,11 @@ function CompletedList({
                       ) : null}
                     </p>
                   </div>
-                  <div className="flex items-center gap-0.5 shrink-0">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="h-9 w-9 text-primary-soft"
-                      aria-label={t('common.edit')}
-                      onClick={() => onEdit(e)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                  <div
+                    className="flex items-center gap-0.5 shrink-0"
+                    onClick={(ev) => ev.stopPropagation()}
+                    onKeyDown={(ev) => ev.stopPropagation()}
+                  >
                     <Button
                       type="button"
                       size="icon"
@@ -163,11 +174,11 @@ export function HomePage() {
 
   const closeComplete = (open: boolean) => {
     if (open) return
-    const resumeId = pausedForCompleteRef.current
+    const id = pausedForCompleteRef.current
     pausedForCompleteRef.current = null
     setCompleteTarget(null)
-    if (resumeId) {
-      void resume(resumeId).then(() => refreshActive())
+    if (id) {
+      void resume(id).then(() => refreshActive())
     }
   }
 
@@ -286,6 +297,7 @@ export function HomePage() {
             workItems: payload.workItems,
             start: payload.start,
             end: payload.end ?? null,
+            notes: payload.notes ?? null,
           })
         }}
       />

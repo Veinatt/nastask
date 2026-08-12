@@ -1,4 +1,5 @@
 import { t } from '@/lib/i18n'
+import { ACCOUNTING_TIMEZONE } from '@/lib/timezone'
 import type { TimeEntry } from '@/db/types'
 
 export function secondsBetween(startIso: string, endIso: string): number {
@@ -27,10 +28,6 @@ export function formatDuration(totalSeconds: number): string {
   return `${m}:${String(sec).padStart(2, '0')}`
 }
 
-export function formatHours(totalSeconds: number, digits = 2): string {
-  return (totalSeconds / 3600).toFixed(digits)
-}
-
 /** Duration as чч:мм (e.g. 06:42). Hours grow beyond 99 without truncation. */
 export function formatHoursMinutes(totalSeconds: number): string {
   const s = Math.max(0, Math.round(totalSeconds))
@@ -52,11 +49,6 @@ function pad2(n: number): string {
 /** Local calendar date as dd.mm (intervals — no year). */
 export function formatDateDdMm(d: Date): string {
   return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}`
-}
-
-/** Local calendar date as dd.mm.yyyy */
-export function formatDateDdMmYyyy(d: Date): string {
-  return `${formatDateDdMm(d)}.${d.getFullYear()}`
 }
 
 /** Local time as HH:mm */
@@ -129,20 +121,11 @@ export function formatTimeRange(startIso: string, endIso: string | null | undefi
   return `${parts.dateLabel} ${parts.timeLabel}`
 }
 
-/** IANA timezone of the current device (browser). */
-export function getDeviceTimezone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-  } catch {
-    return 'UTC'
-  }
-}
-
-/** Today's YYYY-MM-DD in the device timezone. */
+/** Today's YYYY-MM-DD in the accounting timezone (Minsk). */
 export function todayDateString(): string {
   try {
     return new Intl.DateTimeFormat('en-CA', {
-      timeZone: getDeviceTimezone(),
+      timeZone: ACCOUNTING_TIMEZONE,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -152,11 +135,25 @@ export function todayDateString(): string {
   }
 }
 
-/** Yesterday's YYYY-MM-DD in the device timezone. */
+/** Yesterday's YYYY-MM-DD in the accounting timezone (Minsk). */
 export function yesterdayDateString(): string {
   const today = todayDateString()
-  const d = new Date(`${today}T12:00:00`)
-  d.setDate(d.getDate() - 1)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  // Noon UTC-ish parse of calendar date in Minsk: use formatter offset via Date
+  const parts = today.split('-').map(Number)
+  const y = parts[0]!
+  const m = parts[1]!
+  const d = parts[2]!
+  const utc = Date.UTC(y, m - 1, d, 12, 0, 0)
+  const prev = new Date(utc - 86400000)
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: ACCOUNTING_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(prev)
+  } catch {
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${prev.getUTCFullYear()}-${pad(prev.getUTCMonth() + 1)}-${pad(prev.getUTCDate())}`
+  }
 }

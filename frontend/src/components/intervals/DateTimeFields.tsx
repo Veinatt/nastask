@@ -43,10 +43,21 @@ export function DateTimeFields({
 }: Props) {
   const { t } = useI18n()
 
+  // Pin native picker icons inside the field; give date a bit more width than time.
+  const pickerClassName =
+    'relative min-w-0 pr-9 ' +
+    '[&::-webkit-calendar-picker-indicator]:absolute ' +
+    '[&::-webkit-calendar-picker-indicator]:right-2.5 ' +
+    '[&::-webkit-calendar-picker-indicator]:top-1/2 ' +
+    '[&::-webkit-calendar-picker-indicator]:h-4 ' +
+    '[&::-webkit-calendar-picker-indicator]:w-4 ' +
+    '[&::-webkit-calendar-picker-indicator]:-translate-y-1/2 ' +
+    '[&::-webkit-calendar-picker-indicator]:cursor-pointer'
+
   return (
     <div className="space-y-2">
       <Label className="text-muted-foreground">{label}</Label>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)] gap-2">
         <div className="min-w-0 space-y-1.5">
           <Label htmlFor={`${idPrefix}-date`} className="text-xs font-normal">
             {t('dateTime.date')}
@@ -56,6 +67,7 @@ export function DateTimeFields({
             type="date"
             value={date}
             onChange={(e) => onDateChange(e.target.value)}
+            className={pickerClassName}
           />
         </div>
         <div className="min-w-0 space-y-1.5">
@@ -67,6 +79,7 @@ export function DateTimeFields({
             type="time"
             value={time}
             onChange={(e) => onTimeChange(e.target.value)}
+            className={pickerClassName}
           />
         </div>
       </div>

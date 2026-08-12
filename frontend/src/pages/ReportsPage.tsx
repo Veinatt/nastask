@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Download, List, Plus } from 'lucide-react'
+import { FileSpreadsheet, FileText, List, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
@@ -23,7 +23,7 @@ import { ExpensesListDialog } from '@/components/reports/ExpensesListDialog'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { useReports } from '@/hooks/useReports'
 import { useI18n } from '@/hooks/useI18n'
-import { exportTaxExcel } from '@/utils/excelExport'
+import { exportTaxCsv, exportTaxExcel } from '@/utils/excelExport'
 import { formatDecimal } from '@/utils/formatNumber'
 import { formatIntervalWhen } from '@/utils/timeDisplay'
 
@@ -199,15 +199,30 @@ export function ReportsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-primary/20 shrink-0"
-              onClick={() => exportTaxExcel(tax)}
-            >
-              <Download className="h-4 w-4 mr-1" />
-              {t('common.excel')}
-            </Button>
+            <div className="flex items-center gap-1 shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 border-primary/20"
+                aria-label={t('common.csv')}
+                title={t('common.csv')}
+                onClick={() => exportTaxCsv(tax)}
+              >
+                <FileText className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 border-primary/20"
+                aria-label={t('common.excel')}
+                title={t('common.excel')}
+                onClick={() => exportTaxExcel(tax)}
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           <div className="surface-panel overflow-hidden">

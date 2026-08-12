@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ChevronDown, Pencil, Trash2 } from 'lucide-react'
+import { ChevronDown, StickyNote, Trash2 } from 'lucide-react'
+import { expensesRemote } from '@/api/expensesRemote'
 import { intervalsRemote } from '@/api/intervalsRemote'
 import { MonthPicker } from '@/components/reports/MonthPicker'
 import { HoursCalendar } from '@/components/stats/HoursCalendar'
@@ -39,11 +40,14 @@ import { monthLabel } from '@/utils/dateHelpers'
 import { formatDecimal } from '@/utils/formatNumber'
 import { SoftDivider } from '@/components/ui/soft-divider'
 import {
+  aggregateCategoryAndWorkStats,
   computeStatsMetrics,
   filterAndSortIntervals,
   groupByMonthThenDay,
   hoursByDayMap,
   monthBounds,
+  monthlyAggregates,
+  monthsInRange,
   type IntervalWithWorks,
   type SortKey,
 } from '@/utils/statsMetrics'
@@ -81,6 +85,7 @@ export function StatsPage() {
   const today = todayDateString()
   const { settings } = useSettings()
   const { items: categories } = useDictionaries('categories')
+  const { items: descriptions } = useDictionaries('descriptions')
   const { updateInterval, remove } = useIntervals()
 
   const [year, setYear] = useState(now.year)
@@ -94,6 +99,9 @@ export function StatsPage() {
   const [allItems, setAllItems] = useState<IntervalWithWorks[]>([])
   const [loading, setLoading] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [topCategoriesOpen, setTopCategoriesOpen] = useState(false)
+  const [topWorksOpen, setTopWorksOpen] = useState(false)
+  const [expensesSum, setExpensesSum] = useState(0)
 
   const [coefFrom, setCoefFrom] = useState('')
   const [coefTo, setCoefTo] = useState('')
@@ -102,6 +110,15 @@ export function StatsPage() {
 
   const [editTarget, setEditTarget] = useState<TimeEntry | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  const categoryName = useCallback(
+    (id: string) => categories.find((c) => c.id === id)?.name ?? id,
+    [categories],
+  )
+  const descriptionName = useCallback(
+    (id: string) => descriptions.find((d) => d.id === id)?.name ?? id,
+    [descriptions],
+  )
 
   const formatDayLabel = (date: string): string => {
     try {
@@ -149,6 +166,33 @@ export function StatsPage() {
     }
     return monthBound
   }, [mode, selectedDay, rangeFrom, rangeTo, monthBound, allItems, today])
+
+  useEffect(() => {
+    let cancelled = false
+    const months = monthsInRange(periodBounds.from, periodBounds.to)
+    if (months.length === 0) {
+      setExpensesSum(0)
+      return
+    }
+    void (async () => {
+      try {
+        const totals = await Promise.all(
+          months.map(({ year: y, month: m }) =>
+            expensesRemote.listMonth(y, m).then((r) => r.total),
+          ),
+        )
+        if (!cancelled) {
+          setExpensesSum(totals.reduce((s, n) => s + n, 0))
+        }
+      } catch (e) {
+        console.error(e)
+        if (!cancelled) setExpensesSum(0)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [periodBounds.from, periodBounds.to])
 
   const periodItems = useMemo(() => {
     if (mode === 'all') return allItems
@@ -210,12 +254,51 @@ export function StatsPage() {
   const metrics = useMemo(
     () =>
       computeStatsMetrics(filtered, {
-        from: periodBounds.from,
-        to: periodBounds.to,
         hourlyRate: settings.hourlyRate,
         taxRate: settings.taxRate,
+        expensesSum,
       }),
-    [filtered, periodBounds, settings.hourlyRate, settings.taxRate],
+    [filtered, settings.hourlyRate, settings.taxRate, expensesSum],
+  )
+
+  const categoryWorkStats = useMemo(
+    () => aggregateCategoryAndWorkStats(filtered, settings.hourlyRate),
+    [filtered, settings.hourlyRate],
+  )
+
+  const topCategories = useMemo(
+    () => categoryWorkStats.categories.slice(0, 8),
+    [categoryWorkStats.categories],
+  )
+  const topWorks = useMemo(
+    () => categoryWorkStats.works.slice(0, 10),
+    [categoryWorkStats.works],
+  )
+
+  const monthChart = useMemo(
+    () =>
+      monthlyAggregates(
+        allItems,
+        settings.hourlyRate,
+        now.year,
+        now.month,
+        12,
+      ),
+    [allItems, settings.hourlyRate, now.year, now.month],
+  )
+
+  const monthChartMaxSeconds = useMemo(
+    () => Math.max(1, ...monthChart.map((m) => m.totalSeconds)),
+    [monthChart],
+  )
+
+  const topCategoryMaxSeconds = useMemo(
+    () => Math.max(1, ...topCategories.map((c) => c.seconds)),
+    [topCategories],
+  )
+  const topWorksMaxSeconds = useMemo(
+    () => Math.max(1, ...topWorks.map((w) => w.seconds)),
+    [topWorks],
   )
 
   const calendarItems = useMemo(() => {
@@ -226,6 +309,23 @@ export function StatsPage() {
 
   const dayHours = useMemo(() => hoursByDayMap(calendarItems), [calendarItems])
   const grouped = useMemo(() => groupByMonthThenDay(filtered), [filtered])
+
+  const earnedHint = useMemo(() => {
+    const parts: string[] = []
+    if (metrics.expensesSum > 0) {
+      parts.push(
+        t('stats.metric.expenses', {
+          amount: `${metrics.expensesSum.toFixed(2)} ${settings.currency}`,
+        }),
+      )
+    }
+    parts.push(
+      t('stats.metric.employerPay', {
+        amount: `${metrics.employerPay.toFixed(2)} ${settings.currency}`,
+      }),
+    )
+    return parts.join(' · ')
+  }, [metrics.expensesSum, metrics.employerPay, settings.currency, t])
 
   const handleCalendarSelect = (key: string) => {
     if (mode === 'range') {
@@ -241,6 +341,16 @@ export function StatsPage() {
     }
     setSelectedDay(key)
     setMode('day')
+  }
+
+  const selectMonthFromChart = (y: number, m: number) => {
+    setYear(y)
+    setMonth(m)
+    setMode('month')
+    setSelectedDay(null)
+    setRangeFrom(null)
+    setRangeTo(null)
+    setRangePicking('from')
   }
 
   return (
@@ -306,6 +416,44 @@ export function StatsPage() {
             onSelectDate={handleCalendarSelect}
           />
         </div>
+      )}
+
+      {mode === 'all' && (
+        <section className="surface-panel grid gap-3 px-4 py-4">
+          <h2 className="section-label">{t('stats.monthsChart')}</h2>
+          <div className="flex h-32 items-end gap-1 sm:gap-1.5">
+            {monthChart.map((m) => {
+              const pct = (m.totalSeconds / monthChartMaxSeconds) * 100
+              const shortLabel = monthLabel(m.year, m.month, locale).slice(0, 3)
+              return (
+                <button
+                  key={m.key}
+                  type="button"
+                  className={cn(
+                    'group flex min-w-0 flex-1 flex-col items-center gap-1.5',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  )}
+                  onClick={() => selectMonthFromChart(m.year, m.month)}
+                  aria-label={`${monthLabel(m.year, m.month, locale)}: ${formatHoursMinutes(m.totalSeconds)}`}
+                >
+                  <div className="flex h-24 w-full items-end justify-center">
+                    <div
+                      className={cn(
+                        'w-full max-w-8 rounded-t-sm transition-colors',
+                        'bg-primary/35 group-hover:bg-primary/55',
+                        m.totalSeconds === 0 && 'min-h-0.5 bg-muted',
+                      )}
+                      style={{ height: `${Math.max(m.totalSeconds > 0 ? 4 : 2, pct)}%` }}
+                    />
+                  </div>
+                  <span className="truncate text-[10px] tabular-nums capitalize text-muted-foreground">
+                    {shortLabel}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </section>
       )}
 
       <div className="surface-panel min-w-0 w-full overflow-hidden">
@@ -431,9 +579,7 @@ export function StatsPage() {
         <MetricCard
           label={t('stats.metric.earned')}
           value={`${metrics.earned.toFixed(2)} ${settings.currency}`}
-          hint={t('stats.metric.employerPay', {
-            amount: metrics.employerPay.toFixed(2),
-          })}
+          hint={earnedHint}
         />
         <MetricCard
           label={t('stats.metric.intervals')}
@@ -443,11 +589,104 @@ export function StatsPage() {
           })}
         />
         <MetricCard
-          label={t('stats.metric.avgPerCalendarDay')}
-          value={formatDecimalHoursAsClock(metrics.avgHoursPerCalendarDay)}
-          hint={t('stats.metric.calendarDays', { count: metrics.calendarDays })}
+          label={t('stats.metric.pauses')}
+          value={formatHoursMinutes(metrics.pauseSeconds)}
+          hint={t('stats.metric.efficiency', {
+            percent: Math.round(metrics.workEfficiencyPercent),
+          })}
         />
       </section>
+
+      {topCategories.length > 0 && (
+        <div className="surface-panel min-w-0 w-full overflow-hidden">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+            onClick={() => setTopCategoriesOpen((v) => !v)}
+            aria-expanded={topCategoriesOpen}
+          >
+            <span className="font-medium">{t('stats.topCategories')}</span>
+            <ChevronDown
+              className={cn(
+                'h-5 w-5 text-muted-foreground transition-transform duration-300 ease-[var(--ease-bounce)]',
+                topCategoriesOpen && 'rotate-180',
+              )}
+            />
+          </button>
+          {topCategoriesOpen && (
+            <ul className="grid gap-2.5 border-t border-border/60 px-4 py-4 animate-fade-up">
+              {topCategories.map((c) => (
+                <li key={c.categoryId} className="grid gap-1">
+                  <div className="flex items-baseline justify-between gap-2 text-sm">
+                    <span className="min-w-0 truncate font-medium">
+                      {categoryName(c.categoryId)}
+                    </span>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">
+                      {formatHoursMinutes(c.seconds)}
+                    </span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary/70"
+                      style={{
+                        width: `${(c.seconds / topCategoryMaxSeconds) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {topWorks.length > 0 && (
+        <div className="surface-panel min-w-0 w-full overflow-hidden">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+            onClick={() => setTopWorksOpen((v) => !v)}
+            aria-expanded={topWorksOpen}
+          >
+            <span className="font-medium">{t('stats.topWorks')}</span>
+            <ChevronDown
+              className={cn(
+                'h-5 w-5 text-muted-foreground transition-transform duration-300 ease-[var(--ease-bounce)]',
+                topWorksOpen && 'rotate-180',
+              )}
+            />
+          </button>
+          {topWorksOpen && (
+            <ul className="grid gap-2.5 border-t border-border/60 px-4 py-4 animate-fade-up">
+              {topWorks.map((w) => (
+                <li key={`${w.categoryId}\0${w.descriptionId}`} className="grid gap-1">
+                  <div className="flex items-baseline justify-between gap-2 text-sm">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">
+                        {descriptionName(w.descriptionId)}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {categoryName(w.categoryId)}
+                      </p>
+                    </div>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">
+                      {formatHoursMinutes(w.seconds)}
+                    </span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary/70"
+                      style={{
+                        width: `${(w.seconds / topWorksMaxSeconds) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       <section className="grid gap-4">
         <div className="flex items-center justify-between gap-3">
@@ -492,10 +731,21 @@ export function StatsPage() {
                           entry.coefficient *
                           settings.hourlyRate
                         const range = getTimeRangeParts(entry.start, entry.end)
+                        const hasNotes = Boolean(entry.notes?.trim())
                         return (
                           <li
                             key={entry.id}
-                            className="surface-panel flex items-center justify-between gap-3 px-4 py-3"
+                            role="button"
+                            tabIndex={0}
+                            className="surface-panel flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-accent/40"
+                            aria-label={t('common.edit')}
+                            onClick={() => setEditTarget(entry)}
+                            onKeyDown={(ev) => {
+                              if (ev.key === 'Enter' || ev.key === ' ') {
+                                ev.preventDefault()
+                                setEditTarget(entry)
+                              }
+                            }}
                           >
                             <div className="min-w-0 space-y-1">
                               <p className="flex min-w-0 items-center text-sm font-medium">
@@ -514,6 +764,12 @@ export function StatsPage() {
                                     {range.timeLabel}
                                   </span>
                                 )}
+                                {hasNotes ? (
+                                  <StickyNote
+                                    className="ml-1.5 h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                                    aria-label={t('list.notesIndicator')}
+                                  />
+                                ) : null}
                               </p>
                               <p className="flex flex-wrap items-center text-xs text-muted-foreground tabular-nums">
                                 <span>{formatDuration(entry.totalSeconds)}</span>
@@ -533,17 +789,11 @@ export function StatsPage() {
                                 ) : null}
                               </p>
                             </div>
-                            <div className="flex items-center gap-0.5 shrink-0">
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-9 w-9 text-primary-soft"
-                                aria-label={t('common.edit')}
-                                onClick={() => setEditTarget(entry)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
+                            <div
+                              className="flex items-center gap-0.5 shrink-0"
+                              onClick={(ev) => ev.stopPropagation()}
+                              onKeyDown={(ev) => ev.stopPropagation()}
+                            >
                               <Button
                                 type="button"
                                 size="icon"
@@ -583,6 +833,7 @@ export function StatsPage() {
             workItems: payload.workItems,
             start: payload.start,
             end: payload.end ?? null,
+            notes: payload.notes ?? null,
           })
           await reload()
         }}

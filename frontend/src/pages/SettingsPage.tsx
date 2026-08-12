@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import {
   Check,
   Coffee,
+  Download,
   Monitor,
   Moon,
   Pencil,
@@ -16,11 +17,144 @@ import { useSettings } from '@/hooks/useSettings'
 import { useTheme } from '@/hooks/useTheme'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useDictionaries } from '@/hooks/useDictionaries'
+import { useWorkTemplates } from '@/hooks/useWorkTemplates'
 import { useI18n } from '@/hooks/useI18n'
 import { SegmentedControl } from '@/components/ui/segmented-control'
+import { apiFetch } from '@/api/client'
 import type { ThemePreference } from '@/lib/theme'
 import type { AppLocale } from '@/lib/i18n'
 import type { DictKind } from '@/db/types'
+
+function TemplatesSection() {
+  const { t } = useI18n()
+  const { items, rename, remove } = useWorkTemplates()
+  const cats = useDictionaries('categories')
+  const descs = useDictionaries('descriptions')
+  const units = useDictionaries('units')
+  const [error, setError] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+
+  const nameOf = (list: { id: string; name: string }[], id: string) =>
+    list.find((x) => x.id === id)?.name ?? '—'
+
+  const startEdit = (id: string, current: string) => {
+    setEditingId(id)
+    setEditName(current)
+    setError(null)
+  }
+
+  const saveEdit = () => {
+    if (!editingId) return
+    void rename(editingId, editName)
+      .then(() => {
+        setEditingId(null)
+        setEditName('')
+        setError(null)
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : t('common.error')))
+  }
+
+  return (
+    <section className="surface-panel min-w-0 overflow-hidden p-4 sm:p-5 space-y-3 h-full flex flex-col">
+      <h2 className="font-semibold text-primary-soft/90">{t('templates.title')}</h2>
+      <p className="text-xs text-muted-foreground">{t('templates.settingsHint')}</p>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      <ul className="min-w-0 space-y-1 flex-1">
+        {items.map((item) => (
+          <li
+            key={item.id}
+            className="flex min-w-0 items-center justify-between gap-2 text-sm py-1.5 border-b border-border/60 last:border-0"
+          >
+            {editingId === item.id ? (
+              <>
+                <Input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="h-8 min-w-0 flex-1"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveEdit()
+                    if (e.key === 'Escape') setEditingId(null)
+                  }}
+                  autoFocus
+                />
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-emerald-500"
+                    aria-label={t('common.save')}
+                    onClick={saveEdit}
+                  >
+                    <Check className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    aria-label={t('common.cancel')}
+                    onClick={() => setEditingId(null)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  <p className="truncate font-medium" title={item.name}>
+                    {item.name}
+                  </p>
+                  <p
+                    className="truncate text-xs text-muted-foreground"
+                    title={`${nameOf(cats.items, item.categoryId)} · ${nameOf(descs.items, item.descriptionId)} · ${item.defaultQuantity} ${nameOf(units.items, item.unitId)}`}
+                  >
+                    {nameOf(cats.items, item.categoryId)}
+                    {' · '}
+                    {nameOf(descs.items, item.descriptionId)}
+                    {' · '}
+                    {item.defaultQuantity} {nameOf(units.items, item.unitId)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-primary-soft"
+                    aria-label={t('common.edit')}
+                    onClick={() => startEdit(item.id, item.name)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    aria-label={t('common.delete')}
+                    onClick={() =>
+                      void remove(item.id).catch((err) =>
+                        setError(err instanceof Error ? err.message : t('common.error')),
+                      )
+                    }
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </>
+            )}
+          </li>
+        ))}
+        {items.length === 0 && (
+          <li className="text-sm text-muted-foreground py-2">{t('common.empty')}</li>
+        )}
+      </ul>
+    </section>
+  )
+}
 
 function DictSection({ kind, title }: { kind: DictKind; title: string }) {
   const { t } = useI18n()
@@ -57,34 +191,35 @@ function DictSection({ kind, title }: { kind: DictKind; title: string }) {
   }
 
   return (
-    <section className="surface-panel p-4 sm:p-5 space-y-3 h-full flex flex-col">
+    <section className="surface-panel min-w-0 overflow-hidden p-4 sm:p-5 space-y-3 h-full flex flex-col">
       <h2 className="font-semibold text-primary-soft/90">{title}</h2>
-      <div className="flex gap-2">
+      <div className="flex min-w-0 gap-2">
         <Input
           value={name}
           placeholder={t('settings.dict.newPlaceholder')}
+          className="min-w-0 flex-1"
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') add()
           }}
         />
-        <Button type="button" variant="secondary" onClick={add} disabled={!name.trim()}>
+        <Button type="button" variant="secondary" className="shrink-0" onClick={add} disabled={!name.trim()}>
           {t('common.add')}
         </Button>
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
-      <ul className="space-y-1 flex-1">
+      <ul className="min-w-0 space-y-1 flex-1">
         {items.map((item) => (
           <li
             key={item.id}
-            className="flex items-center justify-between gap-2 text-sm py-1.5 border-b border-border/60 last:border-0"
+            className="flex min-w-0 items-center justify-between gap-2 text-sm py-1.5 border-b border-border/60 last:border-0"
           >
             {editingId === item.id ? (
               <>
                 <Input
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="h-8"
+                  className="h-8 min-w-0 flex-1"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') saveEdit()
                     if (e.key === 'Escape') setEditingId(null)
@@ -116,7 +251,9 @@ function DictSection({ kind, title }: { kind: DictKind; title: string }) {
               </>
             ) : (
               <>
-                <span className="min-w-0 truncate">{item.name}</span>
+                <span className="min-w-0 flex-1 truncate" title={item.name}>
+                  {item.name}
+                </span>
                 <div className="flex items-center gap-0.5 shrink-0">
                   <Button
                     type="button"
@@ -165,6 +302,8 @@ export function SettingsPage() {
   const [currency, setCurrency] = useState('')
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [exportBusy, setExportBusy] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
 
   const themeOptions: {
     value: ThemePreference
@@ -207,8 +346,30 @@ export function SettingsPage() {
     }
   }
 
+  const downloadJsonBackup = async () => {
+    setExportBusy(true)
+    setExportError(null)
+    try {
+      const data = await apiFetch<unknown>('/api/export')
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: 'application/json;charset=utf-8',
+      })
+      const stamp = new Date().toISOString().slice(0, 10)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `nastask-backup-${stamp}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      setExportError(e instanceof Error ? e.message : t('common.error'))
+    } finally {
+      setExportBusy(false)
+    }
+  }
+
   return (
-    <div className="grid gap-6">
+    <div className="grid min-w-0 gap-6">
       <header className="space-y-1">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('settings.title')}</h1>
         <p className="text-sm text-muted-foreground">
@@ -238,6 +399,7 @@ export function SettingsPage() {
 
       <section className="surface-panel p-4 sm:p-5 space-y-4">
         <h2 className="font-semibold">{t('settings.pay')}</h2>
+        <p className="text-sm text-muted-foreground">{t('settings.timezone')}</p>
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="space-y-2">
             <Label htmlFor="rate">{t('settings.hourlyRate')}</Label>
@@ -278,12 +440,28 @@ export function SettingsPage() {
         </div>
       </section>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid min-w-0 gap-4 md:grid-cols-2">
         <DictSection kind="categories" title={t('settings.dict.categories')} />
         <DictSection kind="descriptions" title={t('settings.dict.descriptions')} />
         <DictSection kind="units" title={t('settings.dict.units')} />
         <DictSection kind="expenses" title={t('settings.dict.expenses')} />
+        <TemplatesSection />
       </div>
+
+      <section className="surface-panel p-4 sm:p-5 space-y-4">
+        <h2 className="font-semibold">{t('settings.export.title')}</h2>
+        <Button
+          type="button"
+          variant="secondary"
+          className="w-full"
+          disabled={exportBusy}
+          onClick={() => void downloadJsonBackup()}
+        >
+          <Download className="h-4 w-4 mr-1.5" />
+          {t('settings.export.json')}
+        </Button>
+        {exportError && <p className="text-sm text-destructive">{exportError}</p>}
+      </section>
     </div>
   )
 }

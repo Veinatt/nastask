@@ -17,12 +17,23 @@ export interface TimeEntry {
   pauseTotalSeconds: number
   pauseStartedAt: string | null
   date: string
+  notes?: string | null
   createdAt: string
   updatedAt: string
   /** Present after server round-trip; recomputed locally for UI tick */
   liveTotalSeconds?: number
   isPaused?: boolean
   isActive?: boolean
+}
+
+export interface WorkTemplate {
+  id: string
+  name: string
+  categoryId: string
+  descriptionId: string
+  unitId: string
+  defaultQuantity: number
+  createdAt: string
 }
 
 export interface WorkItem {
@@ -58,6 +69,9 @@ export type PendingOpType =
   | 'dict_create'
   | 'dict_update'
   | 'dict_delete'
+  | 'template_create'
+  | 'template_update'
+  | 'template_delete'
   | 'settings_put'
 
 export type DictKind = 'categories' | 'descriptions' | 'units' | 'expenses'
@@ -91,12 +105,6 @@ export interface SalaryExpense {
   name: string
   amount: number
   createdAt: string
-}
-
-export interface ExpenseArticle {
-  id: string
-  userId: number
-  name: string
 }
 
 export interface SalaryReport {

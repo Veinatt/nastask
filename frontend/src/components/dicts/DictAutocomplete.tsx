@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Check } from 'lucide-react'
 import { useAutoComplete } from '@/hooks/useDictionaries'
+import { useDropdownMaxWidth } from '@/hooks/useDropdownMaxWidth'
 import { useI18n } from '@/hooks/useI18n'
 import type { DictKind } from '@/db/types'
 import { cn } from '@/lib/utils'
@@ -29,11 +30,12 @@ export function DictAutocomplete({
   const { suggestions, findExact, create } = useAutoComplete(kind)
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const maxWidth = useDropdownMaxWidth(open, rootRef)
   const list = useMemo(() => suggestions(value), [suggestions, value])
 
   const exact = findExact(value)
   const trimmed = value.trim()
-  // Show check when typed text has no exact match (need to create)
   const needsCreate = trimmed.length > 0 && !exact
 
   const pick = (id: string, name: string) => {
@@ -55,8 +57,13 @@ export function DictAutocomplete({
     }
   }
 
+  const menuWidth =
+    maxWidth != null
+      ? Math.min(rootRef.current?.offsetWidth ?? maxWidth, maxWidth)
+      : undefined
+
   return (
-    <div className={cn('relative', className)}>
+    <div ref={rootRef} className={cn('relative min-w-0', className)}>
       <input
         value={value}
         placeholder={placeholder}
@@ -64,8 +71,6 @@ export function DictAutocomplete({
           const next = e.target.value
           setOpen(true)
           const match = findExact(next)
-          // One parent updater per keystroke — stacking onChange+onCleared/onResolved
-          // against the same items snapshot drops the typed character.
           if (match && onResolved) {
             onResolved(match.id, match.name)
           } else {
@@ -78,7 +83,7 @@ export function DictAutocomplete({
         }}
         autoComplete="off"
         className={cn(
-          'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors',
+          'flex h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors',
           'placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           'disabled:cursor-not-allowed disabled:opacity-50',
           needsCreate ? 'pr-10' : 'pr-3',
@@ -97,12 +102,19 @@ export function DictAutocomplete({
         </button>
       )}
       {open && list.length > 0 && (
-        <ul className="absolute z-50 mt-1 max-h-40 w-full overflow-auto rounded-md border bg-popover text-sm shadow-md">
+        <ul
+          className="absolute left-0 top-full z-50 mt-1 max-h-40 overflow-auto rounded-md border bg-popover text-sm shadow-md"
+          style={{
+            width: menuWidth ?? '100%',
+            maxWidth: maxWidth,
+          }}
+        >
           {list.map((item) => (
-            <li key={item.id}>
+            <li key={item.id} className="min-w-0">
               <button
                 type="button"
-                className="w-full px-3 py-2 text-left hover:bg-accent"
+                className="block w-full truncate px-3 py-2 text-left hover:bg-accent"
+                title={item.name}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => pick(item.id, item.name)}
               >

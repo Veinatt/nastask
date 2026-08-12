@@ -4,28 +4,15 @@ import { intervalsRemote } from '@/api/intervalsRemote'
 import { intervalsLocal } from '@/api/intervalsLocal'
 import { dictsRemote } from '@/api/dictsRemote'
 import { dictsLocal } from '@/api/dictsLocal'
+import { workTemplatesRemote } from '@/api/workTemplatesRemote'
+import { workTemplatesLocal } from '@/api/workTemplatesLocal'
 import { settingsRemote, settingsLocal } from '@/api/settingsApi'
 import { useTelegram } from '@/hooks/useTelegram'
 import { db } from '@/db'
-import {
-  getDeviceTimezone,
-  todayDateString,
-  yesterdayDateString,
-} from '@/utils/timeDisplay'
-import type { DictKind, TimeEntry, WorkItem } from '@/db/types'
+import { ACCOUNTING_TIMEZONE } from '@/lib/timezone'
+import type { DictKind } from '@/db/types'
 
 const DICTS: DictKind[] = ['categories', 'descriptions', 'units', 'expenses']
-
-async function fetchCompletedDay(
-  date: string,
-): Promise<Array<{ entry: TimeEntry; workItems: WorkItem[] }> | null> {
-  try {
-    return await intervalsRemote.listCompleted(date)
-  } catch (error) {
-    console.error('[sync] listCompleted failed', date, error)
-    return null
-  }
-}
 
 async function pendingEntityIds(): Promise<Set<string>> {
   const ops = await db.pendingOps.toArray()
@@ -35,28 +22,24 @@ async function pendingEntityIds(): Promise<Set<string>> {
 async function pullAll(): Promise<void> {
   await flushPendingOps()
 
-  const today = todayDateString()
-  const yesterday = yesterdayDateString()
   const keepIds = await pendingEntityIds()
 
-  const [active, settings, completedToday, completedYesterday] = await Promise.all([
+  const [active, settings, allCompleted] = await Promise.all([
     intervalsRemote.listActive(),
     settingsRemote.get(),
-    fetchCompletedDay(today),
-    fetchCompletedDay(yesterday),
+    intervalsRemote.listAllCompleted().catch((error) => {
+      console.error('[sync] listAllCompleted failed', error)
+      return null
+    }),
   ])
   await intervalsLocal.replaceActive(active)
 
-  if (completedToday) {
-    await intervalsLocal.replaceCompletedForDate(today, completedToday, keepIds)
-  }
-  if (completedYesterday) {
-    await intervalsLocal.replaceCompletedForDate(yesterday, completedYesterday, keepIds)
+  if (allCompleted) {
+    await intervalsLocal.replaceAllCompleted(allCompleted, keepIds)
   }
 
-  const deviceTz = getDeviceTimezone()
-  if (settings.timezone !== deviceTz) {
-    const synced = await settingsRemote.put({ timezone: deviceTz })
+  if (settings.timezone !== ACCOUNTING_TIMEZONE) {
+    const synced = await settingsRemote.put({ timezone: ACCOUNTING_TIMEZONE })
     await settingsLocal.put(synced)
   } else {
     await settingsLocal.put(settings)
@@ -68,6 +51,13 @@ async function pullAll(): Promise<void> {
       await dictsLocal.replaceAll(kind, items)
     }),
   )
+
+  try {
+    const templates = await workTemplatesRemote.list()
+    await workTemplatesLocal.replaceAll(templates)
+  } catch (error) {
+    console.error('[sync] work templates pull failed', error)
+  }
 }
 
 /** Pull server state + flush pending ops on launch / online. */
@@ -81,7 +71,6 @@ export function useSync() {
     const sync = async () => {
       try {
         await pullAll()
-        console.log('[sync] pulled from server')
       } catch (error) {
         console.error('[sync] failed', error)
       }

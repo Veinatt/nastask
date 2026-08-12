@@ -4,7 +4,7 @@ import { enqueueOp } from '@/api/pendingOps'
 import { createDefaultSettings } from '@/db/defaults'
 import type { UserSettings } from '@/db/types'
 import { ApiError } from '@/api/client'
-import { getDeviceTimezone } from '@/utils/timeDisplay'
+import { ACCOUNTING_TIMEZONE } from '@/lib/timezone'
 
 export function useSettings() {
   const settings =
@@ -13,7 +13,7 @@ export function useSettings() {
   const updateSettings = async (
     patch: Partial<Pick<UserSettings, 'hourlyRate' | 'taxRate' | 'currency'>>,
   ) => {
-    const withTz = { ...patch, timezone: getDeviceTimezone() }
+    const withTz = { ...patch, timezone: ACCOUNTING_TIMEZONE }
     const next: UserSettings = {
       ...settings,
       ...withTz,

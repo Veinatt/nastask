@@ -16,6 +16,7 @@ function mapEntry(row: Record<string, unknown>): TimeEntry {
     pauseTotalSeconds: Number(row.pauseTotalSeconds ?? 0),
     pauseStartedAt: row.pauseStartedAt == null ? null : String(row.pauseStartedAt),
     date: String(row.date),
+    notes: row.notes == null ? null : String(row.notes),
     createdAt: String(row.createdAt),
     updatedAt: String(row.updatedAt),
   }
@@ -121,10 +122,10 @@ export const intervalsRepo = {
         `
         INSERT INTO time_entries (
           id, userId, title, coefficient, start, end,
-          totalSeconds, pauseTotalSeconds, pauseStartedAt, date, createdAt, updatedAt
+          totalSeconds, pauseTotalSeconds, pauseStartedAt, date, notes, createdAt, updatedAt
         ) VALUES (
           @id, @userId, @title, @coefficient, @start, @end,
-          @totalSeconds, @pauseTotalSeconds, @pauseStartedAt, @date, @createdAt, @updatedAt
+          @totalSeconds, @pauseTotalSeconds, @pauseStartedAt, @date, @notes, @createdAt, @updatedAt
         )
         `,
       )
@@ -147,6 +148,7 @@ export const intervalsRepo = {
           pauseTotalSeconds = @pauseTotalSeconds,
           pauseStartedAt = @pauseStartedAt,
           date = @date,
+          notes = @notes,
           updatedAt = @updatedAt
         WHERE id = @id
         `,
@@ -208,6 +210,7 @@ export const intervalsRepo = {
       pauseTotalSeconds: 0,
       pauseStartedAt: null,
       date: dateInTimezone(start, settings.timezone),
+      notes: null,
       createdAt: start,
       updatedAt: start,
     })
@@ -242,7 +245,12 @@ export const intervalsRepo = {
 
   complete(
     entry: TimeEntry,
-    opts: { coefficient: number; workItems: WorkItemInput[]; end?: string },
+    opts: {
+      coefficient: number
+      workItems: WorkItemInput[]
+      end?: string
+      notes?: string | null
+    },
   ): { entry: TimeEntry; workItems: WorkItem[] } {
     if (entry.end) throw new Error('Interval already completed')
     const end = opts.end ?? nowIso()
@@ -254,6 +262,12 @@ export const intervalsRepo = {
     } else {
       totalSeconds = liveTotalSeconds(entry, end)
     }
+    const notes =
+      opts.notes !== undefined
+        ? opts.notes == null
+          ? null
+          : String(opts.notes)
+        : entry.notes
     const updated = this.update({
       ...entry,
       coefficient: opts.coefficient,
@@ -261,6 +275,7 @@ export const intervalsRepo = {
       totalSeconds,
       pauseTotalSeconds: pauseTotal,
       pauseStartedAt: null,
+      notes,
       updatedAt: end,
     })
     const workItems = this.replaceWorkItems(entry.id, opts.workItems)

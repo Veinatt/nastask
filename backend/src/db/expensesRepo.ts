@@ -24,6 +24,18 @@ function mapExpense(row: Record<string, unknown>): SalaryExpense {
 }
 
 export const salaryExpensesRepo = {
+  listAll(userId: number): SalaryExpense[] {
+    return (
+      getDb()
+        .prepare(
+          `SELECT * FROM salary_expenses
+           WHERE userId = ?
+           ORDER BY year DESC, month DESC, createdAt ASC`,
+        )
+        .all(userId) as Record<string, unknown>[]
+    ).map(mapExpense)
+  },
+
   listMonth(userId: number, year: number, month: number): SalaryExpense[] {
     return (
       getDb()

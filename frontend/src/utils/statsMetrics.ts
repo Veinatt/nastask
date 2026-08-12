@@ -7,42 +7,35 @@ export type IntervalWithWorks = {
 
 export type StatsMetrics = {
   totalSeconds: number
-  totalHours: number
   intervalCount: number
   avgHoursPerWorkedDay: number
-  avgHoursPerCalendarDay: number
   weightedAvgCoefficient: number
   avgIntervalHours: number
   earned: number
+  expensesSum: number
   employerPay: number
   pauseSeconds: number
+  /** Share of wall time that was working (not pause), 0..100 */
+  workEfficiencyPercent: number
   workedDays: number
-  calendarDays: number
 }
 
 export function computeStatsMetrics(
   items: IntervalWithWorks[],
   opts: {
-    from: string
-    to: string
     hourlyRate: number
     taxRate: number
+    expensesSum?: number
   },
 ): StatsMetrics {
   const totalSeconds = items.reduce((s, i) => s + i.entry.totalSeconds, 0)
   const pauseSeconds = items.reduce((s, i) => s + i.entry.pauseTotalSeconds, 0)
   const intervalCount = items.length
   const totalHours = totalSeconds / 3600
+  const expensesSum = opts.expensesSum ?? 0
 
   const days = new Set(items.map((i) => i.entry.date))
   const workedDays = days.size
-
-  const fromMs = Date.parse(`${opts.from}T00:00:00`)
-  const toMs = Date.parse(`${opts.to}T00:00:00`)
-  const calendarDays =
-    Number.isFinite(fromMs) && Number.isFinite(toMs)
-      ? Math.max(1, Math.round((toMs - fromMs) / 86400000) + 1)
-      : 1
 
   let weightedCoefNum = 0
   for (const { entry } of items) {
@@ -54,22 +47,181 @@ export function computeStatsMetrics(
   const earned = items.reduce((s, { entry }) => {
     return s + (entry.totalSeconds / 3600) * entry.coefficient * opts.hourlyRate
   }, 0)
-  const employerPay = earned * (1 + opts.taxRate / 100)
+  // Align with backend salary report: (earned + expenses) * (1 + tax/100)
+  const employerPay = (earned + expensesSum) * (1 + opts.taxRate / 100)
+
+  const wallSeconds = totalSeconds + pauseSeconds
+  const workEfficiencyPercent =
+    wallSeconds > 0 ? (totalSeconds / wallSeconds) * 100 : 100
 
   return {
     totalSeconds,
-    totalHours,
     intervalCount,
     avgHoursPerWorkedDay: workedDays > 0 ? totalHours / workedDays : 0,
-    avgHoursPerCalendarDay: totalHours / calendarDays,
     weightedAvgCoefficient,
     avgIntervalHours: intervalCount > 0 ? totalHours / intervalCount : 0,
     earned,
+    expensesSum,
     employerPay,
     pauseSeconds,
+    workEfficiencyPercent,
     workedDays,
-    calendarDays,
   }
+}
+
+/** Split interval seconds (and optional amount) across work items ∝ quantity; qty sum 0 → equal. */
+export function allocateByQuantity(
+  totalSeconds: number,
+  workItems: WorkItem[],
+  amount = 0,
+): Array<{ workItem: WorkItem; seconds: number; amount: number }> {
+  if (workItems.length === 0) return []
+  const qtySum = workItems.reduce(
+    (s, w) => s + (Number.isFinite(w.quantity) ? w.quantity : 0),
+    0,
+  )
+  if (qtySum <= 0) {
+    const eachSec = totalSeconds / workItems.length
+    const eachAmt = amount / workItems.length
+    return workItems.map((workItem) => ({
+      workItem,
+      seconds: eachSec,
+      amount: eachAmt,
+    }))
+  }
+  return workItems.map((workItem) => {
+    const q = Number.isFinite(workItem.quantity) ? workItem.quantity : 0
+    const share = q / qtySum
+    return {
+      workItem,
+      seconds: totalSeconds * share,
+      amount: amount * share,
+    }
+  })
+}
+
+export type CategoryStat = {
+  categoryId: string
+  seconds: number
+  amount: number
+}
+
+export type WorkStat = {
+  categoryId: string
+  descriptionId: string
+  seconds: number
+  amount: number
+  quantity: number
+}
+
+export function aggregateCategoryAndWorkStats(
+  items: IntervalWithWorks[],
+  hourlyRate: number,
+): { categories: CategoryStat[]; works: WorkStat[] } {
+  const catMap = new Map<string, CategoryStat>()
+  const workMap = new Map<string, WorkStat>()
+
+  for (const { entry, workItems } of items) {
+    const amount =
+      (entry.totalSeconds / 3600) * entry.coefficient * hourlyRate
+    const parts = allocateByQuantity(entry.totalSeconds, workItems, amount)
+    for (const part of parts) {
+      const cid = part.workItem.categoryId
+      const cat = catMap.get(cid) ?? { categoryId: cid, seconds: 0, amount: 0 }
+      cat.seconds += part.seconds
+      cat.amount += part.amount
+      catMap.set(cid, cat)
+
+      const key = `${cid}\0${part.workItem.descriptionId}`
+      const w =
+        workMap.get(key) ?? {
+          categoryId: cid,
+          descriptionId: part.workItem.descriptionId,
+          seconds: 0,
+          amount: 0,
+          quantity: 0,
+        }
+      w.seconds += part.seconds
+      w.amount += part.amount
+      w.quantity += Number.isFinite(part.workItem.quantity)
+        ? part.workItem.quantity
+        : 0
+      workMap.set(key, w)
+    }
+  }
+
+  const categories = [...catMap.values()].sort((a, b) => b.seconds - a.seconds)
+  const works = [...workMap.values()].sort((a, b) => b.seconds - a.seconds)
+  return { categories, works }
+}
+
+export type MonthAggregate = {
+  key: string
+  year: number
+  month: number
+  totalSeconds: number
+  earned: number
+}
+
+/** Last N calendar months ending at endYear/endMonth (inclusive). */
+export function monthlyAggregates(
+  items: IntervalWithWorks[],
+  hourlyRate: number,
+  endYear: number,
+  endMonth: number,
+  monthsCount = 12,
+): MonthAggregate[] {
+  const byMonth = new Map<string, { totalSeconds: number; earned: number }>()
+  for (const { entry } of items) {
+    const key = entry.date.slice(0, 7)
+    const cur = byMonth.get(key) ?? { totalSeconds: 0, earned: 0 }
+    cur.totalSeconds += entry.totalSeconds
+    cur.earned += (entry.totalSeconds / 3600) * entry.coefficient * hourlyRate
+    byMonth.set(key, cur)
+  }
+
+  const result: MonthAggregate[] = []
+  let y = endYear
+  let m = endMonth
+  for (let i = 0; i < monthsCount; i++) {
+    const key = `${y}-${String(m).padStart(2, '0')}`
+    const cur = byMonth.get(key)
+    result.push({
+      key,
+      year: y,
+      month: m,
+      totalSeconds: cur?.totalSeconds ?? 0,
+      earned: cur?.earned ?? 0,
+    })
+    m -= 1
+    if (m < 1) {
+      m = 12
+      y -= 1
+    }
+  }
+  return result.reverse()
+}
+
+/** Unique yyyy-MM keys covered by [from, to] inclusive. */
+export function monthsInRange(
+  from: string,
+  to: string,
+): Array<{ year: number; month: number }> {
+  const start = from.slice(0, 7)
+  const end = to.slice(0, 7)
+  if (!/^\d{4}-\d{2}$/.test(start) || !/^\d{4}-\d{2}$/.test(end)) return []
+  const out: Array<{ year: number; month: number }> = []
+  let [ys, ms] = start.split('-').map(Number) as [number, number]
+  const [ye, me] = end.split('-').map(Number) as [number, number]
+  while (ys < ye || (ys === ye && ms <= me)) {
+    out.push({ year: ys, month: ms })
+    ms += 1
+    if (ms > 12) {
+      ms = 1
+      ys += 1
+    }
+  }
+  return out
 }
 
 export type SortKey = 'date' | 'duration' | 'coefficient' | 'amount'
@@ -170,7 +322,6 @@ export function groupByMonthThenDay(items: IntervalWithWorks[]): MonthGroup[] {
       list.push(item)
       byDay.set(item.entry.date, list)
     }
-    // Preserve encounter order from filtered list within each day
     const days = [...byDay.keys()]
       .sort((a, b) => b.localeCompare(a))
       .map((date) => {

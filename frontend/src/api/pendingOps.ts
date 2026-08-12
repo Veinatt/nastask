@@ -46,8 +46,6 @@ export async function flushPendingOps(): Promise<void> {
   const ops = await db.pendingOps.orderBy('createdAt').toArray()
   if (ops.length === 0) return
 
-  console.log(`[pending] flushing ${ops.length} op(s)`)
-
   for (const op of ops) {
     try {
       await applyOp(op)
@@ -91,7 +89,6 @@ export async function flushPendingOps(): Promise<void> {
 
   if ((await pendingCount()) === 0) {
     emitSyncStatus(null)
-    console.log('[pending] flush complete')
   }
 }
 

@@ -8,7 +8,7 @@ function mapRow(row: Record<string, unknown>): UserSettings {
     hourlyRate: Number(row.hourlyRate ?? 0),
     taxRate: Number(row.taxRate ?? 0),
     currency: String(row.currency ?? 'BYN'),
-    timezone: String(row.timezone ?? 'Europe/Moscow'),
+    timezone: String(row.timezone ?? 'Europe/Minsk'),
     updatedAt: String(row.updatedAt),
   }
 }

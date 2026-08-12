@@ -11,6 +11,8 @@ import {
 } from './routes/dicts'
 import { settingsRouter } from './routes/settings'
 import { expensesRouter } from './routes/expenses'
+import { workTemplatesRouter } from './routes/workTemplates'
+import { exportRouter } from './routes/export'
 
 async function main(): Promise<void> {
   console.log('[boot] ===== NasTask backend starting =====')
@@ -39,6 +41,8 @@ async function main(): Promise<void> {
   app.use('/api/expense-articles', expenseArticlesRouter)
   app.use('/api/settings', settingsRouter)
   app.use('/api/expenses', expensesRouter)
+  app.use('/api/work-templates', workTemplatesRouter)
+  app.use('/api/export', exportRouter)
 
   app.use(
     (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -47,7 +51,7 @@ async function main(): Promise<void> {
     },
   )
   console.log(
-    '[boot] routes: /health /api/intervals /api/categories /api/descriptions /api/units /api/expense-articles /api/settings /api/expenses',
+    '[boot] routes: /health /api/intervals /api/categories /api/descriptions /api/units /api/expense-articles /api/settings /api/expenses /api/work-templates /api/export',
   )
 
   console.log('[boot] stage 4/4 — HTTP listen')

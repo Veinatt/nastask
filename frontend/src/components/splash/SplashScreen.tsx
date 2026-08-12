@@ -54,48 +54,12 @@ function signalReady() {
   }
 }
 
-/** macOS / desktop Telegram WKWebView often breaks FLIP + opacity animations → blank beige. */
-function shouldUseLiteSplash(): boolean {
-  try {
-    const platform = String(
-      (
-        window as unknown as {
-          Telegram?: { WebApp?: { platform?: string } }
-        }
-      ).Telegram?.WebApp?.platform ?? '',
-    ).toLowerCase()
-    if (
-      platform === 'macos' ||
-      platform === 'tdesktop' ||
-      platform === 'web' ||
-      platform === 'weba' ||
-      platform === 'webk' ||
-      platform === 'unigram'
-    ) {
-      return true
-    }
-  } catch {
-    // ignore
-  }
-  try {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true
-    // Fine pointer + wide window ≈ desktop client embedding
-    if (window.matchMedia('(pointer: fine) and (min-width: 900px)').matches) {
-      return true
-    }
-  } catch {
-    // ignore
-  }
-  return false
-}
-
 export function SplashScreen({ onComplete }: SplashScreenProps) {
   const logoRef = useRef<HTMLHeadingElement>(null)
   const finishedRef = useRef(false)
   const [phase, setPhase] = useState<Phase>('hold')
   const [logoBox, setLogoBox] = useState<LogoBox | null>(null)
   const [burst, setBurst] = useState(false)
-  const [lite] = useState(() => shouldUseLiteSplash())
 
   const finish = () => {
     if (finishedRef.current) return
@@ -106,24 +70,17 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
   useEffect(() => {
     signalReady()
-    if (!lite) {
-      const img = new Image()
-      img.src = catSrc
-    }
-  }, [lite])
+    const img = new Image()
+    img.src = catSrc
+  }, [])
 
   useEffect(() => {
     const timers: number[] = []
     let raf1 = 0
     let raf2 = 0
 
-    // Hard failsafe — never leave blank overlay (esp. macOS TG)
-    timers.push(window.setTimeout(finish, lite ? 600 : 2800))
-
-    if (lite) {
-      timers.push(window.setTimeout(finish, 280))
-      return () => timers.forEach(clearTimeout)
-    }
+    // Hard failsafe — never leave blank overlay
+    timers.push(window.setTimeout(finish, 2800))
 
     timers.push(
       window.setTimeout(() => {
@@ -194,7 +151,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       cancelAnimationFrame(raf2)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lite])
+  }, [])
 
   const logoStyle: CSSProperties | undefined = logoBox
     ? {
@@ -239,8 +196,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         }}
       />
 
-      {!lite &&
-        burst &&
+      {burst &&
         CATS.map((cat) => (
           <img
             key={cat.id}
