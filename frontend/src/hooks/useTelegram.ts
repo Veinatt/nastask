@@ -24,6 +24,9 @@ type TelegramUser = {
 
 const DEV_FAKE_USER_ID = Number(import.meta.env.VITE_DEV_USER_ID ?? 334808852)
 
+/** SDK mount must run once — AppLayout + useSync both call useTelegram(). */
+let telegramInitState: 'idle' | 'ok' | 'fail' = 'idle'
+
 function signalNativeReady(): void {
   try {
     const tg = (
@@ -67,16 +70,56 @@ function readNativeUser(): TelegramUser | null {
   return null
 }
 
+function isComponentMounted(comp: {
+  isMounted?: () => boolean
+  isMounting?: () => boolean
+}): boolean {
+  try {
+    if (typeof comp.isMounted === 'function' && comp.isMounted()) return true
+  } catch {
+    // ignore
+  }
+  try {
+    if (typeof comp.isMounting === 'function' && comp.isMounting()) return true
+  } catch {
+    // ignore
+  }
+  return false
+}
+
 function tryInitTelegram(): boolean {
+  if (telegramInitState === 'ok') return true
+  if (telegramInitState === 'fail') return false
+  // Claim immediately so a second useTelegram() cannot double-mount
+  telegramInitState = 'ok'
+
   try {
     init()
 
-    if (themeParams.mount.isAvailable()) {
-      themeParams.mount()
+    if (themeParams.mount.isAvailable() && !isComponentMounted(themeParams)) {
+      try {
+        const result = themeParams.mount() as void | Promise<unknown>
+        if (result != null && typeof (result as Promise<unknown>).then === 'function') {
+          void (result as Promise<unknown>).catch(() => {
+            // ConcurrentCallError / already mounting — ignore
+          })
+        }
+      } catch {
+        // already mounted / concurrent
+      }
       themeParams.bindCssVars.ifAvailable()
     }
-    if (miniApp.mount.isAvailable()) {
-      void miniApp.mount()
+    if (miniApp.mount.isAvailable() && !isComponentMounted(miniApp)) {
+      try {
+        const result = miniApp.mount() as void | Promise<unknown>
+        if (result != null && typeof (result as Promise<unknown>).then === 'function') {
+          void (result as Promise<unknown>).catch(() => {
+            // ignore
+          })
+        }
+      } catch {
+        // ignore
+      }
     }
 
     try {
@@ -85,7 +128,10 @@ function tryInitTelegram(): boolean {
       // ignore
     }
 
-    if (viewport.mount.isAvailable()) {
+    if (
+      viewport.mount.isAvailable() &&
+      !isComponentMounted(viewport)
+    ) {
       void viewport
         .mount()
         .then(() => {
@@ -105,6 +151,7 @@ function tryInitTelegram(): boolean {
   } catch (e) {
     console.warn('[telegram] init failed', e)
     signalNativeReady()
+    telegramInitState = 'fail'
     return false
   }
 }
