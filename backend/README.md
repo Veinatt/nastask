@@ -36,13 +36,17 @@ npm run dev
 
 Ключевые переменные: `PORT`, `DATABASE_PATH`, `AUTH_DEV_BYPASS`, `BOT_TOKEN` (для prod initData), `INIT_DATA_MAX_AGE_SEC`, `MEMORY_EXPORT_KEY` (для `GET /api/memory/export`).
 
-### Memory quiz (секретный раздел)
+### Memory quiz (NasTale)
+
+Тексты вопросов живут на клиенте (локали). Сервер хранит только ответы.
 
 | Method | Path | Auth |
 |--------|------|------|
-| GET | `/api/memory/questions` | tma |
-| GET/POST | `/api/memory/answers` | tma |
+| GET | `/api/memory/questions` | tma — `{ id }[]` (whitelist) |
+| GET/POST | `/api/memory/answers` | tma — per user |
 | GET | `/api/memory/export?userId=` | header `X-Export-Key` |
+
+Таблица `memory_quiz`: `userId`, `questionId`, `answer`, `answeredAt`, `updatedAt` (UNIQUE userId+questionId).
 
 ```bash
 curl -H "X-Export-Key: $MEMORY_EXPORT_KEY" \
@@ -51,5 +55,7 @@ curl -H "X-Export-Key: $MEMORY_EXPORT_KEY" \
 curl -H "X-Export-Key: $MEMORY_EXPORT_KEY" \
   "https://<host>/api/memory/export?userId=123456789"
 ```
+
+После правки `.env` локально — полный рестарт процесса (nodemon `.env` не смотрит). В логе: `MEMORY_EXPORT_KEY=set`.
 
 БД по умолчанию: `./data/nastask.sqlite`. При старте legacy-таблицы `tasks`/`reminders` удаляются; создаётся схема трекера времени + `memory_quiz`.

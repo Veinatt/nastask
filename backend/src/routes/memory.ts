@@ -1,7 +1,7 @@
 import { Router, type Request, type Response, type NextFunction } from 'express'
 import { telegramAuth } from '../middleware/telegramAuth'
 import { config } from '../config'
-import { MEMORY_QUESTIONS } from '../memory/memoryQuestions'
+import { MEMORY_QUESTION_IDS } from '../memory/memoryQuestions'
 import { memoryRepo } from '../db/memoryRepo'
 
 export const memoryRouter = Router()
@@ -41,7 +41,10 @@ memoryRouter.get('/export', requireExportKey, (req: Request, res: Response) => {
 memoryRouter.use(telegramAuth)
 
 memoryRouter.get('/questions', (_req: Request, res: Response) => {
-  res.json({ success: true, questions: MEMORY_QUESTIONS })
+  res.json({
+    success: true,
+    questions: MEMORY_QUESTION_IDS.map((id) => ({ id })),
+  })
 })
 
 memoryRouter.get('/answers', (req: Request, res: Response) => {

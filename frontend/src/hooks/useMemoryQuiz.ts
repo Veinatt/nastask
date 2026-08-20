@@ -1,10 +1,11 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { memoryLocal } from '@/api/memoryLocal'
 import { memoryRemote } from '@/api/memoryRemote'
 import { enqueueOp } from '@/api/pendingOps'
 import { ApiError } from '@/api/client'
-import { MEMORY_QUESTIONS, getMemoryQuestion } from '@/memory/memoryQuestions'
+import { useI18n } from '@/hooks/useI18n'
+import { buildMemoryQuestions, isMemoryQuestionId } from '@/memory/memoryQuestions'
 import type { MemoryAnswer } from '@/db/types'
 
 function isOfflineError(error: unknown): boolean {
@@ -16,7 +17,8 @@ function isOfflineError(error: unknown): boolean {
 }
 
 export function useMemoryQuiz() {
-  const questions = MEMORY_QUESTIONS
+  const { t, locale } = useI18n()
+  const questions = useMemo(() => buildMemoryQuestions(t), [t, locale])
   const answers =
     useLiveQuery(() => memoryLocal.list(), []) ?? ([] as MemoryAnswer[])
 
@@ -27,15 +29,13 @@ export function useMemoryQuiz() {
   ) as Record<string, string>
 
   const saveAnswer = useCallback(async (questionId: string, answer: string) => {
-    const q = getMemoryQuestion(questionId)
-    if (!q) return
+    if (!isMemoryQuestionId(questionId)) return
     const now = new Date().toISOString()
     const existing = await memoryLocal.get(questionId)
     const trimmed = answer.trim()
     const local: MemoryAnswer = {
       id: questionId,
       questionId,
-      question: q.text,
       answer: trimmed.length > 0 ? trimmed : null,
       answeredAt:
         trimmed.length > 0
@@ -62,30 +62,38 @@ export function useMemoryQuiz() {
     }
   }, [])
 
+  /**
+   * Persist draft. Empty answers wipe storage only for ids in `allowEmptyIds`
+   * (user-edited). Untouched empty placeholders must not clear existing answers.
+   */
   const saveAll = useCallback(
-    async (draft: Record<string, string>) => {
+    async (draft: Record<string, string>, allowEmptyIds?: ReadonlySet<string>) => {
       setSaving(true)
       try {
-        const items = Object.entries(draft).map(([questionId, answer]) => ({
-          questionId,
-          answer,
-        }))
-        for (const item of items) {
-          const q = getMemoryQuestion(item.questionId)
-          if (!q) continue
+        const items: Array<{ questionId: string; answer: string }> = []
+        for (const [questionId, answer] of Object.entries(draft)) {
+          if (!isMemoryQuestionId(questionId)) continue
+          const trimmed = answer.trim()
+          const existing = await memoryLocal.get(questionId)
+          if (
+            trimmed.length === 0 &&
+            existing?.answer &&
+            !allowEmptyIds?.has(questionId)
+          ) {
+            continue
+          }
+          items.push({ questionId, answer })
           const now = new Date().toISOString()
-          const existing = await memoryLocal.get(item.questionId)
-          const trimmed = item.answer.trim()
           await memoryLocal.put({
-            id: item.questionId,
-            questionId: item.questionId,
-            question: q.text,
+            id: questionId,
+            questionId,
             answer: trimmed.length > 0 ? trimmed : null,
             answeredAt:
               trimmed.length > 0 ? existing?.answeredAt ?? now : null,
             updatedAt: now,
           })
         }
+        if (items.length === 0) return
         try {
           const remote = await memoryRemote.upsertAnswers(items)
           await memoryLocal.putMany(remote)

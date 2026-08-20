@@ -1,12 +1,11 @@
 import { getDb } from './index'
 import { nowIso } from '../utils/iso'
-import { getMemoryQuestion } from '../memory/memoryQuestions'
+import { isMemoryQuestionId } from '../memory/memoryQuestions'
 
 export type MemoryAnswerRow = {
   id: string
   userId: number
   questionId: string
-  question: string
   answer: string | null
   answeredAt: string | null
   updatedAt: string
@@ -17,7 +16,6 @@ function mapRow(row: Record<string, unknown>): MemoryAnswerRow {
     id: String(row.id),
     userId: Number(row.userId),
     questionId: String(row.questionId),
-    question: String(row.question ?? ''),
     answer: row.answer == null ? null : String(row.answer),
     answeredAt: row.answeredAt == null ? null : String(row.answeredAt),
     updatedAt: String(row.updatedAt),
@@ -55,10 +53,9 @@ export const memoryRepo = {
       `SELECT * FROM memory_quiz WHERE userId = ? AND questionId = ?`,
     )
     const insert = db.prepare(`
-      INSERT INTO memory_quiz (id, userId, questionId, question, answer, answeredAt, updatedAt)
-      VALUES (@id, @userId, @questionId, @question, @answer, @answeredAt, @updatedAt)
+      INSERT INTO memory_quiz (id, userId, questionId, answer, answeredAt, updatedAt)
+      VALUES (@id, @userId, @questionId, @answer, @answeredAt, @updatedAt)
       ON CONFLICT(userId, questionId) DO UPDATE SET
-        question = excluded.question,
         answer = excluded.answer,
         answeredAt = excluded.answeredAt,
         updatedAt = excluded.updatedAt
@@ -67,8 +64,7 @@ export const memoryRepo = {
     const results: MemoryAnswerRow[] = []
     const run = db.transaction(() => {
       for (const item of items) {
-        const q = getMemoryQuestion(item.questionId)
-        if (!q) continue
+        if (!isMemoryQuestionId(item.questionId)) continue
         const trimmed = String(item.answer ?? '').trim()
         const existing = select.get(userId, item.questionId) as
           | Record<string, unknown>
@@ -84,7 +80,6 @@ export const memoryRepo = {
           id: rowId(userId, item.questionId),
           userId,
           questionId: item.questionId,
-          question: q.text,
           answer: trimmed.length > 0 ? trimmed : null,
           answeredAt,
           updatedAt,

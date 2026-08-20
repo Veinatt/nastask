@@ -1,72 +1,24 @@
-export type MemoryQuestion = {
-  id: string
-  theme: string
-  text: string
-}
+/** Known question ids — text lives on the client (locales). */
+export const MEMORY_QUESTION_IDS = [
+  'time-period',
+  'time-place',
+  'memory-day',
+  'memory-detail',
+  'feelings-body',
+  'feelings-spark',
+  'music-repeat',
+  'music-where',
+  'books-screen',
+  'people-near',
+  'time-evenings',
+  'time-lost',
+  'now-bridge',
+  'now-piece',
+  'open-add',
+] as const
 
-export const MEMORY_QUESTIONS: MemoryQuestion[] = [
-  {
-    id: 'time-period',
-    theme: 'Время',
-    text: 'О каком возрасте или периоде ты думаешь, когда говоришь про «ту себя» — более живую и яркую?',
-  },
-  {
-    id: 'time-place',
-    theme: 'Время',
-    text: 'Где ты тогда жила / училась / была — город, двор, комната, поездки?',
-  },
-  {
-    id: 'memory-day',
-    theme: 'Воспоминание',
-    text: 'Какой один обычный день из того времени ты бы хотела прожить ещё раз — даже если детали размыты?',
-  },
-  {
-    id: 'memory-detail',
-    theme: 'Воспоминание',
-    text: 'Какая мелочь из того времени до сих пор всплывает первой: запах, свет, одежда, голос, место?',
-  },
-  {
-    id: 'feelings-body',
-    theme: 'Чувства',
-    text: 'Что ты тогда чувствовала в теле, когда была «собой» — лёгкость, смелость, тепло, голод до жизни?',
-  },
-  {
-    id: 'feelings-spark',
-    theme: 'Чувства',
-    text: 'Из-за чего в том времени ты вспыхивала — радость, злость, влюблённость, мечта?',
-  },
-  {
-    id: 'music-repeat',
-    theme: 'Музыка',
-    text: 'Какую музыку ты крутила тогда на повторе — исполнитель, песня, даже если название неточно?',
-  },
-  {
-    id: 'music-where',
-    theme: 'Музыка',
-    text: 'Где и как ты её слушала — наушники в темноте, колонки, ночные поездки, кухня?',
-  },
-  {
-    id: 'books-screen',
-    theme: 'Книги и кино',
-    text: 'Что ты тогда читала или смотрела и это «было про тебя» — книга, фильм, сериал, героиня?',
-  },
-  {
-    id: 'time-evenings',
-    theme: 'Времяпрепровождение',
-    text: 'Как ты любила проводить вечера и выходные тогда — одна, с кем-то, гулять, творить, ничего не делать?',
-  },
-  {
-    id: 'time-lost',
-    theme: 'Времяпрепровождение',
-    text: 'Что из того, чем ты жила тогда, почти исчезло из твоих дней сейчас?',
-  },
-  {
-    id: 'now-piece',
-    theme: 'Сейчас',
-    text: 'Если бы можно было вернуть один кусочек той жизни на ближайшие дни — что бы это было?',
-  },
-]
+export type MemoryQuestionId = (typeof MEMORY_QUESTION_IDS)[number]
 
-export function getMemoryQuestion(id: string): MemoryQuestion | undefined {
-  return MEMORY_QUESTIONS.find((q) => q.id === id)
+export function isMemoryQuestionId(id: string): id is MemoryQuestionId {
+  return (MEMORY_QUESTION_IDS as readonly string[]).includes(id)
 }

@@ -129,13 +129,13 @@
     min-height: 100dvh;
   }
 
-  /* Hide real brand title while splash logo occupies its slot.
+  /* Hide header logo while splash logo occupies its slot.
      Never leave this stuck: SplashScreen / App must set data-splash=done. */
-  html[data-splash='active'] #home-brand-title {
+  html[data-splash='active'] #app-logo {
     opacity: 0;
   }
 
-  html[data-splash='done'] #home-brand-title {
+  html[data-splash='done'] #app-logo {
     opacity: 1;
   }
 
@@ -547,13 +547,11 @@
 
 .notebook-page {
   /* One CSS line = one ruled notebook row. All vertical spacing must be N × this. */
-  --notebook-line: 36px;
+  --notebook-line: 32px;
   --notebook-margin: 1.35rem;
   --notebook-gutter: 2.75rem;
-  /* Header band (nav-sized); ruled grid starts below it */
-  --notebook-header-h: 2.75rem;
-  /* Where the stroke sits inside each row (under Caveat baseline) */
-  --notebook-rule-at: 0.82;
+  /* Must equal the real header height (no py that grows past this). */
+  --notebook-header-h: 48px;
   position: fixed !important;
   inset: 0 !important;
   z-index: 200 !important;
@@ -564,18 +562,17 @@
   overflow-y: auto;
   color: #5c4030;
   background-color: #fcf8ef !important;
-  background-image: repeating-linear-gradient(
+  /* Rule at the bottom of each cell — crisp 1px, no mid-row blur */
+  background-image: linear-gradient(
     to bottom,
-    transparent 0,
-    transparent calc(var(--notebook-line) * var(--notebook-rule-at)),
-    rgb(180 200 220 / 0.55) calc(var(--notebook-line) * var(--notebook-rule-at)),
-    rgb(180 200 220 / 0.55) calc(var(--notebook-line) * var(--notebook-rule-at) + 1px),
-    transparent calc(var(--notebook-line) * var(--notebook-rule-at) + 1px),
-    transparent var(--notebook-line)
+    transparent calc(var(--notebook-line) - 1px),
+    rgb(180 200 220 / 0.55) calc(var(--notebook-line) - 1px),
+    rgb(180 200 220 / 0.55) var(--notebook-line)
   ) !important;
-  background-attachment: local;
+  background-size: 100% var(--notebook-line) !important;
+  background-repeat: repeat-y !important;
   /* First rule row begins right under the logo header */
-  background-position-y: var(--notebook-header-h);
+  background-position: 0 var(--notebook-header-h);
 }
 
 .notebook-page::before {
@@ -605,8 +602,8 @@
   max-width: 72rem;
   margin-left: auto;
   margin-right: auto;
-  /* Start on first ruled row under header */
-  padding: 0 1rem calc(var(--notebook-line) * 3) var(--notebook-gutter);
+  /* Start on first ruled row under header; larger bottom pad lifts action row */
+  padding: 0 1rem calc(var(--notebook-line) * 12) var(--notebook-gutter);
 }
 
 @media (min-width: 768px) {
@@ -620,10 +617,19 @@
   z-index: 2;
   flex-shrink: 0;
   box-sizing: border-box;
-  /* Match Navigation: py-2.5 + text-lg — keep in sync with --notebook-header-h */
+  /* Exact band — must match --notebook-header-h / background-position-y */
+  height: var(--notebook-header-h);
   min-height: var(--notebook-header-h);
-  height: auto;
+  max-height: var(--notebook-header-h);
+  padding: 0 1rem;
   background-color: #fcf8ef;
+}
+
+@media (min-width: 768px) {
+  .notebook-page-header {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
 }
 
 .notebook-brand-wordmark {
@@ -651,7 +657,7 @@
 
 .notebook-prose {
   font-family: var(--font-hand), Caveat, cursive;
-  font-size: 1.45rem;
+  font-size: 1.35rem;
   line-height: var(--notebook-line);
   color: #5c4030;
 }
@@ -681,7 +687,7 @@
   margin: 0 0 var(--notebook-line);
   padding: 0;
   font-family: var(--font-hand), Caveat, cursive;
-  font-size: 1.7rem;
+  font-size: 1.55rem;
   line-height: var(--notebook-line);
   font-weight: 600;
   color: #8b6b4a;
@@ -693,12 +699,14 @@
   width: 100%;
   margin: 0;
   padding: 0;
-  min-height: calc(var(--notebook-line) * 6);
-  resize: vertical;
+  flex: 1 1 auto;
+  min-height: calc(var(--notebook-line) * 3);
+  height: 100%;
+  resize: none;
   border: none;
   background: transparent;
   font-family: var(--font-hand), Caveat, cursive;
-  font-size: 1.45rem;
+  font-size: 1.35rem;
   line-height: var(--notebook-line);
   color: #5c4030;
   outline: none;
@@ -712,7 +720,7 @@
 .notebook-title {
   margin: 0;
   font-family: var(--font-hand), Caveat, cursive;
-  font-size: 1.7rem;
+  font-size: 1.55rem;
   color: #8b6b4a;
   line-height: var(--notebook-line);
 }
@@ -725,7 +733,7 @@
   margin: 0 0 var(--notebook-line);
   padding: 0;
   font-family: var(--font-hand), Caveat, cursive;
-  font-size: 1.7rem;
+  font-size: 1.55rem;
   line-height: var(--notebook-line);
   color: #8b6b4a;
 }
@@ -740,23 +748,25 @@
 
 .notebook-actions {
   box-sizing: border-box;
-  margin-top: calc(var(--notebook-line) * 2);
+  /* Same row on welcome / quiz / finish */
+  margin-top: auto;
+  flex-shrink: 0;
   min-height: var(--notebook-line);
   height: var(--notebook-line);
-  align-items: center;
+  align-items: flex-end;
 }
 
 .notebook-btn {
   position: relative;
   box-sizing: border-box;
   display: inline-flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
   font-family: var(--font-hand), Caveat, cursive;
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   line-height: 1;
-  height: calc(var(--notebook-line) - 4px);
-  padding: 0 0 0.2em;
+  height: var(--notebook-line);
+  padding: 0 0 4px;
   border: none;
   border-radius: 0;
   background: transparent;
@@ -764,29 +774,29 @@
   transition: opacity 0.2s ease, transform 0.15s ease;
 }
 
-/* Double hand-drawn underline, slightly skewed like pen strokes */
+/* Double hand-drawn underline on the row rule */
 .notebook-btn::before,
 .notebook-btn::after {
   content: '';
   position: absolute;
   left: -4%;
   right: -3%;
-  height: 1.6px;
+  height: 1.5px;
   border-radius: 1px;
   background: #b08968;
   pointer-events: none;
+  bottom: 0;
 }
 
 .notebook-btn::before {
-  bottom: 3px;
   transform: rotate(-2deg);
   opacity: 0.9;
 }
 
 .notebook-btn::after {
-  bottom: 0;
   left: -2%;
   right: -5%;
+  bottom: 3px;
   transform: rotate(-1.2deg);
   opacity: 0.65;
 }
@@ -827,5 +837,49 @@
 .memory-cat-soft-fade {
   opacity: 0 !important;
   transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+@keyframes memory-caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Inline flex line: caret never shifts text geometry; empty state keeps height */
+.memory-type-line {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.35em;
+  white-space: nowrap;
+}
+
+.memory-type-text {
+  display: inline-block;
+  min-height: 1em;
+  line-height: 1.35;
+}
+
+.memory-type-caret {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 0.08em;
+  height: 0.9em;
+  margin-left: 0.22em;
+  background: hsl(var(--primary));
+  animation: memory-caret-blink 0.7s step-end infinite;
+  pointer-events: none;
+}
+
+.memory-type-caret-hand {
+  background: #8b6b4a;
+}
+
+.memory-flyer-text {
+  margin: 0;
+  padding: 0;
+  white-space: nowrap;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow: visible;
 }
 

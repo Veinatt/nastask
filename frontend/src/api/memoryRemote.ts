@@ -1,12 +1,11 @@
 import { apiFetch } from '@/api/client'
 import type { MemoryAnswer } from '@/db/types'
-import type { MemoryQuestion } from '@/memory/memoryQuestions'
 
-type OkQuestions = { success: true; questions: MemoryQuestion[] }
+type OkQuestions = { success: true; questions: Array<{ id: string }> }
 type OkAnswers = { success: true; answers: MemoryAnswer[] }
 
 export const memoryRemote = {
-  async listQuestions(): Promise<MemoryQuestion[]> {
+  async listQuestions(): Promise<Array<{ id: string }>> {
     const res = await apiFetch<OkQuestions>('/api/memory/questions')
     return res?.questions ?? []
   },

@@ -1,27 +1,23 @@
+import { useI18n } from '@/hooks/useI18n'
+
 type Props = {
   onStart: () => void
 }
 
 export function MemoryWelcomePage({ onStart }: Props) {
+  const { t } = useI18n()
+
   return (
-    <div className="memory-content memory-card-enter w-full max-w-xl">
-      <p className="notebook-meta">Личная тетрадь</p>
-      <div className="notebook-prose">
-      <p>
-          Это твоя личная тетрадь. Здесь ты можешь сохранять свои воспоминания, мысли и чувства. Всё что я бы
-        </p>
-        <p>
-          Это твоя личная тетрадь. Здесь ты можешь сохранять свои воспоминания, мысли и чувства. Всё что я бы
-        </p>
-        <p>
-          Дальше будут короткие вопросы: про время, дни, чувства, музыку, книги и то, как ты тогда
-          жила. Отвечай как получается — коротко или подробно. Всё сохраняется, и ты всегда можешь
-          поправить.
-        </p>
+    <div className="memory-content memory-card-enter flex min-h-0 w-full flex-1 flex-col">
+      <p className="notebook-meta">{t('memory.welcome.meta')}</p>
+      <div className="notebook-prose max-w-xl">
+        <p>{t('memory.welcome.p1')}</p>
+        <p>{t('memory.welcome.p2')}</p>
+        <p>{t('memory.welcome.p3')}</p>
       </div>
-      <div className="notebook-actions">
+      <div className="notebook-actions flex justify-end">
         <button type="button" className="notebook-btn notebook-btn-primary" onClick={onStart}>
-          Открыть вопросы
+          {t('memory.welcome.start')}
         </button>
       </div>
     </div>

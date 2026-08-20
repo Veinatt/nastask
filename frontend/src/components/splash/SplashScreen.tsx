@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { cn } from '@/lib/utils'
+import { APP_LOGO_GRADIENT } from '@/components/layout/Navigation'
 import catSrc from '@/assets/cat.jpg'
 
 const CAT_COUNT = 16
@@ -92,7 +93,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     timers.push(
       window.setTimeout(() => {
         const logo = logoRef.current
-        const dest = document.getElementById('home-brand-title')
+        const dest = document.getElementById('app-logo')
         if (!logo || !dest) {
           finish()
           return
@@ -164,14 +165,12 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         fontWeight: logoBox.fontWeight,
         margin: 0,
         opacity: 1,
-        color: 'hsl(var(--foreground, 222 47% 11%))',
         transition: logoBox.animate
           ? 'left 0.7s var(--ease-out-soft), top 0.7s var(--ease-out-soft), font-size 0.7s var(--ease-out-soft)'
           : 'none',
       }
     : {
         opacity: 1,
-        color: 'hsl(var(--foreground, 222 47% 11%))',
       }
 
   return (
@@ -224,6 +223,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         ref={logoRef}
         className={cn(
           'splash-logo relative z-10 select-none font-bold tracking-tight',
+          APP_LOGO_GRADIENT,
           !logoBox && 'text-6xl sm:text-7xl md:text-8xl splash-logo-pop',
         )}
         style={logoStyle}

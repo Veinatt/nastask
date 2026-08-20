@@ -1,7 +1,9 @@
 # NasTask — handoff сессии (2026-08-12)
 
+> **Актуально сейчас:** [`SESSION_HANDOFF.md`](SESSION_HANDOFF.md) и [`CONTEXT.md`](CONTEXT.md) от **2026-08-20** (NasTale). Этот файл — архив сессии 12.08.
+
 Документ для агента / продолжения в новом чате.  
-Читать вместе с [`CONTEXT.md`](CONTEXT.md), [`PROBLEMS_SOLVED.md`](PROBLEMS_SOLVED.md), [`SESSION_HANDOFF.md`](SESSION_HANDOFF.md) (более ранние сессии).
+Читать вместе с [`CONTEXT.md`](CONTEXT.md), [`PROBLEMS_SOLVED.md`](PROBLEMS_SOLVED.md), [`SESSION_HANDOFF.md`](SESSION_HANDOFF.md).
 
 **Дата:** 2026-08-12 (UTC+3).  
 **Фокус дня:** волна продуктовых фич трекера → UX-полировка → чистка мёртвого кода → splash/boot заново.

@@ -5,9 +5,15 @@ import { useAppTab, type AppTab } from '@/components/layout/AppTabContext'
 import { useMemoryOpen } from '@/components/memory/MemoryOpenContext'
 import { useTripleTap } from '@/hooks/useTripleTap'
 
-/** Shared brand wordmark classes (nav + NasTales). */
-export const APP_LOGO_CLASS =
-  'logo cursor-default select-none text-lg font-bold tracking-tight bg-gradient-to-r from-primary to-[hsl(var(--brand-end))] bg-clip-text text-transparent'
+/** Brand gradient only — size comes from parent / inline style / text-* class. */
+export const APP_LOGO_GRADIENT =
+  'logo bg-gradient-to-r from-primary to-[hsl(var(--brand-end))] bg-clip-text text-transparent font-bold tracking-tight'
+
+/** Nav wordmark (fixed text-lg). */
+export const APP_LOGO_CLASS = cn(
+  APP_LOGO_GRADIENT,
+  'cursor-default select-none text-lg',
+)
 
 type Props = {
   className?: string

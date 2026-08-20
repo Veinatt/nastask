@@ -145,7 +145,6 @@ export function runMigrations(db: Database.Database): void {
       id TEXT PRIMARY KEY,
       userId INTEGER NOT NULL,
       questionId TEXT NOT NULL,
-      question TEXT NOT NULL,
       answer TEXT,
       answeredAt TEXT,
       updatedAt TEXT NOT NULL,
@@ -154,6 +153,27 @@ export function runMigrations(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_memory_quiz_user ON memory_quiz(userId);
     CREATE INDEX IF NOT EXISTS idx_memory_quiz_user_qid ON memory_quiz(userId, questionId);
   `)
+
+  if (tableExists(db, 'memory_quiz') && columnNames(db, 'memory_quiz').includes('question')) {
+    console.log('[migrate] drop memory_quiz.question column')
+    db.exec(`
+      CREATE TABLE memory_quiz_new (
+        id TEXT PRIMARY KEY,
+        userId INTEGER NOT NULL,
+        questionId TEXT NOT NULL,
+        answer TEXT,
+        answeredAt TEXT,
+        updatedAt TEXT NOT NULL,
+        UNIQUE(userId, questionId)
+      );
+      INSERT INTO memory_quiz_new (id, userId, questionId, answer, answeredAt, updatedAt)
+      SELECT id, userId, questionId, answer, answeredAt, updatedAt FROM memory_quiz;
+      DROP TABLE memory_quiz;
+      ALTER TABLE memory_quiz_new RENAME TO memory_quiz;
+      CREATE INDEX IF NOT EXISTS idx_memory_quiz_user ON memory_quiz(userId);
+      CREATE INDEX IF NOT EXISTS idx_memory_quiz_user_qid ON memory_quiz(userId, questionId);
+    `)
+  }
 
   console.log('[migrate] READY')
 }

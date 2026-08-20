@@ -3,11 +3,13 @@ import { MemoryCard } from '@/components/memory/MemoryCard'
 import { MemoryFinishPage } from '@/components/memory/MemoryFinishPage'
 import { MemoryWelcomePage } from '@/components/memory/MemoryWelcomePage'
 import { useMemoryOpen } from '@/components/memory/MemoryOpenContext'
+import { useI18n } from '@/hooks/useI18n'
 import { useMemoryQuiz } from '@/hooks/useMemoryQuiz'
 
 type Stage = 'welcome' | 'quiz' | 'finish'
 
 export function MemoryQuizPage() {
+  const { t } = useI18n()
   const { beginClose, open, exiting, interactive } = useMemoryOpen()
   const { questions, answerMap, saveAnswer, saveAll, pullAnswers, saving } =
     useMemoryQuiz()
@@ -16,18 +18,27 @@ export function MemoryQuizPage() {
   const [draft, setDraft] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
   const closingRef = useRef(false)
+  /** Question ids the user edited this session — empty clears are allowed for these. */
+  const touchedRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     void pullAnswers()
   }, [pullAnswers])
 
+  // Keep draft in sync with stored answers until the user edits a field.
   useEffect(() => {
     setDraft((prev) => {
+      let changed = false
       const next = { ...prev }
       for (const q of questions) {
-        if (next[q.id] === undefined) next[q.id] = answerMap[q.id] ?? ''
+        if (touchedRef.current.has(q.id)) continue
+        const stored = answerMap[q.id] ?? ''
+        if (next[q.id] !== stored) {
+          next[q.id] = stored
+          changed = true
+        }
       }
-      return next
+      return changed ? next : prev
     })
   }, [questions, answerMap])
 
@@ -40,7 +51,7 @@ export function MemoryQuizPage() {
     try {
       await saveAnswer(question.id, draft[question.id] ?? '')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не удалось сохранить')
+      setError(e instanceof Error ? e.message : t('memory.saveError'))
     }
   }
 
@@ -67,10 +78,12 @@ export function MemoryQuizPage() {
     closingRef.current = true
     setError(null)
     try {
-      if (stage !== 'welcome') await saveAll(draft)
+      if (stage !== 'welcome') {
+        await saveAll(draft, touchedRef.current)
+      }
     } catch (e) {
       closingRef.current = false
-      setError(e instanceof Error ? e.message : 'Не удалось сохранить')
+      setError(e instanceof Error ? e.message : t('memory.saveError'))
       return
     }
     beginClose()
@@ -87,16 +100,16 @@ export function MemoryQuizPage() {
       aria-hidden={!interactive}
     >
       {/* Same logo slot metrics as Navigation top bar */}
-      <header className="notebook-page-header flex shrink-0 items-center px-4 py-2.5 md:px-6">
+      <header className="notebook-page-header flex shrink-0 items-center">
         <button
           type="button"
           id="memory-brand-logo"
           className="notebook-brand-wordmark logo w-fit select-none"
           onClick={() => void handleClose()}
           disabled={saving || !open}
-          aria-label="Закрыть NasTales"
+          aria-label={t('memory.closeAria')}
         >
-          NasTales
+          NasTale
         </button>
       </header>
 
@@ -130,24 +143,25 @@ export function MemoryQuizPage() {
           )}
 
           {stage === 'quiz' && question && (
-            <>
+            <div className="memory-content memory-card-enter flex min-h-0 w-full flex-1 flex-col">
               <MemoryCard
                 question={question}
                 value={draft[question.id] ?? ''}
-                onChange={(value) =>
+                onChange={(value) => {
+                  touchedRef.current.add(question.id)
                   setDraft((d) => ({ ...d, [question.id]: value }))
-                }
+                }}
                 index={index}
                 total={total}
               />
-              <div className="notebook-actions flex items-center justify-between gap-3">
+              <div className="notebook-actions flex justify-between gap-3">
                 <button
                   type="button"
                   className="notebook-btn"
                   onClick={() => void goPrev()}
                   disabled={saving}
                 >
-                  Назад
+                  {t('memory.nav.back')}
                 </button>
                 <button
                   type="button"
@@ -155,10 +169,10 @@ export function MemoryQuizPage() {
                   onClick={() => void goNext()}
                   disabled={saving}
                 >
-                  {index >= total - 1 ? 'Готово' : 'Дальше'}
+                  {index >= total - 1 ? t('memory.nav.done') : t('memory.nav.next')}
                 </button>
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>

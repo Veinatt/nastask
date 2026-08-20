@@ -80,7 +80,6 @@ export type DictKind = 'categories' | 'descriptions' | 'units' | 'expenses'
 export interface MemoryAnswer {
   id: string
   questionId: string
-  question: string
   answer: string | null
   answeredAt: string | null
   updatedAt: string

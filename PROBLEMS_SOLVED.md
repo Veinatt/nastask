@@ -1,9 +1,7 @@
 # NasTask — решённые проблемы (лог)
 
-Журнал инцидентов сессии запуска Mini App и стабилизации (**~2026-08-05**).  
-Для агента / разработчика: симптом → причина → решение.
-
-См. также актуальный этап в [`CONTEXT.md`](CONTEXT.md).
+Журнал инцидентов. Базовая стабилизация Mini App — **~2026-08-05**; NasTale — **2026-08-20**.  
+Актуальный этап: [`CONTEXT.md`](CONTEXT.md), сессия: [`SESSION_HANDOFF.md`](SESSION_HANDOFF.md).
 
 ---
 
@@ -157,6 +155,35 @@
 
 ---
 
+## 12. NasTale: ответы стерлись после выхода и повторного входа (2026-08-20)
+
+**Симптом:** ответила в квизе → вышла (тап по NasTale) → зашла снова — поля пустые; в логах бэка `UPSERT count=15` с пустыми строками.
+
+**Причина:**
+1. `draft` инициализировался `''` для всех id, пока `answerMap` ещё пуст (гонка с Dexie/`pullAnswers`).
+2. Эффект гидрации обновлял draft **только** при `=== undefined` → пустые плейсхолдеры не заменялись реальными ответами.
+3. При выходе `saveAll(draft)` слал все пустые → upsert затирал сервер (`answer = null`).
+
+**Решение:**
+- `touchedRef`: draft синкается с `answerMap`, пока пользователь не редактировал поле.
+- `saveAll(draft, allowEmptyIds)`: пустой ответ не затирает существующий, если id не в `allowEmptyIds`.
+
+**Файлы:** `pages/memory/MemoryQuizPage.tsx`, `hooks/useMemoryQuiz.ts`.
+
+**Примечание:** уже затёртые ответы сами не восстанавливаются — нужен бэкап БД или повторный ввод.
+
+---
+
+## 13. `MEMORY_EXPORT_KEY not configured` при локальном curl
+
+**Симптом:** `{"success":false,"error":"MEMORY_EXPORT_KEY not configured"}` при том, что ключ есть в `backend/.env`.
+
+**Причина:** nodemon **не** перезапускается при изменении `.env`; процесс стартовал до добавления ключа (`MEMORY_EXPORT_KEY=not set` в логе).
+
+**Решение:** полный рестарт `npm run dev` в backend; в логе старта должно быть `MEMORY_EXPORT_KEY=set`.
+
+---
+
 ## Связанные файлы (быстрый индекс)
 
 | Тема | Где правили |
@@ -167,3 +194,5 @@
 | Splash | `components/splash/*`, `App.tsx`, `index.css` (`data-splash`) |
 | Timer UI | `components/intervals/TimerCard.tsx` |
 | Telegram boot | `hooks/useTelegram.ts`, `api/client.ts`, `index.html` |
+| NasTale draft wipe | `pages/memory/MemoryQuizPage.tsx`, `hooks/useMemoryQuiz.ts` |
+| NasTale texts / ids | `locales/ru.ts`, `be.ts`, `memory/memoryQuestions.ts` (front+back) |

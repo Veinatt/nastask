@@ -1,46 +1,23 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { cn } from '@/lib/utils'
-import { APP_LOGO_CLASS } from '@/components/layout/Navigation'
-import catSrc from '@/assets/cat.jpg'
+import { APP_LOGO_GRADIENT } from '@/components/layout/Navigation'
+import { useTypewriterSwap } from '@/hooks/useTypewriterSwap'
 
-const CAT_COUNT = 16
 const NOTEBOOK_BG = '#fcf8ef'
 const NOTEBOOK_INK = '#8b6b4a'
+const CENTER_FS = () => Math.min(72, window.innerWidth * 0.14)
+const MORPH_MS = 700
 
-function buildCats() {
-  return Array.from({ length: CAT_COUNT }, (_, i) => {
-    const t = (i / CAT_COUNT) * Math.PI * 2
-    const hx = 16 * Math.sin(t) ** 3
-    const hy = -(
-      13 * Math.cos(t) -
-      5 * Math.cos(2 * t) -
-      2 * Math.cos(3 * t) -
-      Math.cos(4 * t)
-    )
-    const scale = 2.2
-    return {
-      id: i,
-      tx: `${hx * scale}vmin`,
-      ty: `${hy * scale - 4}vmin`,
-      rot: `${(i % 2 === 0 ? 1 : -1) * (12 + (i % 5) * 6)}deg`,
-      delay: `${40 + i * 30}ms`,
-      size: 64 + (i % 4) * 14,
-    }
-  })
-}
-
-const CATS = buildCats()
-
-type Phase = 'hold' | 'burst' | 'morph'
+type Phase = 'approach' | 'type' | 'morph'
 
 type Flyer = {
-  /** Anchor point (center of the wordmark) */
-  cx: number
-  cy: number
+  left: number
+  top: number
   fontSize: number
+  lineHeight: string
+  letterSpacing: string
+  fontWeight: string
   animate: boolean
-  label: 'NasTask' | 'NasTales'
-  hand: boolean
 }
 
 type Props = {
@@ -48,21 +25,77 @@ type Props = {
 }
 
 /**
- * Same structure as boot SplashScreen:
- * logo flies to destination slot + overlay bg fades (splash-fade-bg) → screen appears underneath.
+ * 1) NasTask flies from #app-logo → center (no caret)
+ * 2) Center typewriter → NasTale (caret only here)
+ * 3) Frozen NasTale FLIP → #memory-brand-logo (SplashScreen-style left/top)
  */
 export function MemoryEnterSplash({ onComplete }: Props) {
   const finishedRef = useRef(false)
-  const [phase, setPhase] = useState<Phase>('hold')
-  const [burst, setBurst] = useState(false)
+  const logoRef = useRef<HTMLHeadingElement>(null)
+  const morphStartedRef = useRef(false)
+  const [phase, setPhase] = useState<Phase>('approach')
   const [cream, setCream] = useState(false)
   const [flyer, setFlyer] = useState<Flyer | null>(null)
+  const [swapTo, setSwapTo] = useState<'NasTask' | 'NasTale'>('NasTask')
+  const [swapHand, setSwapHand] = useState(false)
+  const [typingDone, setTypingDone] = useState(false)
 
   const finish = () => {
     if (finishedRef.current) return
     finishedRef.current = true
     onComplete()
   }
+
+  const { text, hand, busy } = useTypewriterSwap(swapTo, swapHand, {
+    onCleared: () => setCream(true),
+    onDone: () => setTypingDone(true),
+  })
+
+  // Caret off → measure → FLIP (same left/top path as SplashScreen)
+  useLayoutEffect(() => {
+    if (!typingDone || morphStartedRef.current || phase !== 'type') return
+    const logo = logoRef.current
+    const dest = document.getElementById('memory-brand-logo')
+    if (!logo || !dest) {
+      finish()
+      return
+    }
+    const from = logo.getBoundingClientRect()
+    const to = dest.getBoundingClientRect()
+    if (from.width < 2 || from.height < 2 || to.width < 2 || to.height < 2) {
+      finish()
+      return
+    }
+    morphStartedRef.current = true
+    const fromCs = getComputedStyle(logo)
+    const toCs = getComputedStyle(dest)
+
+    setFlyer({
+      left: from.left,
+      top: from.top,
+      fontSize: parseFloat(fromCs.fontSize) || CENTER_FS(),
+      lineHeight: fromCs.lineHeight,
+      letterSpacing: fromCs.letterSpacing,
+      fontWeight: fromCs.fontWeight,
+      animate: false,
+    })
+    setPhase('morph')
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setFlyer({
+          left: to.left,
+          top: to.top,
+          fontSize: parseFloat(toCs.fontSize) || 18,
+          lineHeight: toCs.lineHeight,
+          letterSpacing: toCs.letterSpacing,
+          fontWeight: toCs.fontWeight,
+          animate: true,
+        })
+      })
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [typingDone, phase])
 
   useLayoutEffect(() => {
     document.documentElement.dataset.memoryEnter = '1'
@@ -71,47 +104,41 @@ export function MemoryEnterSplash({ onComplete }: Props) {
       const r = source.getBoundingClientRect()
       const cs = getComputedStyle(source)
       setFlyer({
-        cx: r.left + r.width / 2,
-        cy: r.top + r.height / 2,
+        left: r.left + r.width / 2,
+        top: r.top + r.height / 2,
         fontSize: parseFloat(cs.fontSize) || 18,
+        lineHeight: '1.35',
+        letterSpacing: cs.letterSpacing,
+        fontWeight: cs.fontWeight,
         animate: false,
-        label: 'NasTask',
-        hand: false,
       })
     } else {
       setFlyer({
-        cx: window.innerWidth / 2,
-        cy: window.innerHeight / 2,
-        fontSize: Math.min(72, window.innerWidth * 0.14),
+        left: window.innerWidth / 2,
+        top: window.innerHeight / 2,
+        fontSize: CENTER_FS(),
+        lineHeight: '1.35',
+        letterSpacing: 'normal',
+        fontWeight: '700',
         animate: false,
-        label: 'NasTask',
-        hand: false,
       })
     }
   }, [])
 
   useEffect(() => {
-    const img = new Image()
-    img.src = catSrc
-  }, [])
-
-  useEffect(() => {
     const timers: number[] = []
-    let raf1 = 0
-    let raf2 = 0
+    timers.push(window.setTimeout(finish, 5000))
 
-    timers.push(window.setTimeout(finish, 2800))
-
-    // Fly to true viewport center (anchor = center of text via translate -50%)
     timers.push(
       window.setTimeout(() => {
         setFlyer((prev) =>
           prev
             ? {
                 ...prev,
-                cx: window.innerWidth / 2,
-                cy: window.innerHeight / 2,
-                fontSize: Math.min(72, window.innerWidth * 0.14),
+                left: window.innerWidth / 2,
+                top: window.innerHeight / 2,
+                fontSize: CENTER_FS(),
+                lineHeight: '1.35',
                 animate: true,
               }
             : prev,
@@ -121,108 +148,89 @@ export function MemoryEnterSplash({ onComplete }: Props) {
 
     timers.push(
       window.setTimeout(() => {
-        setCream(true)
-        setFlyer((prev) =>
-          prev
-            ? {
-                ...prev,
-                label: 'NasTales',
-                hand: true,
-                cx: window.innerWidth / 2,
-                cy: window.innerHeight / 2,
-                fontSize: Math.min(72, window.innerWidth * 0.14),
-                animate: true,
-              }
-            : prev,
-        )
-      }, 700),
+        setFlyer(null)
+        setPhase('type')
+        setSwapTo('NasTale')
+        setSwapHand(true)
+      }, 780),
     )
 
-    timers.push(
-      window.setTimeout(() => {
-        setBurst(true)
-        setPhase('burst')
-      }, 850),
-    )
-
-    // Morph like boot splash: land on slot + fade overlay → notebook shows through
-    timers.push(
-      window.setTimeout(() => {
-        const dest = document.getElementById('memory-brand-logo')
-        if (!dest) {
-          finish()
-          return
-        }
-        const to = dest.getBoundingClientRect()
-        if (to.width < 2 || to.height < 2) {
-          finish()
-          return
-        }
-        const toCs = getComputedStyle(dest)
-
-        setFlyer((prev) =>
-          prev
-            ? {
-                ...prev,
-                animate: false,
-                label: 'NasTales',
-                hand: true,
-              }
-            : prev,
-        )
-        setPhase('morph')
-
-        raf1 = requestAnimationFrame(() => {
-          raf2 = requestAnimationFrame(() => {
-            setFlyer({
-              cx: to.left + to.width / 2,
-              cy: to.top + to.height / 2,
-              fontSize: parseFloat(toCs.fontSize) || 18,
-              animate: true,
-              label: 'NasTales',
-              hand: true,
-            })
-          })
-        })
-      }, 1800),
-    )
-
-    timers.push(window.setTimeout(finish, 2600))
-
-    return () => {
-      timers.forEach(clearTimeout)
-      cancelAnimationFrame(raf1)
-      cancelAnimationFrame(raf2)
-    }
+    return () => timers.forEach(clearTimeout)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const flyerStyle: CSSProperties | undefined = flyer
-    ? {
-        position: 'fixed',
-        left: flyer.cx,
-        top: flyer.cy,
-        transform: 'translate(-50%, -50%)',
-        fontSize: flyer.fontSize,
-        lineHeight: 1.25,
-        margin: 0,
-        opacity: 1,
-        zIndex: 10,
-        transition: flyer.animate
-          ? 'left 0.7s var(--ease-out-soft), top 0.7s var(--ease-out-soft), font-size 0.7s var(--ease-out-soft), color 0.45s ease'
-          : 'none',
-        color: flyer.hand ? NOTEBOOK_INK : undefined,
-        fontFamily: flyer.hand ? `'Caveat', cursive` : undefined,
-        fontWeight: 700,
-        whiteSpace: 'nowrap',
-        ...(flyer.hand
-          ? { backgroundImage: 'none', WebkitTextFillColor: NOTEBOOK_INK }
-          : {}),
-      }
-    : undefined
+  useEffect(() => {
+    if (phase !== 'morph' || !flyer?.animate) return
+    const t = window.setTimeout(finish, MORPH_MS + 80)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, flyer?.animate])
+
+  const displayText = phase === 'approach' ? 'NasTask' : text
+  const displayHand = phase === 'approach' ? false : hand
+  const showCaret = phase === 'type' && busy && !typingDone
+
+  const approachStyle: CSSProperties | undefined =
+    phase === 'approach' && flyer
+      ? {
+          position: 'fixed',
+          left: flyer.left,
+          top: flyer.top,
+          transform: 'translate(-50%, -50%)',
+          fontSize: flyer.fontSize,
+          lineHeight: flyer.lineHeight,
+          letterSpacing: flyer.letterSpacing,
+          fontWeight: flyer.fontWeight,
+          margin: 0,
+          transition: flyer.animate
+            ? 'left 0.7s var(--ease-out-soft), top 0.7s var(--ease-out-soft), font-size 0.7s var(--ease-out-soft)'
+            : 'none',
+        }
+      : undefined
+
+  const morphStyle: CSSProperties | undefined =
+    phase === 'morph' && flyer
+      ? {
+          position: 'fixed',
+          left: flyer.left,
+          top: flyer.top,
+          fontSize: flyer.fontSize,
+          lineHeight: flyer.lineHeight,
+          letterSpacing: flyer.letterSpacing,
+          fontWeight: flyer.fontWeight,
+          margin: 0,
+          transition: flyer.animate
+            ? 'left 0.7s var(--ease-out-soft), top 0.7s var(--ease-out-soft), font-size 0.7s var(--ease-out-soft), line-height 0.7s var(--ease-out-soft), letter-spacing 0.7s var(--ease-out-soft)'
+            : 'none',
+          color: NOTEBOOK_INK,
+          fontFamily: `'Caveat', cursive`,
+          backgroundImage: 'none',
+          WebkitTextFillColor: NOTEBOOK_INK,
+        }
+      : undefined
+
+  const typeStyle: CSSProperties | undefined =
+    phase === 'type'
+      ? {
+          fontSize: CENTER_FS(),
+          lineHeight: 1.35,
+          margin: 0,
+          color: displayHand ? NOTEBOOK_INK : undefined,
+          fontFamily: displayHand ? `'Caveat', cursive` : undefined,
+          ...(displayHand
+            ? { backgroundImage: 'none', WebkitTextFillColor: NOTEBOOK_INK }
+            : {}),
+        }
+      : undefined
 
   return (
-    <div className="fixed inset-0 z-[220] overflow-hidden pointer-events-none" aria-hidden>
+    <div
+      className={cn(
+        'fixed inset-0 z-[220] overflow-hidden pointer-events-none',
+        phase === 'type' && 'flex items-center justify-center',
+      )}
+      aria-hidden
+    >
       <div
         className={cn('absolute inset-0', phase === 'morph' && 'splash-fade-bg')}
         style={{
@@ -238,41 +246,33 @@ export function MemoryEnterSplash({ onComplete }: Props) {
         }}
       />
 
-      {burst &&
-        CATS.map((cat) => (
-          <img
-            key={cat.id}
-            src={catSrc}
-            alt=""
-            draggable={false}
-            className={cn(
-              'splash-cat absolute left-1/2 top-1/2 z-0 rounded-2xl object-cover shadow-lg',
-              phase === 'morph' && 'splash-cat-fade',
-            )}
-            style={
-              {
-                width: cat.size,
-                height: cat.size,
-                '--tx': cat.tx,
-                '--ty': cat.ty,
-                '--rot': cat.rot,
-                animationDelay: cat.delay,
-              } as CSSProperties
-            }
-          />
-        ))}
-
-      {flyer && (
-        <h1
-          className={cn(
-            'relative z-10 select-none tracking-tight whitespace-nowrap font-bold',
-            !flyer.hand && APP_LOGO_CLASS,
-          )}
-          style={flyerStyle}
-        >
-          {flyer.label}
-        </h1>
-      )}
+      <h1
+        ref={logoRef}
+        className={cn(
+          'memory-flyer-text relative z-10 select-none tracking-tight',
+          phase === 'approach' && APP_LOGO_GRADIENT,
+          phase === 'type' && !displayHand && APP_LOGO_GRADIENT,
+        )}
+        style={
+          phase === 'approach'
+            ? approachStyle
+            : phase === 'morph'
+              ? morphStyle
+              : typeStyle
+        }
+      >
+        {phase === 'type' && showCaret ? (
+          <span className="memory-type-line">
+            <span className="memory-type-text">{displayText || '\u00a0'}</span>
+            <span
+              className={cn('memory-type-caret', displayHand && 'memory-type-caret-hand')}
+              aria-hidden
+            />
+          </span>
+        ) : (
+          displayText
+        )}
+      </h1>
     </div>
   )
 }

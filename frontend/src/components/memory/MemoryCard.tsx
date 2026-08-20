@@ -1,3 +1,4 @@
+import { useI18n } from '@/hooks/useI18n'
 import type { MemoryQuestion } from '@/memory/memoryQuestions'
 
 type Props = {
@@ -9,18 +10,19 @@ type Props = {
 }
 
 export function MemoryCard({ question, value, onChange, index, total }: Props) {
+  const { t } = useI18n()
+
   return (
-    <div key={question.id} className="memory-content memory-card-enter w-full">
-      <p className="notebook-meta">
+    <div key={question.id} className="flex min-h-0 flex-1 flex-col">
+      <p className="notebook-meta shrink-0">
         {question.theme} · {index + 1}/{total}
       </p>
-      <h2 className="notebook-question">{question.text}</h2>
+      <h2 className="notebook-question shrink-0">{question.text}</h2>
       <textarea
         className="notebook-input"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Напиши здесь…"
-        rows={6}
+        placeholder={t('memory.placeholder')}
         autoFocus
       />
     </div>

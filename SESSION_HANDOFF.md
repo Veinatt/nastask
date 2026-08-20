@@ -1,126 +1,129 @@
-# NasTask — handoff сессии (2026-08-04)
+# NasTask — handoff сессии (2026-08-20)
 
 Документ для продолжения с другого ПК / в новом чате.  
-Читать вместе с [`CONTEXT.md`](CONTEXT.md) и [`refactoring.md`](refactoring.md).
+Читать вместе с [`CONTEXT.md`](CONTEXT.md) (обновлён **2026-08-20**), [`PROBLEMS_SOLVED.md`](PROBLEMS_SOLVED.md), [`refactoring.md`](refactoring.md).
+
+**Фокус дня:** секретный раздел **NasTale** — тексты, i18n, splash, линовка тетради, хранение ответов, фикс затирания draft.
+
+**Этап:** готово локально; **commit + push на прод ещё не сделаны** (см. `git status`).
 
 ---
 
-## 1. Нужно ли что-то менять на Railway / Vercel?
+## 1. Статус деплоя
 
-**В большинстве случаев — нет смены Root Directory / Build / Start.**  
-После `git push` в ту же ветку (как раньше) сервисы сами пересоберут проект.
+| | |
+|--|--|
+| Ветка | `main` → `origin/main` |
+| Последний push | `77af3ac` nastale v0.9 |
+| **Локально** | Много незакоммиченных изменений по NasTale (см. `git status`) — **на прод ещё не уехали** |
 
-### Railway (backend) — проверить env, не «пересоздавать сервис»
+Чтобы задеплоить: **commit → `git push origin main`** → ждать Vercel + Railway.
 
-| Переменная | Нужна? | Комментарий |
-|------------|--------|-------------|
-| `PORT` | да | Обычно Railway задаёт сам |
-| `DATABASE_PATH` | да | Должен указывать на **Volume** (иначе SQLite сотрётся при деплое) |
-| `BOT_TOKEN` | **да** | Бот-процесс убран, но токен **нужен для проверки `initData`** |
-| `AUTH_DEV_BYPASS` | на проде **`false` / убрать** | На проде нельзя оставлять `true` |
-| `INIT_DATA_MAX_AGE_SEC` | опционально | По умолчанию 86400 |
-| `WEBAPP_URL` | можно не трогать | Бэкенд больше не стартует Telegraf/cron; для Mini App URL важен BotFather + фронт |
+### Env (без смены Root/Build)
 
-**Важно при первом деплое рефакторинга:**
+**Railway:** `BOT_TOKEN`, `DATABASE_PATH` на Volume, `AUTH_DEV_BYPASS` **выкл**, **`MEMORY_EXPORT_KEY`** (иначе `GET /api/memory/export` → 503).  
+**Vercel:** `VITE_API_URL=https://nastask-production.up.railway.app` (без `/` в конце).
 
-1. `migrate.ts` при старте **дропает** legacy `tasks` / `reminders` и при необходимости пересоздаёт несовместимый `user_settings`. Старые задачи/напоминания **не мигрируются** (это ожидаемо).
-2. Build по-прежнему: `npm install` → `npm run build` → `npm start` (`node dist/index.js`), Node ≥ 20, native `better-sqlite3`.
-3. Отдельный процесс «бота» на Railway **не нужен** — только HTTP API (`/health`, `/api/*`).
-4. После деплоя: `GET https://<railway>/health` → `{ ok: true }`.
-
-### Vercel (frontend)
-
-1. Root Directory = `frontend` (как было).
-2. Env: `VITE_API_URL=https://<ваш-railway-host>` (без хвостового `/`).
-3. `VITE_DEV_USER_ID` на проде не нужен.
-4. После push — дождаться билда. Если меняли только бэк — фронт можно не трогать; если меняли фронт — нужен успешный Vercel deploy.
-5. `vercel.json` уже есть (SPA rewrite).
-
-### Telegram / BotFather
-
-- Menu Button / Web App URL = URL Vercel (фронт).
-- Бэкенд сам бота не поднимает; достаточно валидного `BOT_TOKEN` на Railway для auth.
-
-### Чеклист перед пушем на прод
-
-- [ ] `AUTH_DEV_BYPASS` на Railway выключен  
-- [ ] Volume + `DATABASE_PATH` на месте  
-- [ ] `BOT_TOKEN` задан  
-- [ ] `VITE_API_URL` на Vercel указывает на актуальный Railway URL  
-- [ ] После деплоя: health + открытие Mini App из Telegram  
-
-**Итог:** менять «настройки сервиса» Railway почти не нужно; критично env (bypass off, volume, token) и осознание wipe старой БД-схемы задач.
+После push: `GET …/health` → `{ ok: true }`, проверка Mini App **из Telegram**.
 
 ---
 
-## 2. Что сделано в этой сессии (поверх базового рефакторинга)
+## 2. Что сделано сегодня (NasTale)
 
-Базовый рефакторинг (intervals / dicts / settings, wipe tasks) уже был в коде. Ниже — доработки **сегодняшнего** чата.
+### Бренд и вход
+- Раздел называется **NasTale** (не NasTales) — логотип тетради, splash, локали `ru`/`be`.
+- Вход: тройной тап по `#app-logo` (шапка). Старт splash летит в `#app-logo`.
+- Home title: `Главная` / `Галоўная` (не дубль NasTask).
 
-### Справочники и UX работ
-- Backend `PUT /api/{categories|descriptions|units}/:id` — rename; `work_items` хранят id → имя подтягивается везде.
-- Autocomplete: **создание только по зелёной галочке**, не на blur; без подтверждённого id сохранение интервала падает с понятной ошибкой.
-- Edit интервала: подгрузка существующих `workItems` в форму.
-- Баг «не печатается в категории»: два `update` со stale `items` за один keystroke — исправлено (один апдейтер на событие).
-- В строке работы: **кол-во + единица + корзина** в одну линию.
+### Вопросы и хранение
+- Тексты вопросов **только в локалях** (`frontend/src/locales/ru.ts`, `be.ts`), ключи `memory.q.<id>.theme|text`.
+- Список id: `MEMORY_QUESTION_IDS` в **front** и **back** (должны совпадать).
+- БД (`memory_quiz`): только `userId`, `questionId`, `answer`, `answeredAt`, `updatedAt` — **без** текста вопроса.
+- Ответы **per Telegram userId**; между людьми не шарятся.
+- Язык приложения меняет формулировки вопросов, не ответы.
 
-### Главная / интервалы
-- Списки **Сегодня** и **Вчера** (completed).
-- Старт нового интервала → **пауза всех остальных** running.
-- «Завершить» → сначала pause; при **Отмена** → resume; при успешном save — не resume.
-- Удаление активного интервала — через confirm dialog.
-- Иконка редактирования снова `text-primary` (не тёмный круг).
+**Порядок id (15):**  
+`time-period`, `time-place`, `memory-day`, `memory-detail`, `feelings-body`, `feelings-spark`, `music-repeat`, `music-where`, `books-screen`, `people-near`, `time-evenings`, `time-lost`, `now-bridge`, `now-piece`, `open-add`.
 
-### UI / темы / i18n / жесты
-- Переключатель темы: Светлая / Тёмная / **Уютная (cozy)** / Системная — **иконками** (Sun / Moon / Coffee / Monitor).
-- Cozy: песок + мох + коричневый; `primary` vs `primary-soft` в dark (кнопки насыщеннее, текст светлее).
-- i18n **без библиотеки**: словари `frontend/src/locales/ru.ts`, `be.ts`, хук `useI18n`, свитч языка в Настройках.
-- SegmentedControl с bounce-«таблеткой»; page-in; fade модалок (`rounded-2xl`).
-- Свайп вкладок на телефоне: `useSwipeNavigation` + `navItems.ts` (Главная↔Статистика↔Отчёты↔Настройки); игнор input/dialog/horizontal scroll.
-- Отчёты: вкладка «Задачи» (бывш. «Налог»); Excel только у задач, рядом с группировкой.
-- Статистика: фильтры coef = два отдельных Input «от — до»; фикс overflow Select (`min-w-0`, ширина = trigger).
+### Splash enter/exit
+- Архитектура как boot splash: typewriter **только в центре** → caret снят → FLIP `left/top` на слот.
+- Enter: NasTask → NasTale → `#memory-brand-logo`.
+- Exit: обратно на `#app-logo`.
+- Хук: `frontend/src/hooks/useTypewriterSwap.ts`.
 
-### Известные нюансы
-- Мёртвый код tasks/`remindersRepo`/`reminderCron`/`bot/telegram.ts` может ещё лежать в дереве файлов, но **не монтируется** в `backend/src/index.ts`.
-- `exportSalaryExcel` в коде есть, с UI зарплаты убран.
-- Кастомные «скины» с PNG/SVG-цифрами — пока не делали; архитектура цветов через CSS vars позволяет нарастить theme pack позже.
+### UI тетради
+- Линовка: `--notebook-line: 32px`, черта внизу ячейки; кнопки подняты (`padding-bottom` × 12 строк).
+- Кнопки действий pinned вниз (`margin-top: auto`); инпут ответа `flex: 1`.
+- Финиш: кнопка `memory.finish.edit` = «Посмотреть ответы».
+
+### Критический баг (исправлен локально, ждёт push)
+**Симптом:** вышел из NasTale → зашёл снова — ответы пустые / стёрты на сервере.
+
+**Причина:** draft инициализировался `''` до прихода `answerMap`, потом не обновлялся; `saveAll` при выходе слал пустые строки → UPSERT затирал БД.
+
+**Фикс:**
+- `touchedRef` — draft синкается с `answerMap`, пока поле не редактировали.
+- `saveAll(draft, allowEmptyIds)` — пустой ответ не затирает существующий, если id не в `allowEmptyIds`.
+
+Файлы: `MemoryQuizPage.tsx`, `useMemoryQuiz.ts`.
+
+### Проверка ответов локально
+```bash
+# бэк должен видеть MEMORY_EXPORT_KEY=set в логе старта
+# (после правки .env — перезапуск; nodemon .env не смотрит)
+
+curl -H "X-Export-Key: memory-export-key" \
+  "http://localhost:5000/api/memory/export?userId=334808852"
+```
+SQLite: `backend/data/nastask.sqlite` → таблица `memory_quiz`.
 
 ---
 
-## 3. Ключевые пути (новые / важные сегодня)
+## 3. Ключевые пути
 
 | Тема | Путь |
 |------|------|
-| i18n | `frontend/src/lib/i18n.ts`, `hooks/useI18n.ts`, `locales/ru.ts`, `locales/be.ts` |
-| Темы | `frontend/src/lib/theme.ts`, `index.css` (`.dark`, `.cozy`), `hooks/useTelegram.ts` → `applyTheme` |
-| Свайп | `frontend/src/hooks/useSwipeNavigation.ts`, `components/layout/navItems.ts` |
-| Autocomplete | `frontend/src/components/dicts/DictAutocomplete.tsx` |
-| Работы UI | `frontend/src/components/intervals/WorkItemsEditor.tsx` |
-| Пауза при старте | `frontend/src/hooks/useIntervals.ts` (`pauseRunningActives` + `start`) |
-| Complete + resume | `frontend/src/pages/HomePage.tsx` (`openComplete` / `pausedForCompleteRef`) |
-| Dict rename API | `backend/src/routes/dicts.ts` `PUT /:id`, `db/dictRepo.ts` `update` |
+| Локали / тексты | `frontend/src/locales/ru.ts`, `be.ts` |
+| Id вопросов | `frontend/src/memory/memoryQuestions.ts`, `backend/src/memory/memoryQuestions.ts` |
+| Квиз UI | `frontend/src/pages/memory/MemoryQuizPage.tsx`, `components/memory/*` |
+| Save / draft | `frontend/src/hooks/useMemoryQuiz.ts` |
+| Typewriter | `frontend/src/hooks/useTypewriterSwap.ts` |
+| Тетрадь CSS | `frontend/src/index.css` (`.notebook-page`, `.notebook-btn`, …) |
+| API / repo | `backend/src/routes/memory.ts`, `db/memoryRepo.ts`, `db/migrate.ts` |
+| Gate / mount | `frontend/src/components/memory/MemoryOpenContext.tsx` |
 
 ---
 
-## 4. Промпт для чата дома
+## 4. Что осталось / next
 
-> Репозиторий NasTask (`nastask/`).  
-> Прочитай `SESSION_HANDOFF.md` и `CONTEXT.md`.  
-> Сейчас нужно: [задеплоить на Vercel/Railway | допилить фичу X | проверить чеклист].  
-> Не коммить `.env`. На Railway `AUTH_DEV_BYPASS` должен быть выключен на проде.
+- [ ] **Commit + push** сегодняшних изменений на `main`
+- [ ] На Railway убедиться, что `MEMORY_EXPORT_KEY` задан
+- [ ] Смоук в Telegram Mini App: ответить → выйти → зайти → ответы на месте
+- [ ] Export с прода: `curl -H "X-Export-Key: …" https://nastask-production.up.railway.app/api/memory/export`
+- Опционально позже: PIN на вход, полировка splash
 
 ---
 
-## 5. Локальный запуск (кратко)
+## 5. Промпт для чата дома
+
+> Репозиторий NasTask. Прочитай `SESSION_HANDOFF.md` (2026-08-20) и `CONTEXT.md`.  
+> Сегодняшняя работа по NasTale может быть ещё не в remote — сначала `git status`.  
+> Нужно: [закоммитить и запушить | проверить export | допилить X].  
+> Не коммить `.env`. На Railway `AUTH_DEV_BYPASS` выключен; для export нужен `MEMORY_EXPORT_KEY`.
+
+---
+
+## 6. Локальный запуск
 
 ```bash
 # backend
 cd backend && npm install && npm run dev
-# .env: AUTH_DEV_BYPASS=true для браузера без Telegram
+# .env: AUTH_DEV_BYPASS=true, MEMORY_EXPORT_KEY=…, DATABASE_PATH=./data/nastask.sqlite
+# после смены .env — полный рестарт процесса
 
 # frontend
 cd frontend && npm install && npm run dev
 # .env: VITE_API_URL=http://localhost:5000, VITE_DEV_USER_ID=<tg id>
 ```
 
-Dexie schema version **3** (после смены домена старый кеш tasks не используется).
+Вход в NasTale: **тройной тап** по логотипу NasTask в шапке.
