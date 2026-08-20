@@ -1,7 +1,7 @@
 # NasTask — контекст проекта (handoff)
 
 Документ для продолжения работы на другом ПК / в новом чате с агентом.  
-Обновлено: **2026-08-05**.
+Обновлено: **2026-08-19**.
 
 Читать вместе с:
 - [`PROBLEMS_SOLVED.md`](PROBLEMS_SOLVED.md) — разбор багов, причин и фиксов (сессия запуска Mini App);
@@ -22,7 +22,8 @@
 - отчёты: зарплата и налог за месяц + Excel;
 - статистика: метрики + список завершённых;
 - offline-очередь `pending_ops` + баннер синхронизации;
-- splash-заставка (логотип → коты сердцем → morph в `#home-brand-title`).
+- splash-заставка (логотип → коты сердцем → morph в `#home-brand-title`);
+- **секретный раздел «Воспоминания»** — квиз (тетрадный UI), вход тройным тапом по логотипу NasTask (`#home-brand-title` / `#app-logo`); не в нижней навигации.
 
 Спека рефакторинга: [`refactoring.md`](refactoring.md).  
 Старый домен (задачи + Telegram-напоминания + cron) **удалён без миграции данных**.
@@ -53,31 +54,37 @@ nastask/
 
 ```
 Mini App
-  ├── Dexie: timeEntries, workItems, dicts, settings, pending_ops
+  ├── Dexie: timeEntries, workItems, dicts, settings, memoryQuiz, pending_ops
   └── API (initData auth; локально AUTH_DEV_BYPASS)
         ├── /api/intervals
         ├── /api/categories|descriptions|units
-        └── /api/settings
+        ├── /api/settings
+        └── /api/memory (questions, answers; export по X-Export-Key)
 ```
 
 - **Источник истины** — SQLite на бэкенде.
-- Id везде **UUID (TEXT)**, клиент генерирует (`crypto.randomUUID()`).
+- Id везде **UUID (TEXT)** (или составной `userId:questionId` для memory), клиент генерирует где нужно.
 - Активный интервал ⇔ `end IS NULL`; пауза через `pauseStartedAt`.
 - ЗП интервала: `(total_seconds/3600) * coefficient * hourlyRate`.
 - «Платит работодатель»: `monthSum * (1 + taxRate/100)`.
 
+**Воспоминания:**
+- Overlay `MemoryQuizPage` через `MemoryOpenProvider` (не React Router).
+- Таблица `memory_quiz` + Dexie `memoryQuiz` (schema v6) + `pending_ops` тип `memory_upsert`.
+- Экспорт: `GET /api/memory/export` + header `X-Export-Key` = env `MEMORY_EXPORT_KEY`; опционально `?userId=`.
+
 **Важно (Home vs Stats):**
 - **Главная** читает completed/active из **локального Dexie** (`useLiveQuery`).
 - **Статистика** читает completed с **API** (`listAllCompleted`).
-- Sync (`useSync` → `pullAll`) после flush: `replaceActive` + `replaceCompletedForDate` (сегодня/вчера) — локальные completed-сироты без pending удаляются.
+- Sync (`useSync` → `pullAll`) после flush: `replaceActive` + reconcile completed + pull memory answers.
 
 ---
 
-## 4. На каком мы этапе (2026-08-05)
+## 4. На каком мы этапе (2026-08-19)
 
-### Статус: **прод запущен, пользователь подтвердил — критичных багов нет, пауза**
+### Статус: **прод работает; добавлен модуль «Воспоминания»**
 
-Работает в Telegram Mini App (телефон + desktop). Интервалы, навигация, auth, статистика согласованы после фикса sync.
+Трекер стабилен. Новый скрытый квиз интегрирован в архитектуру (overlay + SQLite/Dexie/pending_ops).
 
 ### Сделано ранее (рефакторинг + UX 08-04)
 - Backend: схема трекера, repos, routes; wipe legacy tasks/reminders.
@@ -99,13 +106,16 @@ Mini App
 
 Подробности багов → [`PROBLEMS_SOLVED.md`](PROBLEMS_SOLVED.md).
 
-### Что сознательно **не** трогаем сейчас
-- Пользователь: «пока багов нет, на этом остановимся».
-- Не начинать крупные фичи без нового запроса.
-- Railway warning `could not load /app/.env` — **норма** (env из Variables, не из файла в образе).
+### Сделано 2026-08-19 — модуль «Воспоминания»
+- Backend: таблица `memory_quiz`, `memoryRepo`, `/api/memory/*`, export по `MEMORY_EXPORT_KEY`.
+- Frontend: overlay квиза (тетрадный стиль + Caveat), triple-tap на логотип, Dexie v6 + `memory_upsert` в pending_ops.
+- Ключевые файлы: `pages/memory/MemoryQuizPage.tsx`, `components/memory/*`, `hooks/useMemoryQuiz.ts`, `routes/memory.ts`.
+
+### Прод env (дополнительно)
+- Railway: задать `MEMORY_EXPORT_KEY` (иначе export → 503).
 
 ### Возможное дальше (когда попросят)
-- Чеклист из `refactoring.md`, полировка splash, harden pending queue, тесты.
+- PIN на вход в Воспоминания, полировка splash, тесты.
 - Не в скоупе: Google Sheets, тяжёлые charts, миграция старых задач.
 
 ---
@@ -120,6 +130,7 @@ BOT_TOKEN=<токен>
 DATABASE_PATH=./data/nastask.sqlite
 AUTH_DEV_BYPASS=true
 INIT_DATA_MAX_AGE_SEC=86400
+MEMORY_EXPORT_KEY=<секрет_для_curl_экспорта>
 ```
 
 ```bash
@@ -151,6 +162,7 @@ cd frontend && npm install && npm run dev
 | Backend | `https://nastask-production.up.railway.app` |
 | Volume | `/data` → `DATABASE_PATH=/data/nastask.sqlite` |
 | Auth | `BOT_TOKEN` задан; `AUTH_DEV_BYPASS` **выключен**; `[auth] ok` в логах |
+| Memory export | `MEMORY_EXPORT_KEY` в Railway Variables |
 | BotFather | Menu Button / Web App → Vercel URL |
 
 Локальный `.env` с `AUTH_DEV_BYPASS=true` и `PORT=5000` — только для разработки.
@@ -166,6 +178,7 @@ cd frontend && npm install && npm run dev
 | Intervals | `backend/src/routes/intervals.ts`, `db/intervalsRepo.ts` |
 | Tabs (без Router) | `frontend/src/components/layout/AppTabContext.tsx`, `AppLayout.tsx`, `Navigation.tsx`, `useSwipeNavigation.ts` |
 | Sync | `frontend/src/hooks/useSync.ts`, `api/pendingOps.ts`, `api/intervalsLocal.ts` |
+| Memory quiz | `backend/src/routes/memory.ts`, `db/memoryRepo.ts`, `frontend/src/pages/memory/*`, `components/memory/*`, `hooks/useMemoryQuiz.ts` |
 | Splash | `frontend/src/components/splash/SplashScreen.tsx`, `App.tsx`, `SplashDoneContext.tsx` |
 | UI Home/Timer | `pages/HomePage.tsx`, `components/intervals/TimerCard.tsx` |
 | Telegram | `frontend/src/hooks/useTelegram.ts`, `api/client.ts` |
@@ -174,7 +187,7 @@ cd frontend && npm install && npm run dev
 
 ## 8. API (кратко)
 
-Все `/api/*` требуют `Authorization: tma <initData>`, кроме `AUTH_DEV_BYPASS` (+ `X-User-Id`).
+Все `/api/*` требуют `Authorization: tma <initData>`, кроме `AUTH_DEV_BYPASS` (+ `X-User-Id`) и **`GET /api/memory/export`** (`X-Export-Key`).
 
 | Method | Path |
 |--------|------|
@@ -185,6 +198,9 @@ cd frontend && npm install && npm run dev
 | DELETE | `/api/intervals/:id` |
 | CRUD-ish | `/api/categories`, `/descriptions`, `/units` |
 | GET/PUT | `/api/settings` |
+| GET | `/api/memory/questions`, `/api/memory/answers` |
+| POST | `/api/memory/answers` |
+| GET | `/api/memory/export` (`X-Export-Key`) |
 
 ---
 

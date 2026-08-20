@@ -4,6 +4,8 @@ import { intervalsRemote } from '@/api/intervalsRemote'
 import { intervalsLocal } from '@/api/intervalsLocal'
 import { dictsRemote } from '@/api/dictsRemote'
 import { settingsRemote } from '@/api/settingsApi'
+import { memoryRemote } from '@/api/memoryRemote'
+import { memoryLocal } from '@/api/memoryLocal'
 import { t } from '@/lib/i18n'
 import type { DictKind, PendingOp, PendingOpType, WorkItemInput } from '@/db/types'
 import { generateId } from '@/utils/idGenerator'
@@ -162,5 +164,11 @@ async function applyOp(op: PendingOp): Promise<void> {
         op.payload as Parameters<typeof settingsRemote.put>[0],
       )
       return
+    case 'memory_upsert': {
+      const p = op.payload as { questionId: string; answer: string }
+      const remote = await memoryRemote.upsertAnswers([p])
+      if (remote[0]) await memoryLocal.put(remote[0])
+      return
+    }
   }
 }

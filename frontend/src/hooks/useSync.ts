@@ -7,6 +7,8 @@ import { dictsLocal } from '@/api/dictsLocal'
 import { workTemplatesRemote } from '@/api/workTemplatesRemote'
 import { workTemplatesLocal } from '@/api/workTemplatesLocal'
 import { settingsRemote, settingsLocal } from '@/api/settingsApi'
+import { memoryRemote } from '@/api/memoryRemote'
+import { memoryLocal } from '@/api/memoryLocal'
 import { useTelegram } from '@/hooks/useTelegram'
 import { db } from '@/db'
 import { ACCOUNTING_TIMEZONE } from '@/lib/timezone'
@@ -57,6 +59,16 @@ async function pullAll(): Promise<void> {
     await workTemplatesLocal.replaceAll(templates)
   } catch (error) {
     console.error('[sync] work templates pull failed', error)
+  }
+
+  try {
+    const memoryAnswers = await memoryRemote.listAnswers()
+    // Upsert only — keep locals that still have pending memory_upsert
+    const keep = await pendingEntityIds()
+    const toPut = memoryAnswers.filter((a) => !keep.has(a.questionId))
+    await memoryLocal.putMany(toPut)
+  } catch (error) {
+    console.error('[sync] memory answers pull failed', error)
   }
 }
 

@@ -25,6 +25,8 @@ export const config = {
   initDataMaxAgeSec: Number(process.env.INIT_DATA_MAX_AGE_SEC ?? 86400),
   /** Optional — only if you still keep BOT_TOKEN for future use */
   botToken: (process.env.BOT_TOKEN ?? '').trim(),
+  /** Secret for GET /api/memory/export (header X-Export-Key) */
+  memoryExportKey: (process.env.MEMORY_EXPORT_KEY ?? '').trim(),
 }
 
 export function assertRuntimeConfig(): void {
@@ -35,4 +37,7 @@ export function assertRuntimeConfig(): void {
   }
   console.log(`[config] INIT_DATA_MAX_AGE_SEC=${config.initDataMaxAgeSec}`)
   console.log(`[config] DATABASE_PATH=${config.databasePath}`)
+  console.log(
+    `[config] MEMORY_EXPORT_KEY=${config.memoryExportKey ? 'set' : 'not set'}`,
+  )
 }

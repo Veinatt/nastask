@@ -73,8 +73,18 @@ export type PendingOpType =
   | 'template_update'
   | 'template_delete'
   | 'settings_put'
+  | 'memory_upsert'
 
 export type DictKind = 'categories' | 'descriptions' | 'units' | 'expenses'
+
+export interface MemoryAnswer {
+  id: string
+  questionId: string
+  question: string
+  answer: string | null
+  answeredAt: string | null
+  updatedAt: string
+}
 
 export interface PendingOp {
   id: string

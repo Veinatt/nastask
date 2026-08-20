@@ -139,5 +139,21 @@ export function runMigrations(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_work_templates_user ON work_templates(userId);
   `)
 
+  console.log('[migrate] ensure memory_quiz')
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS memory_quiz (
+      id TEXT PRIMARY KEY,
+      userId INTEGER NOT NULL,
+      questionId TEXT NOT NULL,
+      question TEXT NOT NULL,
+      answer TEXT,
+      answeredAt TEXT,
+      updatedAt TEXT NOT NULL,
+      UNIQUE(userId, questionId)
+    );
+    CREATE INDEX IF NOT EXISTS idx_memory_quiz_user ON memory_quiz(userId);
+    CREATE INDEX IF NOT EXISTS idx_memory_quiz_user_qid ON memory_quiz(userId, questionId);
+  `)
+
   console.log('[migrate] READY')
 }

@@ -2,10 +2,22 @@ import { cn } from '@/lib/utils'
 import { useI18n } from '@/hooks/useI18n'
 import { NAV_ITEMS } from '@/components/layout/navItems'
 import { useAppTab, type AppTab } from '@/components/layout/AppTabContext'
+import { useMemoryOpen } from '@/components/memory/MemoryOpenContext'
+import { useTripleTap } from '@/hooks/useTripleTap'
 
-export function Navigation() {
+/** Shared brand wordmark classes (nav + NasTales). */
+export const APP_LOGO_CLASS =
+  'logo cursor-default select-none text-lg font-bold tracking-tight bg-gradient-to-r from-primary to-[hsl(var(--brand-end))] bg-clip-text text-transparent'
+
+type Props = {
+  className?: string
+}
+
+export function Navigation({ className }: Props) {
   const { t } = useI18n()
   const { tab, setTab } = useAppTab()
+  const { openMemory } = useMemoryOpen()
+  const onLogoTap = useTripleTap(openMemory)
 
   const renderItems = (mobile: boolean) =>
     NAV_ITEMS.map(({ to, labelKey, icon: Icon }) => {
@@ -47,12 +59,19 @@ export function Navigation() {
     })
 
   return (
-    <>
-      <nav className="hidden md:flex items-center gap-1 border-b border-primary/10 bg-card/70 px-6 py-2.5 sticky top-0 z-40 backdrop-blur-md">
-        <div className="mr-8 text-lg font-bold tracking-tight bg-gradient-to-r from-primary to-[hsl(var(--brand-end))] bg-clip-text text-transparent">
+    <div className={cn(className)}>
+      {/* Top bar: single #app-logo for all breakpoints (enter/exit fly to this slot) */}
+      <nav className="sticky top-0 z-40 flex items-center gap-1 border-b border-primary/10 bg-card/70 px-4 py-2.5 backdrop-blur-md md:px-6">
+        <button
+          type="button"
+          id="app-logo"
+          className={cn(APP_LOGO_CLASS, 'mr-0 md:mr-8')}
+          onClick={onLogoTap}
+          aria-label="NasTask"
+        >
           NasTask
-        </div>
-        {renderItems(false)}
+        </button>
+        <div className="hidden md:flex items-center gap-1">{renderItems(false)}</div>
       </nav>
 
       <nav
@@ -65,6 +84,6 @@ export function Navigation() {
       >
         <div className="grid grid-cols-4 max-w-lg mx-auto">{renderItems(true)}</div>
       </nav>
-    </>
+    </div>
   )
 }

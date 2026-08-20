@@ -2,6 +2,7 @@ import Dexie, { type EntityTable } from 'dexie'
 import { createDefaultSettings } from './defaults'
 import type {
   DictItem,
+  MemoryAnswer,
   PendingOp,
   TimeEntry,
   UserSettings,
@@ -17,6 +18,7 @@ export class NasTaskDB extends Dexie {
   units!: EntityTable<DictItem, 'id'>
   expenses!: EntityTable<DictItem, 'id'>
   workTemplates!: EntityTable<WorkTemplate, 'id'>
+  memoryQuiz!: EntityTable<MemoryAnswer, 'id'>
   settings!: EntityTable<UserSettings, 'id'>
   pendingOps!: EntityTable<PendingOp, 'id'>
 
@@ -65,6 +67,18 @@ export class NasTaskDB extends Dexie {
       units: 'id, name',
       expenses: 'id, name',
       workTemplates: 'id, name',
+      settings: 'id',
+      pendingOps: 'id, entityId, createdAt',
+    })
+    this.version(6).stores({
+      timeEntries: 'id, date, end, updatedAt',
+      workItems: 'id, timeEntryId',
+      categories: 'id, name',
+      descriptions: 'id, name',
+      units: 'id, name',
+      expenses: 'id, name',
+      workTemplates: 'id, name',
+      memoryQuiz: 'id, questionId, updatedAt',
       settings: 'id',
       pendingOps: 'id, entityId, createdAt',
     })

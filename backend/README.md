@@ -34,6 +34,22 @@ npm install
 npm run dev
 ```
 
-Ключевые переменные: `PORT`, `DATABASE_PATH`, `AUTH_DEV_BYPASS`, `BOT_TOKEN` (для prod initData), `INIT_DATA_MAX_AGE_SEC`.
+Ключевые переменные: `PORT`, `DATABASE_PATH`, `AUTH_DEV_BYPASS`, `BOT_TOKEN` (для prod initData), `INIT_DATA_MAX_AGE_SEC`, `MEMORY_EXPORT_KEY` (для `GET /api/memory/export`).
 
-БД по умолчанию: `./data/nastask.sqlite`. При старте legacy-таблицы `tasks`/`reminders` удаляются; создаётся схема трекера времени.
+### Memory quiz (секретный раздел)
+
+| Method | Path | Auth |
+|--------|------|------|
+| GET | `/api/memory/questions` | tma |
+| GET/POST | `/api/memory/answers` | tma |
+| GET | `/api/memory/export?userId=` | header `X-Export-Key` |
+
+```bash
+curl -H "X-Export-Key: $MEMORY_EXPORT_KEY" \
+  "https://<host>/api/memory/export"
+# optional filter:
+curl -H "X-Export-Key: $MEMORY_EXPORT_KEY" \
+  "https://<host>/api/memory/export?userId=123456789"
+```
+
+БД по умолчанию: `./data/nastask.sqlite`. При старте legacy-таблицы `tasks`/`reminders` удаляются; создаётся схема трекера времени + `memory_quiz`.

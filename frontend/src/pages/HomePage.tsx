@@ -188,7 +188,7 @@ export function HomePage() {
         <div className="space-y-1 min-w-0">
           <h1
             id="home-brand-title"
-            className="w-fit text-2xl sm:text-3xl font-bold tracking-tight text-foreground"
+            className="logo w-fit cursor-default select-none text-2xl sm:text-3xl font-bold tracking-tight text-foreground"
           >
             {t('home.title')}
           </h1>

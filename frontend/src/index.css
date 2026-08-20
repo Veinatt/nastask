@@ -139,6 +139,13 @@
     opacity: 1;
   }
 
+  html[data-memory-enter='1'] #app-logo,
+  html[data-memory-exit='1'] #app-logo,
+  html[data-memory-enter='1'] #memory-brand-logo,
+  html[data-memory-exit='1'] #memory-brand-logo {
+    opacity: 0;
+  }
+
   html {
     scroll-behavior: smooth;
   }
@@ -175,6 +182,30 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes memory-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) rotate(-0.6deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
+@keyframes memory-logo-fly-up {
+  to {
+    transform: translateY(-42vh);
+    opacity: 0;
+  }
+}
+
+@keyframes memory-enter-fade-bg {
+  to {
+    opacity: 0;
   }
 }
 
@@ -504,5 +535,297 @@
 }
 .shadow-primary\/30 {
   --tw-shadow-color: hsl(var(--primary) / 0.3);
+}
+
+/*
+ * Memory notebook — unlayered so theme / Telegram WebView cannot punch
+ * a hole through the cream paper (dark app bg was showing above).
+ */
+.memory-shell {
+  --font-hand: 'Caveat', cursive;
+}
+
+.notebook-page {
+  /* One CSS line = one ruled notebook row. All vertical spacing must be N × this. */
+  --notebook-line: 36px;
+  --notebook-margin: 1.35rem;
+  --notebook-gutter: 2.75rem;
+  /* Header band (nav-sized); ruled grid starts below it */
+  --notebook-header-h: 2.75rem;
+  /* Where the stroke sits inside each row (under Caveat baseline) */
+  --notebook-rule-at: 0.82;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 200 !important;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  color: #5c4030;
+  background-color: #fcf8ef !important;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--notebook-line) * var(--notebook-rule-at)),
+    rgb(180 200 220 / 0.55) calc(var(--notebook-line) * var(--notebook-rule-at)),
+    rgb(180 200 220 / 0.55) calc(var(--notebook-line) * var(--notebook-rule-at) + 1px),
+    transparent calc(var(--notebook-line) * var(--notebook-rule-at) + 1px),
+    transparent var(--notebook-line)
+  ) !important;
+  background-attachment: local;
+  /* First rule row begins right under the logo header */
+  background-position-y: var(--notebook-header-h);
+}
+
+.notebook-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--notebook-margin);
+  width: 2px;
+  background: rgb(220 100 90 / 0.55);
+  pointer-events: none;
+  z-index: 1;
+}
+
+@media (min-width: 768px) {
+  .notebook-page {
+    --notebook-margin: 2rem;
+    --notebook-gutter: 3.25rem;
+  }
+}
+
+.notebook-inner {
+  position: relative;
+  z-index: 2;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 72rem;
+  margin-left: auto;
+  margin-right: auto;
+  /* Start on first ruled row under header */
+  padding: 0 1rem calc(var(--notebook-line) * 3) var(--notebook-gutter);
+}
+
+@media (min-width: 768px) {
+  .notebook-inner {
+    padding-right: 1.5rem;
+  }
+}
+
+.notebook-page-header {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  /* Match Navigation: py-2.5 + text-lg — keep in sync with --notebook-header-h */
+  min-height: var(--notebook-header-h);
+  height: auto;
+  background-color: #fcf8ef;
+}
+
+.notebook-brand-wordmark {
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-hand), Caveat, cursive !important;
+  font-size: 1.125rem; /* slot size like nav, notebook ink look */
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  color: #8b6b4a;
+}
+
+.notebook-brand-wordmark:disabled {
+  cursor: default;
+}
+
+.notebook-body {
+  margin-top: 0;
+}
+
+.notebook-prose {
+  font-family: var(--font-hand), Caveat, cursive;
+  font-size: 1.45rem;
+  line-height: var(--notebook-line);
+  color: #5c4030;
+}
+
+.notebook-prose p {
+  margin: 0;
+  padding: 0;
+  line-height: var(--notebook-line);
+}
+
+/* Blank ruled row between paragraphs */
+.notebook-prose p + p {
+  margin-top: var(--notebook-line);
+}
+
+.notebook-meta {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-hand), Caveat, cursive;
+  font-size: 1.2rem;
+  line-height: var(--notebook-line);
+  height: var(--notebook-line);
+  color: #a89070;
+}
+
+.notebook-question {
+  margin: 0 0 var(--notebook-line);
+  padding: 0;
+  font-family: var(--font-hand), Caveat, cursive;
+  font-size: 1.7rem;
+  line-height: var(--notebook-line);
+  font-weight: 600;
+  color: #8b6b4a;
+}
+
+.notebook-input {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  min-height: calc(var(--notebook-line) * 6);
+  resize: vertical;
+  border: none;
+  background: transparent;
+  font-family: var(--font-hand), Caveat, cursive;
+  font-size: 1.45rem;
+  line-height: var(--notebook-line);
+  color: #5c4030;
+  outline: none;
+}
+
+.memory-content {
+  position: relative;
+  z-index: 2;
+}
+
+.notebook-title {
+  margin: 0;
+  font-family: var(--font-hand), Caveat, cursive;
+  font-size: 1.7rem;
+  color: #8b6b4a;
+  line-height: var(--notebook-line);
+}
+
+.notebook-input::placeholder {
+  color: rgb(168 144 112 / 0.7);
+}
+
+.notebook-quote {
+  margin: 0 0 var(--notebook-line);
+  padding: 0;
+  font-family: var(--font-hand), Caveat, cursive;
+  font-size: 1.7rem;
+  line-height: var(--notebook-line);
+  color: #8b6b4a;
+}
+
+.notebook-finish-hint {
+  margin: 0;
+  font-family: var(--font-hand), Caveat, cursive;
+  font-size: 1.25rem;
+  line-height: var(--notebook-line);
+  color: #a89070;
+}
+
+.notebook-actions {
+  box-sizing: border-box;
+  margin-top: calc(var(--notebook-line) * 2);
+  min-height: var(--notebook-line);
+  height: var(--notebook-line);
+  align-items: center;
+}
+
+.notebook-btn {
+  position: relative;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-hand), Caveat, cursive;
+  font-size: 1.25rem;
+  line-height: 1;
+  height: calc(var(--notebook-line) - 4px);
+  padding: 0 0 0.2em;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: #8b6b4a;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+/* Double hand-drawn underline, slightly skewed like pen strokes */
+.notebook-btn::before,
+.notebook-btn::after {
+  content: '';
+  position: absolute;
+  left: -4%;
+  right: -3%;
+  height: 1.6px;
+  border-radius: 1px;
+  background: #b08968;
+  pointer-events: none;
+}
+
+.notebook-btn::before {
+  bottom: 3px;
+  transform: rotate(-2deg);
+  opacity: 0.9;
+}
+
+.notebook-btn::after {
+  bottom: 0;
+  left: -2%;
+  right: -5%;
+  transform: rotate(-1.2deg);
+  opacity: 0.65;
+}
+
+.notebook-btn:disabled {
+  opacity: 0.45;
+}
+
+.notebook-btn:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+.notebook-btn-primary {
+  background: transparent;
+  border: none;
+  color: #8b6b4a;
+  font-weight: 600;
+}
+
+.notebook-btn-primary::before,
+.notebook-btn-primary::after {
+  background: #8b6b4a;
+}
+
+.memory-card-enter {
+  animation: memory-card-in 0.45s var(--ease-out-soft) both;
+}
+
+.memory-logo-fly-up {
+  animation: memory-logo-fly-up 0.9s var(--ease-out-soft) forwards;
+  will-change: transform, opacity;
+}
+
+.memory-enter-fade-bg {
+  animation: memory-enter-fade-bg 0.9s var(--ease-out-soft) forwards;
+}
+
+.memory-cat-soft-fade {
+  opacity: 0 !important;
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 
