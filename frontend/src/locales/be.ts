@@ -255,6 +255,18 @@ export const be: Record<MessageKey, string> = {
   'memory.nav.next': 'Далей',
   'memory.nav.done': 'Усё)',
 
+  'memory.viewer.title': 'NasTale — адказы',
+  'memory.viewer.hint': 'Устаў JSON з /api/memory/export',
+  'memory.viewer.paste': 'JSON',
+  'memory.viewer.show': 'Паказаць',
+  'memory.viewer.clear': 'Ачысціць',
+  'memory.viewer.parseError': 'Не ўдалося разабраць JSON',
+  'memory.viewer.user': 'Карыстальнік {{id}}',
+  'memory.viewer.unknownUser': 'Без userId',
+  'memory.viewer.empty': 'Пусты адказ',
+  'memory.viewer.updated': 'Абноўлена',
+  'memory.viewer.answered': 'Адказана',
+
   'memory.q.time-period.theme': 'Час',
   'memory.q.time-period.text':
     'Зазірні ў той час, пра які ты ўспамінаеш. Які ўзрост ці перыяд адгукаецца табе першым?',

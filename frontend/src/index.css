@@ -550,41 +550,23 @@
   --notebook-line: 32px;
   --notebook-margin: 1.35rem;
   --notebook-gutter: 2.75rem;
-  /* Must equal the real header height (no py that grows past this). */
-  --notebook-header-h: 48px;
+  /* Exactly one ruled row — logo sits on the first line */
+  --notebook-header-h: var(--notebook-line);
   position: fixed !important;
   inset: 0 !important;
   z-index: 200 !important;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   color: #5c4030;
+  /* Solid paper behind logo; ruled leaves live inside the flip book */
   background-color: #fcf8ef !important;
-  /* Rule at the bottom of each cell — crisp 1px, no mid-row blur */
-  background-image: linear-gradient(
-    to bottom,
-    transparent calc(var(--notebook-line) - 1px),
-    rgb(180 200 220 / 0.55) calc(var(--notebook-line) - 1px),
-    rgb(180 200 220 / 0.55) var(--notebook-line)
-  ) !important;
-  background-size: 100% var(--notebook-line) !important;
-  background-repeat: repeat-y !important;
-  /* First rule row begins right under the logo header */
-  background-position: 0 var(--notebook-header-h);
+  background-image: none !important;
 }
 
 .notebook-page::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: var(--notebook-margin);
-  width: 2px;
-  background: rgb(220 100 90 / 0.55);
-  pointer-events: none;
-  z-index: 1;
+  display: none;
 }
 
 @media (min-width: 768px) {
@@ -613,37 +595,49 @@
 }
 
 .notebook-page-header {
-  position: relative;
-  z-index: 2;
-  flex-shrink: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* Above resting page (startZIndex+1), below turning leaf/shadow (+5…+10) */
+  z-index: 3;
   box-sizing: border-box;
-  /* Exact band — must match --notebook-header-h / background-position-y */
+  display: flex;
+  align-items: flex-end;
   height: var(--notebook-header-h);
   min-height: var(--notebook-header-h);
   max-height: var(--notebook-header-h);
-  padding: 0 1rem;
-  background-color: #fcf8ef;
+  /* Same horizontal inset as page content */
+  padding: 0 1rem 0 var(--notebook-gutter);
+  background: transparent;
+  pointer-events: none;
+}
+
+.notebook-page-header > * {
+  pointer-events: auto;
 }
 
 @media (min-width: 768px) {
   .notebook-page-header {
-    padding-left: 1.5rem;
     padding-right: 1.5rem;
   }
 }
 
 .notebook-brand-wordmark {
   display: block;
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
   font-family: var(--font-hand), Caveat, cursive !important;
-  font-size: 1.125rem; /* slot size like nav, notebook ink look */
+  font-size: 1.35rem;
   font-weight: 700;
   letter-spacing: -0.025em;
-  line-height: 1.25;
+  /* Sit on the first ruled row like body text */
+  line-height: var(--notebook-line);
+  height: var(--notebook-line);
   color: #8b6b4a;
 }
 
@@ -674,16 +668,19 @@
 }
 
 .notebook-meta {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
   font-family: var(--font-hand), Caveat, cursive;
   font-size: 1.2rem;
   line-height: var(--notebook-line);
-  height: var(--notebook-line);
+  min-height: var(--notebook-line);
+  height: auto;
   color: #a89070;
 }
 
 .notebook-question {
+  box-sizing: border-box;
   margin: 0 0 var(--notebook-line);
   padding: 0;
   font-family: var(--font-hand), Caveat, cursive;
@@ -710,11 +707,130 @@
   line-height: var(--notebook-line);
   color: #5c4030;
   outline: none;
+  /* Keep typed lines on the rules (WebKit) */
+  field-sizing: content;
 }
 
 .memory-content {
   position: relative;
   z-index: 2;
+}
+
+.memory-book-viewport {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.memory-book-error {
+  position: absolute;
+  top: calc(var(--notebook-header-h) + 0.25rem);
+  left: var(--notebook-gutter);
+  right: 1rem;
+  z-index: 20;
+  pointer-events: none;
+}
+
+/* Force a single full-bleed leaf (library otherwise opens a 2-page landscape spread). */
+.memory-flip-book,
+.memory-flip-book.stf__parent {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.memory-flip-book .stf__wrapper,
+.memory-flip-book .stf__wrapper.--portrait,
+.memory-flip-book .stf__wrapper.--landscape {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding-bottom: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.memory-flip-book .stf__block {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Soften library shadows further (opacity also capped via maxShadowOpacity) */
+.memory-flip-book .stf__outerShadow,
+.memory-flip-book .stf__innerShadow,
+.memory-flip-book .stf__hardShadow,
+.memory-flip-book .stf__hardInnerShadow {
+  opacity: 0.55;
+}
+
+.memory-book-page {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #fcf8ef;
+  background-image: linear-gradient(
+    to bottom,
+    transparent calc(var(--notebook-line) - 1px),
+    rgb(180 200 220 / 0.55) calc(var(--notebook-line) - 1px),
+    rgb(180 200 220 / 0.55) var(--notebook-line)
+  );
+  background-size: 100% var(--notebook-line);
+  background-repeat: repeat-y;
+  background-position: 0 0;
+  color: #5c4030;
+}
+
+/* page-flip positions items absolutely; keep leaf filling the visible slot */
+.memory-flip-book .stf__item.memory-book-page,
+.memory-flip-book .memory-book-page.stf__item {
+  box-sizing: border-box !important;
+}
+
+.memory-book-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--notebook-margin);
+  width: 2px;
+  background: rgb(220 100 90 / 0.55);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.memory-book-page-inner {
+  position: relative;
+  z-index: 2;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  max-width: 72rem;
+  margin-left: auto;
+  margin-right: auto;
+  /* Logo row + one blank ruled line, then content */
+  padding: calc(var(--notebook-header-h) + var(--notebook-line)) 1rem
+    calc(var(--notebook-line) * 4) var(--notebook-gutter);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+@media (min-width: 768px) {
+  .memory-book-page-inner {
+    padding-right: 1.5rem;
+  }
 }
 
 .notebook-title {

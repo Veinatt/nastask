@@ -252,6 +252,18 @@ export const ru = {
   'memory.nav.next': 'Дальше',
   'memory.nav.done': 'Усё)',
 
+  'memory.viewer.title': 'NasTale — ответы',
+  'memory.viewer.hint': 'Вставь JSON из /api/memory/export',
+  'memory.viewer.paste': 'JSON',
+  'memory.viewer.show': 'Показать',
+  'memory.viewer.clear': 'Очистить',
+  'memory.viewer.parseError': 'Не удалось разобрать JSON',
+  'memory.viewer.user': 'Пользователь {{id}}',
+  'memory.viewer.unknownUser': 'Без userId',
+  'memory.viewer.empty': 'Пустой ответ',
+  'memory.viewer.updated': 'Обновлено',
+  'memory.viewer.answered': 'Отвечено',
+
   'memory.q.time-period.theme': 'Время',
   'memory.q.time-period.text':
     'Загляни в то время, про которое ты вспоминаешь. Какой возраст или период откликается тебе первым?',

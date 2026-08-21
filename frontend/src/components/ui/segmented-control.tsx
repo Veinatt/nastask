@@ -12,6 +12,8 @@ type Props<T extends string> = {
   value: T
   options: readonly SegmentOption<T>[] | SegmentOption<T>[]
   onChange: (value: T) => void
+  /** Fires on every option click (even if already selected). */
+  onOptionTap?: (value: T) => void
   className?: string
   fullWidth?: boolean
 }
@@ -20,6 +22,7 @@ export function SegmentedControl<T extends string>({
   value,
   options,
   onChange,
+  onOptionTap,
   className,
   fullWidth,
 }: Props<T>) {
@@ -87,6 +90,7 @@ export function SegmentedControl<T extends string>({
               else btnRefs.current.delete(opt.value)
             }}
             onClick={() => {
+              onOptionTap?.(opt.value)
               if (opt.value !== value) onChange(opt.value)
             }}
             className={cn(
