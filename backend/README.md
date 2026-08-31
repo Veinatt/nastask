@@ -1,6 +1,6 @@
 # NasTask Backend
 
-Express + SQLite HTTP API для трекера времени (без бота и cron).
+Express + SQLite HTTP API для трекера времени.
 
 ## Стек
 
@@ -21,41 +21,22 @@ Express + SQLite HTTP API для трекера времени (без бота 
 | GET | `/api/intervals/completed?date=YYYY-MM-DD` | завершённые за день |
 | GET | `/api/intervals/report/salary\|tax` | отчёты за месяц |
 | PUT/DELETE | `/api/intervals/:id` | правка / удаление |
-| GET/POST/DELETE | `/api/categories\|descriptions\|units` | справочники |
+| GET/POST/DELETE | `/api/categories\|descriptions\|units\|expense-articles` | справочники |
 | GET/PUT | `/api/settings` | ставка, налог, валюта, timezone |
+| GET/POST/DELETE | `/api/expenses` | расходы за месяц |
+| GET/POST/PUT/DELETE | `/api/work-templates` | шаблоны работ |
+| GET | `/api/export` | JSON-бэкап данных пользователя |
 
-Все `/api/*` требуют `Authorization: tma <initData>`, кроме локального `AUTH_DEV_BYPASS=true` (+ `X-User-Id`).
+Все `/api/*` требуют `Authorization: tma <initData>`, кроме локального `AUTH_DEV_BYPASS=true` (+ заголовок `X-User-Id`).
 
 ## Локальный запуск
 
 ```bash
-cp .env.example .env   # если есть
+cp .env.example .env
 npm install
 npm run dev
 ```
 
-Ключевые переменные: `PORT`, `DATABASE_PATH`, `AUTH_DEV_BYPASS`, `BOT_TOKEN` (для prod initData), `INIT_DATA_MAX_AGE_SEC`, `MEMORY_EXPORT_KEY` (для `GET /api/memory/export`).
+Ключевые переменные: `PORT`, `DATABASE_PATH`, `AUTH_DEV_BYPASS`, `BOT_TOKEN` (для prod initData), `INIT_DATA_MAX_AGE_SEC`.
 
-### Memory quiz (NasTale)
-
-Тексты вопросов живут на клиенте (локали). Сервер хранит только ответы.
-
-| Method | Path | Auth |
-|--------|------|------|
-| GET | `/api/memory/questions` | tma — `{ id }[]` (whitelist) |
-| GET/POST | `/api/memory/answers` | tma — per user |
-| GET | `/api/memory/export?userId=` | header `X-Export-Key` |
-
-Таблица `memory_quiz`: `userId`, `questionId`, `answer`, `answeredAt`, `updatedAt` (UNIQUE userId+questionId).
-
-```bash
-curl -H "X-Export-Key: $MEMORY_EXPORT_KEY" \
-  "https://<host>/api/memory/export"
-# optional filter:
-curl -H "X-Export-Key: $MEMORY_EXPORT_KEY" \
-  "https://<host>/api/memory/export?userId=123456789"
-```
-
-После правки `.env` локально — полный рестарт процесса (nodemon `.env` не смотрит). В логе: `MEMORY_EXPORT_KEY=set`.
-
-БД по умолчанию: `./data/nastask.sqlite`. При старте legacy-таблицы `tasks`/`reminders` удаляются; создаётся схема трекера времени + `memory_quiz`.
+БД по умолчанию: `./data/nastask.sqlite`.

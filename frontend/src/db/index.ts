@@ -2,7 +2,6 @@ import Dexie, { type EntityTable } from 'dexie'
 import { createDefaultSettings } from './defaults'
 import type {
   DictItem,
-  MemoryAnswer,
   PendingOp,
   TimeEntry,
   UserSettings,
@@ -18,13 +17,11 @@ export class NasTaskDB extends Dexie {
   units!: EntityTable<DictItem, 'id'>
   expenses!: EntityTable<DictItem, 'id'>
   workTemplates!: EntityTable<WorkTemplate, 'id'>
-  memoryQuiz!: EntityTable<MemoryAnswer, 'id'>
   settings!: EntityTable<UserSettings, 'id'>
   pendingOps!: EntityTable<PendingOp, 'id'>
 
   constructor() {
     super('nastask')
-    // Legacy task tracker schema (v1–v2) — wiped on upgrade
     this.version(1).stores({
       tasks: 'id, status, completedAt, [status+completedAt], updatedAt',
       settings: 'id',
@@ -81,6 +78,18 @@ export class NasTaskDB extends Dexie {
       memoryQuiz: 'id, questionId, updatedAt',
       settings: 'id',
       pendingOps: 'id, entityId, createdAt',
+    })
+    this.version(7).stores({
+      timeEntries: 'id, date, end, updatedAt',
+      workItems: 'id, timeEntryId',
+      categories: 'id, name',
+      descriptions: 'id, name',
+      units: 'id, name',
+      expenses: 'id, name',
+      workTemplates: 'id, name',
+      settings: 'id',
+      pendingOps: 'id, entityId, createdAt',
+      memoryQuiz: null,
     })
   }
 }
