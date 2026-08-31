@@ -4,8 +4,6 @@ import { intervalsRemote } from '@/api/intervalsRemote'
 import { intervalsLocal } from '@/api/intervalsLocal'
 import { dictsRemote } from '@/api/dictsRemote'
 import { settingsRemote } from '@/api/settingsApi'
-import { memoryRemote } from '@/api/memoryRemote'
-import { memoryLocal } from '@/api/memoryLocal'
 import { t } from '@/lib/i18n'
 import type { DictKind, PendingOp, PendingOpType, WorkItemInput } from '@/db/types'
 import { generateId } from '@/utils/idGenerator'
@@ -68,7 +66,6 @@ export async function flushPendingOps(): Promise<void> {
           error,
         )
         await db.pendingOps.delete(op.id)
-        // Never existed on server — drop local ghost. "Already completed" (400) keeps local; pull upserts.
         if (
           error instanceof ApiError &&
           error.status === 404 &&
@@ -164,11 +161,5 @@ async function applyOp(op: PendingOp): Promise<void> {
         op.payload as Parameters<typeof settingsRemote.put>[0],
       )
       return
-    case 'memory_upsert': {
-      const p = op.payload as { questionId: string; answer: string }
-      const remote = await memoryRemote.upsertAnswers([p])
-      if (remote[0]) await memoryLocal.put(remote[0])
-      return
-    }
   }
 }

@@ -19,9 +19,7 @@ import { useTelegram } from '@/hooks/useTelegram'
 import { useDictionaries } from '@/hooks/useDictionaries'
 import { useWorkTemplates } from '@/hooks/useWorkTemplates'
 import { useI18n } from '@/hooks/useI18n'
-import { useTripleTap } from '@/hooks/useTripleTap'
 import { SegmentedControl } from '@/components/ui/segmented-control'
-import { MemoryExportViewer } from '@/components/memory/MemoryExportViewer'
 import { apiFetch } from '@/api/client'
 import type { ThemePreference } from '@/lib/theme'
 import type { AppLocale } from '@/lib/i18n'
@@ -306,9 +304,6 @@ export function SettingsPage() {
   const [error, setError] = useState<string | null>(null)
   const [exportBusy, setExportBusy] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
-  const [memoryViewerOpen, setMemoryViewerOpen] = useState(false)
-  const onDarkThemeTriple = useTripleTap(() => setMemoryViewerOpen(true))
-
   const themeOptions: {
     value: ThemePreference
     label: string
@@ -374,9 +369,6 @@ export function SettingsPage() {
 
   return (
     <div className="grid min-w-0 gap-6">
-      {memoryViewerOpen && (
-        <MemoryExportViewer onClose={() => setMemoryViewerOpen(false)} />
-      )}
       <header className="space-y-1">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('settings.title')}</h1>
         <p className="text-sm text-muted-foreground">
@@ -390,9 +382,6 @@ export function SettingsPage() {
           fullWidth
           value={preference}
           onChange={setPreference}
-          onOptionTap={(value) => {
-            if (value === 'dark') onDarkThemeTriple()
-          }}
           options={themeOptions}
         />
       </section>
