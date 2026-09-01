@@ -1,10 +1,14 @@
+import { emitSyncStatus } from '@/components/layout/SyncStatusBanner'
 import { apiFetch } from '@/api/client'
+import { t } from '@/lib/i18n'
 
 export type ApiDownloadKind = 'json-backup' | 'tax-csv' | 'tax-xlsx'
 
 type TokenResponse = { success: true; url: string; fileName: string }
 
 type TelegramWebApp = {
+  platform?: string
+  initData?: string
   downloadFile?: (
     params: { url: string; file_name: string },
     callback?: (accepted: boolean) => void,
@@ -22,6 +26,15 @@ function telegramWebApp(): TelegramWebApp | null {
   }
 }
 
+/** Real Mini App — not plain browser with telegram-web-app.js stub. */
+function isTelegramMiniApp(): boolean {
+  const tg = telegramWebApp()
+  if (!tg) return false
+  const platform = tg.platform?.trim()
+  if (platform && platform !== 'unknown') return true
+  return Boolean(tg.initData?.trim())
+}
+
 async function saveBlobDownload(url: string, fileName: string): Promise<void> {
   const response = await fetch(url)
   if (!response.ok) {
@@ -34,7 +47,9 @@ async function saveBlobDownload(url: string, fileName: string): Promise<void> {
     a.href = objectUrl
     a.download = fileName
     a.rel = 'noopener'
+    document.body.appendChild(a)
     a.click()
+    a.remove()
   } finally {
     URL.revokeObjectURL(objectUrl)
   }
@@ -59,7 +74,7 @@ function nativeDownload(url: string, fileName: string): Promise<boolean> {
       if (settled) return
       settled = true
       resolve(false)
-    }, 30_000)
+    }, 5_000)
 
     try {
       tg.downloadFile!({ url, file_name: fileName }, (accepted) => {
@@ -78,30 +93,46 @@ function nativeDownload(url: string, fileName: string): Promise<boolean> {
   })
 }
 
-/** Telegram Mini App blocks blob downloads — use signed HTTPS URL + downloadFile. */
 export async function triggerFileDownload(url: string, fileName: string): Promise<void> {
-  const usedNative = await nativeDownload(url, fileName)
-  if (usedNative) return
+  const useTelegramNative =
+    isTelegramMiniApp() && url.startsWith('https://') && Boolean(telegramWebApp()?.downloadFile)
+
+  if (useTelegramNative) {
+    const accepted = await nativeDownload(url, fileName)
+    if (accepted) {
+      emitSyncStatus(t('download.started', { name: fileName }), 'ok')
+      return
+    }
+  }
 
   try {
     await saveBlobDownload(url, fileName)
+    emitSyncStatus(t('download.started', { name: fileName }), 'ok')
     return
-  } catch {
-    // Last resort: open HTTPS link in browser (Telegram openLink or new tab).
-    openExternal(url)
+  } catch (error) {
+    console.warn('[download] blob save failed, opening link', error)
   }
+
+  openExternal(url)
+  emitSyncStatus(t('download.openInBrowser'), 'info')
 }
 
 export async function requestApiDownload(
   kind: ApiDownloadKind,
   params?: { year?: number; month?: number; groupBy?: string },
 ): Promise<void> {
-  const res = await apiFetch<TokenResponse>('/api/download/token', {
-    method: 'POST',
-    body: JSON.stringify({ kind, ...params }),
-  })
-  if (!res?.url || !res.fileName) {
-    throw new Error('Download link missing')
+  try {
+    const res = await apiFetch<TokenResponse>('/api/download/token', {
+      method: 'POST',
+      body: JSON.stringify({ kind, ...params }),
+    })
+    if (!res?.url || !res.fileName) {
+      throw new Error(t('download.linkMissing'))
+    }
+    await triggerFileDownload(res.url, res.fileName)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : t('download.failed')
+    emitSyncStatus(message, 'error')
+    throw error
   }
-  await triggerFileDownload(res.url, res.fileName)
 }

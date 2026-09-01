@@ -31,7 +31,6 @@ function fileNameFor(kind: DownloadKind, payload: { year?: number; month?: numbe
 function setDownloadHeaders(res: Response, fileName: string, contentType: string): void {
   res.setHeader('Content-Type', contentType)
   res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`)
-  res.setHeader('Access-Control-Allow-Origin', 'https://web.telegram.org')
   res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition')
 }
 

@@ -201,6 +201,11 @@ export const ru = {
   'settings.export.title': 'Экспорт',
   'settings.export.json': 'Скачать JSON-бэкап',
 
+  'download.started': 'Скачивание: {{name}}',
+  'download.openInBrowser': 'Ссылка открыта в браузере — сохраните файл оттуда',
+  'download.linkMissing': 'Не удалось получить ссылку на файл',
+  'download.failed': 'Не удалось скачать файл',
+
   'templates.title': 'Шаблоны работ',
   'templates.pick': 'Шаблон',
   'templates.save': 'Сохранить как шаблон',

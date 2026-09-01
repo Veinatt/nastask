@@ -203,6 +203,11 @@ export const be: Record<MessageKey, string> = {
   'settings.export.title': 'Экспорт',
   'settings.export.json': 'Спампаваць JSON-бэкап',
 
+  'download.started': 'Спампаванне: {{name}}',
+  'download.openInBrowser': 'Спасылка адкрыта ў браўзеры — захавайце файл адтуль',
+  'download.linkMissing': 'Не атрымалася атрымаць спасылку на файл',
+  'download.failed': 'Не атрымалася спампаваць файл',
+
   'templates.title': 'Шаблоны работ',
   'templates.pick': 'Шаблон',
   'templates.save': 'Захаваць як шаблон',
