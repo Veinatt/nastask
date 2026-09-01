@@ -62,7 +62,7 @@ function nativeDownload(url: string, fileName: string): Promise<boolean> {
     }, 30_000)
 
     try {
-      tg.downloadFile({ url, file_name: fileName }, (accepted) => {
+      tg.downloadFile!({ url, file_name: fileName }, (accepted) => {
         if (settled) return
         settled = true
         window.clearTimeout(timer)
