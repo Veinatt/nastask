@@ -207,7 +207,7 @@ export function ReportsPage() {
                 className="h-9 w-9 border-primary/20"
                 aria-label={t('common.csv')}
                 title={t('common.csv')}
-                onClick={() => exportTaxCsv(tax)}
+                onClick={() => void exportTaxCsv(tax)}
               >
                 <FileText className="h-4 w-4" />
               </Button>
@@ -218,7 +218,7 @@ export function ReportsPage() {
                 className="h-9 w-9 border-primary/20"
                 aria-label={t('common.excel')}
                 title={t('common.excel')}
-                onClick={() => exportTaxExcel(tax)}
+                onClick={() => void exportTaxExcel(tax)}
               >
                 <FileSpreadsheet className="h-4 w-4" />
               </Button>

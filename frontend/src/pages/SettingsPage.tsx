@@ -22,7 +22,7 @@ import { useI18n } from '@/hooks/useI18n'
 import { useTripleTap } from '@/hooks/useTripleTap'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { MemoryExportViewer } from '@/components/memory/MemoryExportViewer'
-import { apiFetch } from '@/api/client'
+import { requestApiDownload } from '@/utils/downloadFile'
 import type { ThemePreference } from '@/lib/theme'
 import type { AppLocale } from '@/lib/i18n'
 import type { DictKind } from '@/db/types'
@@ -354,17 +354,7 @@ export function SettingsPage() {
     setExportBusy(true)
     setExportError(null)
     try {
-      const data = await apiFetch<unknown>('/api/export')
-      const blob = new Blob([JSON.stringify(data, null, 2)], {
-        type: 'application/json;charset=utf-8',
-      })
-      const stamp = new Date().toISOString().slice(0, 10)
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `nastask-backup-${stamp}.json`
-      a.click()
-      URL.revokeObjectURL(url)
+      await requestApiDownload('json-backup')
     } catch (e) {
       setExportError(e instanceof Error ? e.message : t('common.error'))
     } finally {
