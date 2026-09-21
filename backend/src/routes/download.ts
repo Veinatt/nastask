@@ -2,7 +2,7 @@ import type { Request, Response } from 'express'
 import { Router } from 'express'
 import * as XLSX from 'xlsx'
 import { telegramAuth } from '../middleware/telegramAuth'
-import { buildTaxReport, taxReportToCsv } from '../services/taxReport'
+import { buildTaxReport, type TaxReport } from '../services/taxReport'
 import { buildUserExport } from '../services/userExport'
 import {
   createDownloadToken,
@@ -24,7 +24,7 @@ function fileNameFor(kind: DownloadKind, payload: { year?: number; month?: numbe
   const stamp = new Date().toISOString().slice(0, 10)
   if (kind === 'json-backup') return `nastask-backup-${stamp}.json`
   const ym = `${payload.year}-${String(payload.month).padStart(2, '0')}`
-  if (kind === 'tax-csv') return `nastask-tasks-${ym}.csv`
+  if (kind === 'tax-csv') return `nastask-tasks-${ym}.xlsx`
   return `nastask-tax-${ym}.xlsx`
 }
 
@@ -34,10 +34,20 @@ function setDownloadHeaders(res: Response, fileName: string, contentType: string
   res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition')
 }
 
-/** Google Sheets and Excel detect UTF-16 from the BOM. UTF-8 BOM is shown as ï»¿. */
-function csvUtf16Le(csv: string): Buffer {
-  const text = csv.replace(/^\uFEFF/, '')
-  return Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, 'utf16le')])
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+function taxReportXlsx(report: TaxReport): Buffer {
+  const rows = report.rows.map((r) => ({
+    category: r.categoryName ?? '',
+    description: r.descriptionName ?? '',
+    quantity: Math.round(r.quantity * 1000) / 1000,
+    unit: r.unitName ?? '',
+  }))
+  const sheet = XLSX.utils.json_to_sheet(rows)
+  const book = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(book, sheet, 'Tax')
+  const written = XLSX.write(book, { type: 'buffer', bookType: 'xlsx' }) as Buffer | Uint8Array
+  return Buffer.isBuffer(written) ? written : Buffer.from(written)
 }
 
 downloadRouter.post('/token', telegramAuth, (req, res) => {
@@ -131,30 +141,8 @@ downloadRouter.get('/file', (req, res) => {
       payload.groupBy ?? 'both',
     )
 
-    if (payload.kind === 'tax-csv') {
-      const csv = csvUtf16Le(taxReportToCsv(report))
-      setDownloadHeaders(res, fileName, 'text/csv; charset=utf-16le')
-      res.setHeader('Content-Length', String(csv.length))
-      res.end(csv)
-      return
-    }
-
-    const rows = report.rows.map((r) => ({
-      category: r.categoryName ?? '',
-      description: r.descriptionName ?? '',
-      quantity: Math.round(r.quantity * 1000) / 1000,
-      unit: r.unitName ?? '',
-    }))
-    const sheet = XLSX.utils.json_to_sheet(rows)
-    const book = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(book, sheet, 'Tax')
-    const written = XLSX.write(book, { type: 'buffer', bookType: 'xlsx' }) as Buffer
-    const xlsx = Buffer.isBuffer(written) ? written : Buffer.from(written)
-    setDownloadHeaders(
-      res,
-      fileName,
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    )
+    const xlsx = taxReportXlsx(report)
+    setDownloadHeaders(res, fileName, XLSX_MIME)
     res.setHeader('Content-Length', String(xlsx.length))
     res.end(xlsx)
   } catch (error) {
