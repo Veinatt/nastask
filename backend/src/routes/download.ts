@@ -34,6 +34,12 @@ function setDownloadHeaders(res: Response, fileName: string, contentType: string
   res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition')
 }
 
+/** Google Sheets and Excel detect UTF-16 from the BOM. UTF-8 BOM is shown as ï»¿. */
+function csvUtf16Le(csv: string): Buffer {
+  const text = csv.replace(/^\uFEFF/, '')
+  return Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, 'utf16le')])
+}
+
 downloadRouter.post('/token', telegramAuth, (req, res) => {
   try {
     const userId = req.telegramUserId
@@ -126,9 +132,8 @@ downloadRouter.get('/file', (req, res) => {
     )
 
     if (payload.kind === 'tax-csv') {
-      // UTF-8 BOM as raw bytes so Excel does not read Cyrillic as Windows-1251.
-      const csv = Buffer.from(taxReportToCsv(report), 'utf8')
-      setDownloadHeaders(res, fileName, 'text/csv; charset=utf-8')
+      const csv = csvUtf16Le(taxReportToCsv(report))
+      setDownloadHeaders(res, fileName, 'text/csv; charset=utf-16le')
       res.setHeader('Content-Length', String(csv.length))
       res.end(csv)
       return

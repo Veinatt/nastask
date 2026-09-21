@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Navigation } from './Navigation'
 import { SyncStatusBanner } from '@/components/layout/SyncStatusBanner'
-import { DownloadDebugBar } from '@/components/layout/DownloadDebugBar'
 import { NAV_ROUTES } from '@/components/layout/navItems'
 import { useAppTab } from '@/components/layout/AppTabContext'
 import { useSplashDone } from '@/components/splash/SplashDoneContext'
@@ -87,7 +86,6 @@ export function AppLayout() {
           <TabPage tab={tab} />
         </div>
       </main>
-      {gate === 'closed' && <DownloadDebugBar />}
       {pageMounted && <MemoryQuizPage />}
       {gate === 'entering' && <MemoryEnterSplash onComplete={onEnterComplete} />}
       {gate === 'exiting' && (

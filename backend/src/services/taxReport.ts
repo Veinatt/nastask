@@ -79,5 +79,5 @@ export function taxReportToCsv(report: TaxReport): string {
       ].join(','),
     ),
   ]
-  return `\uFEFF${lines.join('\n')}`
+  return lines.join('\r\n')
 }

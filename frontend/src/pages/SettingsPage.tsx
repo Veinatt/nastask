@@ -458,7 +458,7 @@ export function SettingsPage() {
           onClick={() => void downloadJsonBackup()}
         >
           <Download className="h-4 w-4 mr-1.5" />
-          JSON dl2
+          {t('settings.export.json')}
         </Button>
         {exportError && <p className="text-sm text-destructive">{exportError}</p>}
       </section>

@@ -58,7 +58,7 @@ export function ReportsPage() {
     <div className="grid gap-6">
       <header className="flex flex-col gap-4">
         <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('reports.title')} · dl2</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('reports.title')}</h1>
           <p className="text-sm text-muted-foreground">
             {t('reports.subtitle')}
           </p>
@@ -209,7 +209,7 @@ export function ReportsPage() {
                 onClick={() => void exportTaxCsv(tax)}
               >
                 <FileText className="h-4 w-4" />
-                CSV dl2
+                {t('common.csv')}
               </Button>
               <Button
                 type="button"
@@ -220,7 +220,7 @@ export function ReportsPage() {
                 onClick={() => void exportTaxExcel(tax)}
               >
                 <FileSpreadsheet className="h-4 w-4" />
-                Excel dl2
+                {t('common.excel')}
               </Button>
             </div>
           </div>

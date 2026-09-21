@@ -1,7 +1,6 @@
 import { emitSyncStatus } from '@/components/layout/SyncStatusBanner'
-import { apiFetch, ApiError } from '@/api/client'
+import { apiFetch } from '@/api/client'
 import { t } from '@/lib/i18n'
-import { downloadDebug } from '@/utils/downloadDebug'
 
 export type ApiDownloadKind = 'json-backup' | 'tax-csv' | 'tax-xlsx'
 
@@ -94,27 +93,14 @@ function nativeDownload(url: string, fileName: string): Promise<boolean> {
   })
 }
 
-function safeUrl(url: string): string {
-  try {
-    const u = new URL(url)
-    return `${u.origin}${u.pathname}`
-  } catch {
-    return 'bad-url'
-  }
-}
-
 export async function triggerFileDownload(url: string, fileName: string): Promise<void> {
   const tg = telegramWebApp()
   const mini = isTelegramMiniApp()
   const hasNative = Boolean(tg?.downloadFile)
   const https = url.startsWith('https://')
-  downloadDebug(
-    `save file=${fileName} mini=${mini} platform=${tg?.platform ?? '-'} native=${hasNative} https=${https} url=${safeUrl(url)}`,
-  )
 
   if (mini && https && hasNative) {
     const accepted = await nativeDownload(url, fileName)
-    downloadDebug(`telegram.downloadFile accepted=${accepted}`)
     if (accepted) {
       emitSyncStatus(t('download.started', { name: fileName }), 'ok')
       return
@@ -123,17 +109,13 @@ export async function triggerFileDownload(url: string, fileName: string): Promis
 
   try {
     await saveBlobDownload(url, fileName)
-    downloadDebug('blob click ok')
     emitSyncStatus(t('download.started', { name: fileName }), 'ok')
     return
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'blob failed'
-    downloadDebug(`blob fail: ${message}`)
     console.warn('[download] blob save failed, opening link', error)
   }
 
   openExternal(url)
-  downloadDebug('openLink')
   emitSyncStatus(t('download.openInBrowser'), 'info')
 }
 
@@ -141,27 +123,17 @@ export async function requestApiDownload(
   kind: ApiDownloadKind,
   params?: { year?: number; month?: number; groupBy?: string },
 ): Promise<void> {
-  const ym =
-    params?.year != null && params?.month != null
-      ? ` ${params.year}-${params.month} group=${params.groupBy ?? '-'}`
-      : ''
-  downloadDebug(`click ${kind}${ym}`)
   try {
-    downloadDebug('POST /api/download/token')
     const res = await apiFetch<TokenResponse>('/api/download/token', {
       method: 'POST',
       body: JSON.stringify({ kind, ...params }),
     })
     if (!res?.url || !res.fileName) {
-      downloadDebug('token response missing url')
       throw new Error(t('download.linkMissing'))
     }
-    downloadDebug(`token ok file=${res.fileName}`)
     await triggerFileDownload(res.url, res.fileName)
   } catch (error) {
-    const status = error instanceof ApiError ? ` http=${error.status}` : ''
     const message = error instanceof Error ? error.message : t('download.failed')
-    downloadDebug(`error${status}: ${message.slice(0, 180)}`)
     emitSyncStatus(message, 'error')
     throw error
   }
