@@ -38,14 +38,14 @@ const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.s
 
 function taxReportXlsx(report: TaxReport): Buffer {
   const rows = report.rows.map((r) => ({
-    category: r.categoryName ?? '',
-    description: r.descriptionName ?? '',
-    quantity: Math.round(r.quantity * 1000) / 1000,
-    unit: r.unitName ?? '',
+    Категория: r.categoryName ?? '',
+    Описание: r.descriptionName ?? '',
+    Количество: Math.round(r.quantity * 1000) / 1000,
+    Единица: r.unitName ?? '',
   }))
   const sheet = XLSX.utils.json_to_sheet(rows)
   const book = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(book, sheet, 'Tax')
+  XLSX.utils.book_append_sheet(book, sheet, 'Задачи')
   const written = XLSX.write(book, { type: 'buffer', bookType: 'xlsx' }) as Buffer | Uint8Array
   return Buffer.isBuffer(written) ? written : Buffer.from(written)
 }

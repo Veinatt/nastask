@@ -69,7 +69,7 @@ export function buildTaxReport(
 export function taxReportToCsv(report: TaxReport): string {
   const escape = (v: string) => `"${v.replace(/"/g, '""')}"`
   const lines = [
-    ['category', 'description', 'quantity', 'unit'].join(','),
+    ['Категория', 'Описание', 'Количество', 'Единица'].join(','),
     ...report.rows.map((r) =>
       [
         escape(r.categoryName ?? ''),

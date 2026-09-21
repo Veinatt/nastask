@@ -169,8 +169,8 @@ export const ru = {
   'reports.groupBy.description': 'Описание',
   'reports.col.category': 'Категория',
   'reports.col.description': 'Описание',
-  'reports.col.quantity': 'Кол-во',
-  'reports.col.unit': 'Ед.',
+  'reports.col.quantity': 'Количество',
+  'reports.col.unit': 'Единица',
   'reports.tasksEmpty': 'Нет работ за месяц.',
   'reports.loadError': 'Ошибка загрузки отчёта',
 
