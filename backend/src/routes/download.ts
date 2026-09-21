@@ -126,8 +126,11 @@ downloadRouter.get('/file', (req, res) => {
     )
 
     if (payload.kind === 'tax-csv') {
+      // UTF-8 BOM as raw bytes so Excel does not read Cyrillic as Windows-1251.
+      const csv = Buffer.from(taxReportToCsv(report), 'utf8')
       setDownloadHeaders(res, fileName, 'text/csv; charset=utf-8')
-      res.send(taxReportToCsv(report))
+      res.setHeader('Content-Length', String(csv.length))
+      res.end(csv)
       return
     }
 
@@ -135,18 +138,20 @@ downloadRouter.get('/file', (req, res) => {
       category: r.categoryName ?? '',
       description: r.descriptionName ?? '',
       quantity: Math.round(r.quantity * 1000) / 1000,
-      unit: r.unitName,
+      unit: r.unitName ?? '',
     }))
     const sheet = XLSX.utils.json_to_sheet(rows)
     const book = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(book, sheet, 'Tax')
-    const buffer = XLSX.write(book, { type: 'buffer', bookType: 'xlsx' }) as Buffer
+    const written = XLSX.write(book, { type: 'buffer', bookType: 'xlsx' }) as Buffer
+    const xlsx = Buffer.isBuffer(written) ? written : Buffer.from(written)
     setDownloadHeaders(
       res,
       fileName,
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
-    res.send(buffer)
+    res.setHeader('Content-Length', String(xlsx.length))
+    res.end(xlsx)
   } catch (error) {
     console.error('[api:download] file failed', error)
     res.status(500).json({ success: false, error: 'Internal server error' })
