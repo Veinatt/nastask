@@ -22,6 +22,7 @@ import { useI18n } from '@/hooks/useI18n'
 import { useTripleTap } from '@/hooks/useTripleTap'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { MemoryExportViewer } from '@/components/memory/MemoryExportViewer'
+import { DownloadBurstButton } from '@/components/reports/DownloadBurstButton'
 import { requestApiDownload } from '@/utils/downloadFile'
 import type { ThemePreference } from '@/lib/theme'
 import type { AppLocale } from '@/lib/i18n'
@@ -357,6 +358,7 @@ export function SettingsPage() {
       await requestApiDownload('json-backup')
     } catch (e) {
       setExportError(e instanceof Error ? e.message : t('common.error'))
+      throw e
     } finally {
       setExportBusy(false)
     }
@@ -450,16 +452,16 @@ export function SettingsPage() {
 
       <section className="surface-panel p-4 sm:p-5 space-y-4">
         <h2 className="font-semibold">{t('settings.export.title')}</h2>
-        <Button
-          type="button"
+        <DownloadBurstButton
           variant="secondary"
           className="w-full"
+          wrapperClassName="flex w-full"
           disabled={exportBusy}
-          onClick={() => void downloadJsonBackup()}
+          onDownload={downloadJsonBackup}
         >
           <Download className="h-4 w-4 mr-1.5" />
           {t('settings.export.json')}
-        </Button>
+        </DownloadBurstButton>
         {exportError && <p className="text-sm text-destructive">{exportError}</p>}
       </section>
     </div>

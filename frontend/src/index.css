@@ -268,6 +268,53 @@
   }
 }
 
+@keyframes download-hop {
+  0% {
+    transform: translateY(0);
+    border-color: hsl(var(--primary) / 0.9);
+  }
+  32% {
+    transform: translateY(-8px);
+    border-color: transparent;
+  }
+  58% {
+    transform: translateY(0);
+  }
+  78% {
+    transform: translateY(-3px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.download-burst-btn {
+  border-style: solid;
+  border-width: 1px;
+  animation: download-hop 0.68s cubic-bezier(0.22, 1.35, 0.36, 1);
+  transition: none;
+}
+
+.download-shard {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: 1px;
+  background: hsl(var(--primary) / 0.9);
+  animation: download-shard 0.72s ease-out forwards;
+}
+
+@keyframes download-shard {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--rot));
+  }
+}
+
 @keyframes nav-bounce {
   0% {
     transform: scale(1);

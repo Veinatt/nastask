@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { FileSpreadsheet, FileText, List, Plus } from 'lucide-react'
+import { FileSpreadsheet, List, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
@@ -23,7 +23,8 @@ import { ExpensesListDialog } from '@/components/reports/ExpensesListDialog'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { useReports } from '@/hooks/useReports'
 import { useI18n } from '@/hooks/useI18n'
-import { exportTaxCsv, exportTaxExcel } from '@/utils/excelExport'
+import { DownloadBurstButton } from '@/components/reports/DownloadBurstButton'
+import { exportTaxExcel } from '@/utils/excelExport'
 import { formatDecimal } from '@/utils/formatNumber'
 import { formatIntervalWhen } from '@/utils/timeDisplay'
 
@@ -200,28 +201,16 @@ export function ReportsPage() {
               </Select>
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 border-primary/20 px-2"
-                aria-label={t('common.csv')}
-                title={t('common.csv')}
-                onClick={() => void exportTaxCsv(tax)}
-              >
-                <FileText className="h-4 w-4" />
-                {t('common.csv')}
-              </Button>
-              <Button
-                type="button"
+              <DownloadBurstButton
                 variant="outline"
                 className="h-9 border-primary/20 px-2"
                 aria-label={t('common.excel')}
                 title={t('common.excel')}
-                onClick={() => void exportTaxExcel(tax)}
+                onDownload={() => exportTaxExcel(tax)}
               >
                 <FileSpreadsheet className="h-4 w-4" />
                 {t('common.excel')}
-              </Button>
+              </DownloadBurstButton>
             </div>
           </div>
 

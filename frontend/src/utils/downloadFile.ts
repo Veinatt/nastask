@@ -101,22 +101,17 @@ export async function triggerFileDownload(url: string, fileName: string): Promis
 
   if (mini && https && hasNative) {
     const accepted = await nativeDownload(url, fileName)
-    if (accepted) {
-      emitSyncStatus(t('download.started', { name: fileName }), 'ok')
-      return
-    }
+    if (accepted) return
   }
 
   try {
     await saveBlobDownload(url, fileName)
-    emitSyncStatus(t('download.started', { name: fileName }), 'ok')
     return
   } catch (error) {
     console.warn('[download] blob save failed, opening link', error)
   }
 
   openExternal(url)
-  emitSyncStatus(t('download.openInBrowser'), 'info')
 }
 
 export async function requestApiDownload(
