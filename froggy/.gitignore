@@ -1,0 +1,16 @@
+# Local clone metadata if someone re-inits git here
+.git/
+
+# Unused media left over from drafting
+*.webm
+clips/ischia.png
+clips/ischia.jpg
+clips/naples.jpg
+clips/naples-bay.jpg
+clips/pompeii.jpg
+clips/pompeii-forum.jpg
+clips/vesuvius.jpg
+clips/vesuvius-cone.jpg
+paper.jpg
+dog-still.png
+steve-lacy-steve-lacy-playground-mp3pm_z5YwJwJQ.mp3

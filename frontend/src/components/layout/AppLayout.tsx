@@ -44,7 +44,35 @@ export function AppLayout() {
     onExitComplete,
   } = useMemoryOpen()
   const mainRef = useRef<HTMLElement>(null)
+  const postcardRef = useRef<HTMLIFrameElement>(null)
+  const [postcardOpen, setPostcardOpen] = useState(false)
   useSwipeNavigation(mainRef)
+
+  useEffect(() => {
+    const openPostcard = () => {
+      const frame = postcardRef.current
+      if (!frame) return
+      frame.classList.remove('invisible', 'pointer-events-none')
+      setPostcardOpen(true)
+      const win = frame.contentWindow as (Window & { startPostcard?: () => void }) | null
+      win?.startPostcard?.()
+    }
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return
+      if (event.data?.type !== 'postcard-close') return
+      setPostcardOpen(false)
+      const frame = postcardRef.current?.contentWindow as
+        | (Window & { resetPostcard?: () => void })
+        | null
+      frame?.resetPostcard?.()
+    }
+    window.addEventListener('open-postcard', openPostcard)
+    window.addEventListener('message', onMessage)
+    return () => {
+      window.removeEventListener('open-postcard', openPostcard)
+      window.removeEventListener('message', onMessage)
+    }
+  }, [])
 
   const skipFirstPageIn = useRef(true)
   const [pageIn, setPageIn] = useState(false)
@@ -91,6 +119,15 @@ export function AppLayout() {
       {gate === 'exiting' && (
         <MemoryExitSplash onHidePage={hideMemoryPage} onComplete={onExitComplete} />
       )}
+      <iframe
+        ref={postcardRef}
+        src="/froggy/?hold=1"
+        title="Открытка"
+        className={cn(
+          'fixed inset-0 z-[80] h-full w-full border-0 bg-[#7eb8e6]',
+          postcardOpen ? 'visible' : 'invisible pointer-events-none',
+        )}
+      />
     </div>
   )
 }

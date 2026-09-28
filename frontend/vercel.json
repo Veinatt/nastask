@@ -21,7 +21,7 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!assets/).*)",
+      "source": "/((?!assets/|froggy/).*)",
       "destination": "/index.html"
     }
   ]

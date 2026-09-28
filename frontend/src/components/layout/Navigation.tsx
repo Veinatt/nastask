@@ -78,6 +78,30 @@ export function Navigation({ className }: Props) {
           NasTask
         </button>
         <div className="hidden md:flex items-center gap-1">{renderItems(false)}</div>
+        {tab === '/' && (
+          <button
+            type="button"
+            className="relative ml-auto inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/8 hover:text-foreground"
+            aria-label="1 новое сообщение"
+            onClick={() => {
+              window.dispatchEvent(new Event('open-postcard'))
+            }}
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+              <path
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 16.5 4 20l3.8-1.2A8 8 0 1 0 6 16.5z"
+              />
+            </svg>
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-white">
+              1
+            </span>
+          </button>
+        )}
       </nav>
 
       <nav
