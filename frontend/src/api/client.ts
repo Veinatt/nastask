@@ -86,7 +86,27 @@ export async function apiFetch<T = unknown>(
     }
   }
 
-  const response = await fetch(url, { ...init, headers })
+  const timeoutMs = 20000
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs)
+  if (init.signal) {
+    if (init.signal.aborted) controller.abort()
+    else {
+      init.signal.addEventListener('abort', () => controller.abort(), { once: true })
+    }
+  }
+
+  let response: Response
+  try {
+    response = await fetch(url, { ...init, headers, signal: controller.signal })
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new ApiError(`Request timed out after ${timeoutMs / 1000}s`, 0)
+    }
+    throw error
+  } finally {
+    window.clearTimeout(timeoutId)
+  }
 
   if (!response.ok) {
     const text = await response.text().catch(() => '')

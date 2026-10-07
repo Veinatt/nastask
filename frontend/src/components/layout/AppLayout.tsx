@@ -123,6 +123,9 @@ export function AppLayout() {
         ref={postcardRef}
         src="/froggy/?hold=1"
         title="Открытка"
+        // Keep same-origin so the open click can unlock audio, but isolate from
+        // parent navigation and avoid leaking third-party script noise.
+        sandbox="allow-scripts allow-same-origin allow-popups"
         className={cn(
           'fixed inset-0 z-[80] h-full w-full border-0 bg-[#7eb8e6]',
           postcardOpen ? 'visible' : 'invisible pointer-events-none',
