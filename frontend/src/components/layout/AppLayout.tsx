@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { Navigation } from './Navigation'
-import { SyncStatusBanner } from '@/components/layout/SyncStatusBanner'
 import { NAV_ROUTES } from '@/components/layout/navItems'
 import { useAppTab } from '@/components/layout/AppTabContext'
 import { useSplashDone } from '@/components/splash/SplashDoneContext'
@@ -102,7 +101,6 @@ export function AppLayout() {
   return (
     <div className="min-h-dvh flex flex-col">
       <Navigation className={cn(hideAppChrome && 'invisible pointer-events-none')} />
-      <SyncStatusBanner />
       <main
         ref={mainRef}
         className={cn(

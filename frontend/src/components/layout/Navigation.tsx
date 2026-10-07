@@ -3,6 +3,7 @@ import { useI18n } from '@/hooks/useI18n'
 import { NAV_ITEMS } from '@/components/layout/navItems'
 import { useAppTab, type AppTab } from '@/components/layout/AppTabContext'
 import { useMemoryOpen } from '@/components/memory/MemoryOpenContext'
+import { SyncStatusIcon } from '@/components/layout/SyncStatusBanner'
 import { useTripleTap } from '@/hooks/useTripleTap'
 
 /** Brand gradient only — size comes from parent / inline style / text-* class. */
@@ -68,15 +69,18 @@ export function Navigation({ className }: Props) {
     <div className={cn(className)}>
       {/* Top bar: single #app-logo for all breakpoints (enter/exit fly to this slot) */}
       <nav className="sticky top-0 z-40 flex items-center gap-1 border-b border-primary/10 bg-card/70 px-4 py-2.5 backdrop-blur-md md:px-6">
-        <button
-          type="button"
-          id="app-logo"
-          className={cn(APP_LOGO_CLASS, 'mr-0 md:mr-8')}
-          onClick={onLogoTap}
-          aria-label="NasTask"
-        >
-          NasTask
-        </button>
+        <div className="mr-0 flex items-center gap-1.5 md:mr-8">
+          <button
+            type="button"
+            id="app-logo"
+            className={APP_LOGO_CLASS}
+            onClick={onLogoTap}
+            aria-label="NasTask"
+          >
+            NasTask
+          </button>
+          <SyncStatusIcon />
+        </div>
         <div className="hidden md:flex items-center gap-1">{renderItems(false)}</div>
         {tab === '/' && (
           <button

@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { Check, LoaderCircle, TriangleAlert } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 type BannerTone = 'error' | 'info' | 'ok'
 
@@ -7,23 +9,19 @@ type StatusDetail = {
   tone?: BannerTone
 }
 
-const SHOW_DELAY_MS = 2500
-const SHOW_DELAY_OK_MS = 200
-const VISIBLE_MS = 7000
+type SyncVisual = 'idle' | 'loading' | 'ok' | 'error'
 
-/** Floating overlay toast for sync status — does not shift page layout. */
-export function SyncStatusBanner() {
-  const [message, setMessage] = useState<string | null>(null)
-  const [tone, setTone] = useState<BannerTone>('error')
-  const showTimer = useRef<number | null>(null)
+const OK_VISIBLE_MS = 2200
+const ERROR_VISIBLE_MS = 4500
+
+/** Compact sync glyph beside the logo — no layout jump, no toast. */
+export function SyncStatusIcon({ className }: { className?: string }) {
+  const [visual, setVisual] = useState<SyncVisual>('idle')
+  const [label, setLabel] = useState<string | null>(null)
   const hideTimer = useRef<number | null>(null)
 
   useEffect(() => {
-    const clearTimers = () => {
-      if (showTimer.current != null) {
-        window.clearTimeout(showTimer.current)
-        showTimer.current = null
-      }
+    const clearHide = () => {
       if (hideTimer.current != null) {
         window.clearTimeout(hideTimer.current)
         hideTimer.current = null
@@ -32,58 +30,79 @@ export function SyncStatusBanner() {
 
     const onMessage = (event: Event) => {
       const raw = (event as CustomEvent<string | StatusDetail | null>).detail
-      clearTimers()
+      clearHide()
 
       if (!raw) {
-        setMessage(null)
+        setVisual('idle')
+        setLabel(null)
         return
       }
 
       const nextMessage = typeof raw === 'string' ? raw : raw.message
       const nextTone: BannerTone =
         typeof raw === 'string' ? 'error' : (raw.tone ?? 'error')
-      const delay = nextTone === 'ok' ? SHOW_DELAY_OK_MS : SHOW_DELAY_MS
 
-      showTimer.current = window.setTimeout(() => {
-        setMessage(nextMessage)
-        setTone(nextTone)
+      setLabel(nextMessage)
+
+      if (nextTone === 'ok') {
+        setVisual('ok')
         hideTimer.current = window.setTimeout(() => {
-          setMessage(null)
+          setVisual('idle')
+          setLabel(null)
           hideTimer.current = null
-        }, VISIBLE_MS)
-        showTimer.current = null
-      }, delay)
+        }, OK_VISIBLE_MS)
+        return
+      }
+
+      if (nextTone === 'info') {
+        setVisual('loading')
+        return
+      }
+
+      setVisual('error')
+      hideTimer.current = window.setTimeout(() => {
+        setVisual('idle')
+        setLabel(null)
+        hideTimer.current = null
+      }, ERROR_VISIBLE_MS)
     }
 
     window.addEventListener('nastask:sync-status', onMessage)
     return () => {
-      clearTimers()
+      clearHide()
       window.removeEventListener('nastask:sync-status', onMessage)
     }
   }, [])
 
-  if (!message) return null
-
-  const toneClass =
-    tone === 'ok'
-      ? 'border-emerald-500/35 bg-emerald-500 text-white shadow-emerald-900/25'
-      : tone === 'info'
-        ? 'border-primary/35 bg-card text-foreground shadow-black/20'
-        : 'border-destructive/40 bg-destructive text-destructive-foreground shadow-black/25'
+  if (visual === 'idle') return null
 
   return (
-    <div
-      className="pointer-events-none fixed inset-x-0 top-0 z-[120] flex justify-center px-3 pt-[max(0.75rem,var(--tg-content-safe-area-inset-top,0px))]"
+    <span
+      className={cn(
+        'inline-flex h-5 w-5 shrink-0 items-center justify-center',
+        className,
+      )}
       role="status"
       aria-live="polite"
+      aria-label={label ?? undefined}
+      title={label ?? undefined}
     >
-      <div
-        className={`pointer-events-none max-w-md rounded-xl border px-4 py-2.5 text-center text-sm shadow-lg backdrop-blur-md ${toneClass}`}
-      >
-        {message}
-      </div>
-    </div>
+      {visual === 'loading' ? (
+        <LoaderCircle className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+      ) : null}
+      {visual === 'ok' ? (
+        <Check className="h-3.5 w-3.5 text-emerald-500" strokeWidth={2.6} />
+      ) : null}
+      {visual === 'error' ? (
+        <TriangleAlert className="h-3.5 w-3.5 text-destructive" />
+      ) : null}
+    </span>
   )
+}
+
+/** @deprecated Use SyncStatusIcon near the logo. Kept so old imports keep working. */
+export function SyncStatusBanner() {
+  return null
 }
 
 export function emitSyncStatus(
