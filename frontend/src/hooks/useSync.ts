@@ -34,7 +34,7 @@ async function pullAll(): Promise<void> {
       return null
     }),
   ])
-  await intervalsLocal.replaceActive(active)
+  await intervalsLocal.replaceActive(active, keepIds)
 
   if (allCompleted) {
     await intervalsLocal.replaceAllCompleted(allCompleted, keepIds)

@@ -149,7 +149,8 @@ export function HomePage() {
     setError(null)
     try {
       await start()
-      await refreshActive()
+      // Never block the button on a server round-trip.
+      void refreshActive()
     } catch (e) {
       setError(e instanceof Error ? e.message : t('home.startError'))
     } finally {

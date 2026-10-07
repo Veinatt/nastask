@@ -29,15 +29,22 @@ export const intervalsLocal = {
     return db.workItems.where('timeEntryId').equals(timeEntryId).toArray()
   },
 
-  async replaceActive(entries: Array<{ entry: TimeEntry; workItems: WorkItem[] }>): Promise<void> {
+  async replaceActive(
+    entries: Array<{ entry: TimeEntry; workItems: WorkItem[] }>,
+    keepIds: Set<string> = new Set(),
+  ): Promise<void> {
+    const serverIds = new Set(entries.map(({ entry }) => entry.id))
     await db.transaction('rw', db.timeEntries, db.workItems, async () => {
       const active = await db.timeEntries.filter((e) => e.end == null).toArray()
       for (const a of active) {
+        // Keep optimistic / queued locals until the server (or flush) confirms them.
+        if (serverIds.has(a.id) || keepIds.has(a.id)) continue
         await db.workItems.where('timeEntryId').equals(a.id).delete()
         await db.timeEntries.delete(a.id)
       }
       for (const { entry, workItems } of entries) {
         await db.timeEntries.put(entry)
+        await db.workItems.where('timeEntryId').equals(entry.id).delete()
         if (workItems.length) await db.workItems.bulkPut(workItems)
       }
     })

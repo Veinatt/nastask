@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { intervalsLocal } from '@/api/intervalsLocal'
 import { intervalsRemote } from '@/api/intervalsRemote'
-import { enqueueOp } from '@/api/pendingOps'
+import { enqueueOp, flushPendingOps } from '@/api/pendingOps'
 import { generateId } from '@/utils/idGenerator'
 import { todayDateString, yesterdayDateString } from '@/utils/timeDisplay'
 import {
@@ -15,7 +15,7 @@ function isOfflineError(error: unknown): boolean {
   return (
     !navigator.onLine ||
     error instanceof TypeError ||
-    (error instanceof ApiError && error.status === 0)
+    (error instanceof ApiError && (error.status === 0 || error.status >= 500))
   )
 }
 
@@ -25,6 +25,14 @@ async function applyRemote(
   const { entry, workItems } = await run()
   await intervalsLocal.putEntry(entry, workItems)
   return entry
+}
+
+/** Enqueue now (so sync cannot wipe the row), flush network in the background. */
+async function queueThenFlush(enqueue: () => Promise<void>): Promise<void> {
+  await enqueue()
+  void flushPendingOps().catch((error) => {
+    console.error('[intervals] background sync failed', error)
+  })
 }
 
 export function useIntervals() {
@@ -62,15 +70,8 @@ export function useIntervals() {
       isPaused: true,
     }
     await intervalsLocal.putEntry(paused)
-    try {
-      return await applyRemote(() => intervalsRemote.pause(id))
-    } catch (error) {
-      if (isOfflineError(error)) {
-        await enqueueOp('interval_pause', id, {})
-        return paused
-      }
-      throw error
-    }
+    await queueThenFlush(() => enqueueOp('interval_pause', id, {}))
+    return paused
   }
 
   /** Pause every running (non-paused) active interval. */
@@ -87,7 +88,7 @@ export function useIntervals() {
   }
 
   const start = async (): Promise<TimeEntry> => {
-    // Only one timer runs at a time — pause the rest first
+    // Only one timer runs at a time — pause the rest first (local, non-blocking)
     await pauseRunningActives()
 
     const id = generateId()
@@ -110,16 +111,9 @@ export function useIntervals() {
       liveTotalSeconds: 0,
     }
     await intervalsLocal.putEntry(optimistic, [])
-    try {
-      return await applyRemote(() => intervalsRemote.start('', id))
-    } catch (error) {
-      if (isOfflineError(error)) {
-        await enqueueOp('interval_start', id, { title: '', id })
-        return optimistic
-      }
-      await intervalsLocal.remove(id)
-      throw error
-    }
+    // Queue first so a concurrent sync pull cannot wipe this optimistic row.
+    await queueThenFlush(() => enqueueOp('interval_start', id, { title: '', id }))
+    return optimistic
   }
 
   const resume = async (id: string): Promise<TimeEntry> => {
@@ -138,15 +132,8 @@ export function useIntervals() {
       isPaused: false,
     }
     await intervalsLocal.putEntry(resumed)
-    try {
-      return await applyRemote(() => intervalsRemote.resume(id))
-    } catch (error) {
-      if (isOfflineError(error)) {
-        await enqueueOp('interval_resume', id, {})
-        return resumed
-      }
-      throw error
-    }
+    await queueThenFlush(() => enqueueOp('interval_resume', id, {}))
+    return resumed
   }
 
   const complete = async (
@@ -210,46 +197,37 @@ export function useIntervals() {
   }): Promise<TimeEntry> => {
     const id = generateId()
     const withTitle = { ...payload, title: '', notes: payload.notes ?? null }
-    try {
-      return await applyRemote(() =>
-        intervalsRemote.manual({ ...withTitle, id }),
-      )
-    } catch (error) {
-      if (isOfflineError(error)) {
-        const now = new Date().toISOString()
-        const totalSeconds = Math.max(
-          0,
-          Math.floor((Date.parse(payload.end) - Date.parse(payload.start)) / 1000),
-        )
-        const entry: TimeEntry = {
-          id,
-          title: '',
-          coefficient: payload.coefficient,
-          start: payload.start,
-          end: payload.end,
-          totalSeconds,
-          pauseTotalSeconds: 0,
-          pauseStartedAt: null,
-          date: payload.start.slice(0, 10),
-          notes: payload.notes ?? null,
-          createdAt: now,
-          updatedAt: now,
-          isActive: false,
-        }
-        const workItems: WorkItem[] = payload.workItems.map((w) => ({
-          id: w.id ?? generateId(),
-          timeEntryId: id,
-          categoryId: w.categoryId,
-          descriptionId: w.descriptionId,
-          quantity: w.quantity,
-          unitId: w.unitId,
-        }))
-        await intervalsLocal.putEntry(entry, workItems)
-        await enqueueOp('interval_manual', id, { ...withTitle, id })
-        return entry
-      }
-      throw error
+    const now = new Date().toISOString()
+    const totalSeconds = Math.max(
+      0,
+      Math.floor((Date.parse(payload.end) - Date.parse(payload.start)) / 1000),
+    )
+    const entry: TimeEntry = {
+      id,
+      title: '',
+      coefficient: payload.coefficient,
+      start: payload.start,
+      end: payload.end,
+      totalSeconds,
+      pauseTotalSeconds: 0,
+      pauseStartedAt: null,
+      date: payload.start.slice(0, 10),
+      notes: payload.notes ?? null,
+      createdAt: now,
+      updatedAt: now,
+      isActive: false,
     }
+    const workItems: WorkItem[] = payload.workItems.map((w) => ({
+      id: w.id ?? generateId(),
+      timeEntryId: id,
+      categoryId: w.categoryId,
+      descriptionId: w.descriptionId,
+      quantity: w.quantity,
+      unitId: w.unitId,
+    }))
+    await intervalsLocal.putEntry(entry, workItems)
+    await queueThenFlush(() => enqueueOp('interval_manual', id, { ...withTitle, id }))
+    return entry
   }
 
   const updateInterval = async (
