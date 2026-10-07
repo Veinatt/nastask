@@ -102,7 +102,7 @@ export function AppLayout() {
   return (
     <div className="min-h-dvh flex flex-col">
       <Navigation className={cn(hideAppChrome && 'invisible pointer-events-none')} />
-      {gate === 'closed' && <SyncStatusBanner />}
+      <SyncStatusBanner />
       <main
         ref={mainRef}
         className={cn(

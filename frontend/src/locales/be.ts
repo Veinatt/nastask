@@ -230,6 +230,7 @@ export const be: Record<MessageKey, string> = {
   'sync.queued': 'Не сінхранізавана — будзе адпраўлена пры з’яўленні сеткі',
   'sync.authError': 'Памылка аўтарызацыі — адкрыйце праграму з Telegram',
   'sync.retryLater': 'Не сінхранізавана — паўтор пры наступным падключэнні',
+  'sync.ok': 'Сінхранізацыя прайшла паспяхова',
 
   'timeDisplay.from': 'з {{time}}',
 

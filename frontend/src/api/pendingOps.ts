@@ -25,7 +25,7 @@ export async function enqueueOp(
     tries: 0,
   }
   await db.pendingOps.put(op)
-  emitSyncStatus(t('sync.queued'))
+  emitSyncStatus(t('sync.queued'), 'info')
   console.warn(`[pending] queued ${type} entityId=${entityId}`)
 }
 
@@ -59,7 +59,7 @@ export async function flushPendingOps(): Promise<void> {
       await db.pendingOps.delete(op.id)
     } catch (error) {
       if (isAuthError(error)) {
-        emitSyncStatus(t('sync.authError'))
+        emitSyncStatus(t('sync.authError'), 'error')
         console.error('[pending] auth error, stop flush', error)
         return
       }
@@ -89,13 +89,13 @@ export async function flushPendingOps(): Promise<void> {
       }
 
       console.error(`[pending] ${op.type} failed entityId=${op.entityId}`, error)
-      emitSyncStatus(t('sync.retryLater'))
+      emitSyncStatus(t('sync.retryLater'), 'error')
       return
     }
   }
 
   if ((await pendingCount()) === 0) {
-    emitSyncStatus(null)
+    emitSyncStatus(t('sync.ok'), 'ok')
   }
 }
 
