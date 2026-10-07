@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { intervalsLocal } from '@/api/intervalsLocal'
 import { intervalsRemote } from '@/api/intervalsRemote'
-import { enqueueOp, flushPendingOps } from '@/api/pendingOps'
+import { enqueueOp, flushPendingOps, pendingEntityIds } from '@/api/pendingOps'
 import { generateId } from '@/utils/idGenerator'
 import { todayDateString, yesterdayDateString } from '@/utils/timeDisplay'
 import {
@@ -314,8 +314,11 @@ export function useIntervals() {
 
   const refreshActive = async (): Promise<void> => {
     try {
-      const activeRemote = await intervalsRemote.listActive()
-      await intervalsLocal.replaceActive(activeRemote)
+      const [activeRemote, keepIds] = await Promise.all([
+        intervalsRemote.listActive(),
+        pendingEntityIds(),
+      ])
+      await intervalsLocal.replaceActive(activeRemote, keepIds)
     } catch (error) {
       console.error('[intervals] refreshActive failed', error)
     }

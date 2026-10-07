@@ -43,6 +43,8 @@ export const intervalsLocal = {
         await db.timeEntries.delete(a.id)
       }
       for (const { entry, workItems } of entries) {
+        // Do not clobber a local row that still has a pending op.
+        if (keepIds.has(entry.id)) continue
         await db.timeEntries.put(entry)
         await db.workItems.where('timeEntryId').equals(entry.id).delete()
         if (workItems.length) await db.workItems.bulkPut(workItems)

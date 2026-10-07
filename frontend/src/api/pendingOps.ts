@@ -33,6 +33,11 @@ export async function pendingCount(): Promise<number> {
   return db.pendingOps.count()
 }
 
+export async function pendingEntityIds(): Promise<Set<string>> {
+  const ops = await db.pendingOps.toArray()
+  return new Set(ops.map((op) => op.entityId))
+}
+
 function isAuthError(error: unknown): boolean {
   return error instanceof ApiError && (error.status === 401 || error.status === 403)
 }

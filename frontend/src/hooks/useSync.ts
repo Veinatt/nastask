@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { flushPendingOps } from '@/api/pendingOps'
+import { flushPendingOps, pendingEntityIds } from '@/api/pendingOps'
 import { intervalsRemote } from '@/api/intervalsRemote'
 import { intervalsLocal } from '@/api/intervalsLocal'
 import { dictsRemote } from '@/api/dictsRemote'
@@ -10,16 +10,10 @@ import { settingsRemote, settingsLocal } from '@/api/settingsApi'
 import { memoryRemote } from '@/api/memoryRemote'
 import { memoryLocal } from '@/api/memoryLocal'
 import { useTelegram } from '@/hooks/useTelegram'
-import { db } from '@/db'
 import { ACCOUNTING_TIMEZONE } from '@/lib/timezone'
 import type { DictKind } from '@/db/types'
 
 const DICTS: DictKind[] = ['categories', 'descriptions', 'units', 'expenses']
-
-async function pendingEntityIds(): Promise<Set<string>> {
-  const ops = await db.pendingOps.toArray()
-  return new Set(ops.map((op) => op.entityId))
-}
 
 async function pullAll(): Promise<void> {
   await flushPendingOps()

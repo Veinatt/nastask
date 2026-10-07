@@ -46,16 +46,21 @@ export function AppLayout() {
   const mainRef = useRef<HTMLElement>(null)
   const postcardRef = useRef<HTMLIFrameElement>(null)
   const [postcardOpen, setPostcardOpen] = useState(false)
+  const [postcardMounted, setPostcardMounted] = useState(false)
   useSwipeNavigation(mainRef)
 
   useEffect(() => {
-    const openPostcard = () => {
-      const frame = postcardRef.current
-      if (!frame) return
-      frame.classList.remove('invisible', 'pointer-events-none')
-      setPostcardOpen(true)
+    const startFrame = (frame: HTMLIFrameElement) => {
       const win = frame.contentWindow as (Window & { startPostcard?: () => void }) | null
       win?.startPostcard?.()
+    }
+    const openPostcard = () => {
+      setPostcardMounted(true)
+      setPostcardOpen(true)
+      const frame = postcardRef.current
+      if (!frame) return
+      // Already loaded from a previous open — start immediately inside the click gesture.
+      if (frame.dataset.ready === '1') startFrame(frame)
     }
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return
@@ -119,18 +124,25 @@ export function AppLayout() {
       {gate === 'exiting' && (
         <MemoryExitSplash onHidePage={hideMemoryPage} onComplete={onExitComplete} />
       )}
-      <iframe
-        ref={postcardRef}
-        src="/froggy/?hold=1"
-        title="Открытка"
-        // Keep same-origin so the open click can unlock audio, but isolate from
-        // parent navigation and avoid leaking third-party script noise.
-        sandbox="allow-scripts allow-same-origin allow-popups"
-        className={cn(
-          'fixed inset-0 z-[80] h-full w-full border-0 bg-[#7eb8e6]',
-          postcardOpen ? 'visible' : 'invisible pointer-events-none',
-        )}
-      />
+      {postcardMounted ? (
+        <iframe
+          ref={postcardRef}
+          src="/froggy/?hold=1"
+          title="Открытка"
+          sandbox="allow-scripts allow-same-origin allow-popups"
+          onLoad={(event) => {
+            const frame = event.currentTarget
+            frame.dataset.ready = '1'
+            if (!postcardOpen) return
+            const win = frame.contentWindow as (Window & { startPostcard?: () => void }) | null
+            win?.startPostcard?.()
+          }}
+          className={cn(
+            'fixed inset-0 z-[80] h-full w-full border-0 bg-[#7eb8e6]',
+            postcardOpen ? 'visible' : 'invisible pointer-events-none',
+          )}
+        />
+      ) : null}
     </div>
   )
 }

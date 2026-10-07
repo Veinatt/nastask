@@ -97,17 +97,23 @@
             esc(title) +
             '</div>' +
             (detail ? '<pre>' + esc(detail) + '</pre>' : '') +
+            '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+            '<button type="button" id="boot-error-dismiss">Закрыть</button>' +
             '<button type="button" id="boot-error-reload">Обновить</button>' +
-            '</div>'
+            '</div></div>'
+          var dismiss = document.getElementById('boot-error-dismiss')
+          if (dismiss) {
+            dismiss.onclick = function () {
+              el.removeAttribute('data-open')
+              el.innerHTML = ''
+            }
+          }
           var btn = document.getElementById('boot-error-reload')
           if (btn) {
             btn.onclick = function () {
               window.location.reload()
             }
           }
-        }
-        function appMounted() {
-          return !!(document.querySelector && document.querySelector('.app-shell'))
         }
         function isNoiseError(ev) {
           var msg = String((ev && ev.message) || '')
@@ -118,7 +124,9 @@
           return false
         }
         window.addEventListener('error', function (ev) {
-          if (appMounted() && isNoiseError(ev)) {
+          // Always ignore opaque Script errors — they come from Telegram / iframes
+          // and previously wiped in-progress interval creates on reload.
+          if (isNoiseError(ev)) {
             try {
               console.warn('[boot-error ignored]', ev && ev.message, ev && ev.filename)
             } catch (e) {}
@@ -139,8 +147,7 @@
             r && (r.stack || r.message)
               ? r.stack || r.message
               : String(r)
-          // After boot, opaque / network noise should not block the whole UI.
-          if (appMounted() && (!r || detail === 'Script error.' || detail === 'Script error')) {
+          if (!r || detail === 'Script error.' || detail === 'Script error') {
             try {
               console.warn('[boot-rejection ignored]', detail)
             } catch (e) {}
