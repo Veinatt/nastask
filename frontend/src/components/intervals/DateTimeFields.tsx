@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { t } from '@/lib/i18n'
@@ -29,6 +30,61 @@ function formatDateDisplay(isoDate: string): string {
   return `${m[3]}.${m[2]}.${m[1]}`
 }
 
+function openNativePicker(el: HTMLInputElement | null) {
+  if (!el) return
+  try {
+    if (typeof el.showPicker === 'function') {
+      void el.showPicker()
+      return
+    }
+  } catch {
+    // showPicker can throw if not triggered by a user gesture / unsupported.
+  }
+  el.focus()
+  el.click()
+}
+
+type PickerFieldProps = {
+  id: string
+  type: 'date' | 'time'
+  value: string
+  display: string
+  ariaLabel: string
+  onChange: (value: string) => void
+}
+
+function PickerField({ id, type, value, display, ariaLabel, onChange }: PickerFieldProps) {
+  const nativeRef = useRef<HTMLInputElement>(null)
+
+  return (
+    <div className="relative min-w-0">
+      <Input
+        readOnly
+        value={display}
+        aria-label={ariaLabel}
+        className="cursor-pointer text-center tabular-nums"
+        onClick={() => openNativePicker(nativeRef.current)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            openNativePicker(nativeRef.current)
+          }
+        }}
+      />
+      <input
+        ref={nativeRef}
+        id={id}
+        type={type}
+        value={value}
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => onChange(e.target.value)}
+        className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
+      />
+    </div>
+  )
+}
+
 type Props = {
   label: string
   date: string
@@ -51,40 +107,22 @@ export function DateTimeFields({
     <div className="space-y-2">
       <Label>{label}</Label>
       <div className="grid grid-cols-2 gap-2">
-        <div className="relative min-w-0">
-          <Input
-            readOnly
-            tabIndex={-1}
-            value={formatDateDisplay(date)}
-            aria-hidden
-            className="pointer-events-none text-center tabular-nums"
-          />
-          <input
-            id={`${idPrefix}-date`}
-            type="date"
-            value={date}
-            onChange={(e) => onDateChange(e.target.value)}
-            aria-label={t('dateTime.date')}
-            className="absolute inset-0 cursor-pointer opacity-0"
-          />
-        </div>
-        <div className="relative min-w-0">
-          <Input
-            readOnly
-            tabIndex={-1}
-            value={time}
-            aria-hidden
-            className="pointer-events-none text-center tabular-nums"
-          />
-          <input
-            id={`${idPrefix}-time`}
-            type="time"
-            value={time}
-            onChange={(e) => onTimeChange(e.target.value)}
-            aria-label={t('dateTime.time')}
-            className="absolute inset-0 cursor-pointer opacity-0"
-          />
-        </div>
+        <PickerField
+          id={`${idPrefix}-date`}
+          type="date"
+          value={date}
+          display={formatDateDisplay(date)}
+          ariaLabel={t('dateTime.date')}
+          onChange={onDateChange}
+        />
+        <PickerField
+          id={`${idPrefix}-time`}
+          type="time"
+          value={time}
+          display={time}
+          ariaLabel={t('dateTime.time')}
+          onChange={onTimeChange}
+        />
       </div>
     </div>
   )

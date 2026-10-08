@@ -81,6 +81,13 @@ export default defineConfig({
       '@': path.resolve(rootDir, './src'),
     },
   },
+  // Bind IPv4 explicitly — on Windows `localhost` often hits 127.0.0.1 while
+  // Vite's default listen is [::1] only, which looks like ERR_CONNECTION_REFUSED.
+  server: {
+    host: '127.0.0.1',
+    port: 5173,
+    strictPort: true,
+  },
   // Broader Safari / Telegram WKWebView support (macOS desktop client)
   build: {
     target: 'es2020',
