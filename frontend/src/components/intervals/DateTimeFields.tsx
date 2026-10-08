@@ -1,7 +1,6 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { t } from '@/lib/i18n'
-import { cn } from '@/lib/utils'
 
 export function splitLocalDateTime(iso: string): { date: string; time: string } {
   const d = new Date(iso)
@@ -48,22 +47,6 @@ export function DateTimeFields({
   onTimeChange,
   idPrefix,
 }: Props) {
-  // Hide native picker icons; keep the indicator as a full-field hit target.
-  const timeClassName = cn(
-    'relative min-w-0 text-center tabular-nums',
-    '[&::-webkit-calendar-picker-indicator]:absolute',
-    '[&::-webkit-calendar-picker-indicator]:inset-0',
-    '[&::-webkit-calendar-picker-indicator]:h-full',
-    '[&::-webkit-calendar-picker-indicator]:w-full',
-    '[&::-webkit-calendar-picker-indicator]:cursor-pointer',
-    '[&::-webkit-calendar-picker-indicator]:opacity-0',
-    '[&::-webkit-datetime-edit]:mx-auto',
-    '[&::-webkit-datetime-edit]:w-full',
-    '[&::-webkit-datetime-edit]:text-center',
-    '[&::-webkit-date-and-time-value]:w-full',
-    '[&::-webkit-date-and-time-value]:text-center',
-  )
-
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
@@ -85,14 +68,23 @@ export function DateTimeFields({
             className="absolute inset-0 cursor-pointer opacity-0"
           />
         </div>
-        <Input
-          id={`${idPrefix}-time`}
-          type="time"
-          value={time}
-          onChange={(e) => onTimeChange(e.target.value)}
-          aria-label={t('dateTime.time')}
-          className={timeClassName}
-        />
+        <div className="relative min-w-0">
+          <Input
+            readOnly
+            tabIndex={-1}
+            value={time}
+            aria-hidden
+            className="pointer-events-none text-center tabular-nums"
+          />
+          <input
+            id={`${idPrefix}-time`}
+            type="time"
+            value={time}
+            onChange={(e) => onTimeChange(e.target.value)}
+            aria-label={t('dateTime.time')}
+            className="absolute inset-0 cursor-pointer opacity-0"
+          />
+        </div>
       </div>
     </div>
   )
