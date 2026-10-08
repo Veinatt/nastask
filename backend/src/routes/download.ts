@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx'
 import { telegramAuth } from '../middleware/telegramAuth'
 import { buildTaxReport, type TaxReport } from '../services/taxReport'
 import { buildUserExport } from '../services/userExport'
+import { sendDocumentToUser } from '../services/telegramSend'
 import {
   createDownloadToken,
   verifyDownloadToken,
@@ -11,6 +12,13 @@ import {
 } from '../utils/downloadToken'
 
 export const downloadRouter = Router()
+
+type DownloadBody = {
+  kind?: DownloadKind
+  year?: number
+  month?: number
+  groupBy?: string
+}
 
 function publicApiBase(req: Request): string {
   const fromEnv = (process.env.PUBLIC_API_URL ?? '').trim().replace(/\/$/, '')
@@ -35,6 +43,7 @@ function setDownloadHeaders(res: Response, fileName: string, contentType: string
 }
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+const JSON_MIME = 'application/json; charset=utf-8'
 
 function taxReportXlsx(report: TaxReport): Buffer {
   const rows = report.rows.map((r) => ({
@@ -50,6 +59,65 @@ function taxReportXlsx(report: TaxReport): Buffer {
   return Buffer.isBuffer(written) ? written : Buffer.from(written)
 }
 
+function parseDownloadRequest(body: DownloadBody): {
+  kind: DownloadKind
+  year?: number
+  month?: number
+  groupBy: string
+} {
+  const kind = body.kind
+  if (kind !== 'json-backup' && kind !== 'tax-csv' && kind !== 'tax-xlsx') {
+    throw Object.assign(new Error('Invalid download kind'), { status: 400 })
+  }
+
+  if (kind === 'json-backup') {
+    return { kind, groupBy: 'both' }
+  }
+
+  const year = Number(body.year)
+  const month = Number(body.month)
+  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
+    throw Object.assign(new Error('year and month required'), { status: 400 })
+  }
+
+  return {
+    kind,
+    year,
+    month,
+    groupBy: String(body.groupBy ?? 'both'),
+  }
+}
+
+function buildDownloadFile(
+  userId: number,
+  body: DownloadBody,
+): { bytes: Buffer; fileName: string; contentType: string; caption: string } {
+  const parsed = parseDownloadRequest(body)
+
+  if (parsed.kind === 'json-backup') {
+    const fileName = fileNameFor(parsed.kind, {})
+    const data = buildUserExport(userId)
+    return {
+      bytes: Buffer.from(`${JSON.stringify(data, null, 2)}\n`, 'utf8'),
+      fileName,
+      contentType: JSON_MIME,
+      caption: fileName,
+    }
+  }
+
+  const year = Number(parsed.year)
+  const month = Number(parsed.month)
+  const fileName = fileNameFor(parsed.kind, { year, month })
+  const report = buildTaxReport(userId, year, month, parsed.groupBy)
+  const xlsx = taxReportXlsx(report)
+  return {
+    bytes: xlsx,
+    fileName,
+    contentType: XLSX_MIME,
+    caption: fileName,
+  }
+}
+
 downloadRouter.post('/token', telegramAuth, (req, res) => {
   try {
     const userId = req.telegramUserId
@@ -58,52 +126,68 @@ downloadRouter.post('/token', telegramAuth, (req, res) => {
       return
     }
 
-    const body = (req.body ?? {}) as {
-      kind?: DownloadKind
-      year?: number
-      month?: number
-      groupBy?: string
-    }
-    const kind = body.kind
-    if (kind !== 'json-backup' && kind !== 'tax-csv' && kind !== 'tax-xlsx') {
-      res.status(400).json({ success: false, error: 'Invalid download kind' })
-      return
-    }
-
-    if (kind !== 'json-backup') {
-      const year = Number(body.year)
-      const month = Number(body.month)
-      if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
-        res.status(400).json({ success: false, error: 'year and month required' })
-        return
-      }
-    }
-
-    const groupBy = String(body.groupBy ?? 'both')
+    const body = (req.body ?? {}) as DownloadBody
+    const parsed = parseDownloadRequest(body)
 
     const tokenPayload: Omit<import('../utils/downloadToken').DownloadTokenPayload, 'exp'> =
-      kind === 'json-backup'
-        ? { userId, kind }
+      parsed.kind === 'json-backup'
+        ? { userId, kind: parsed.kind }
         : {
             userId,
-            kind,
-            year: Number(body.year),
-            month: Number(body.month),
-            groupBy,
+            kind: parsed.kind,
+            year: parsed.year!,
+            month: parsed.month!,
+            groupBy: parsed.groupBy,
           }
     const token = createDownloadToken(tokenPayload)
     const url = `${publicApiBase(req)}/api/download/file?token=${encodeURIComponent(token)}`
     const fileName =
-      kind === 'json-backup'
-        ? fileNameFor(kind, {})
-        : fileNameFor(kind, { year: Number(body.year), month: Number(body.month) })
+      parsed.kind === 'json-backup'
+        ? fileNameFor(parsed.kind, {})
+        : fileNameFor(parsed.kind, { year: parsed.year!, month: parsed.month! })
 
-    console.log(`[api:download] token kind=${kind} userId=${userId} file=${fileName}`)
+    console.log(`[api:download] token kind=${parsed.kind} userId=${userId} file=${fileName}`)
 
     res.json({ success: true, url, fileName })
   } catch (error) {
+    const status = Number((error as { status?: number }).status)
+    if (status === 400) {
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Bad request',
+      })
+      return
+    }
     console.error('[api:download] token failed', error)
     res.status(500).json({ success: false, error: 'Internal server error' })
+  }
+})
+
+downloadRouter.post('/send', telegramAuth, async (req, res) => {
+  const userId = req.telegramUserId
+  if (userId == null) {
+    res.status(401).json({ success: false, error: 'Unauthorized' })
+    return
+  }
+
+  try {
+    const body = (req.body ?? {}) as DownloadBody
+    const { bytes, fileName, caption } = buildDownloadFile(userId, body)
+    console.log(`[api:download] send kind=${body.kind} userId=${userId} file=${fileName}`)
+    await sendDocumentToUser({ userId, fileName, bytes, caption })
+    res.json({ success: true, via: 'telegram', fileName })
+  } catch (error) {
+    const status = Number((error as { status?: number }).status)
+    if (status === 400) {
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Bad request',
+      })
+      return
+    }
+    const message = error instanceof Error ? error.message : 'Send failed'
+    console.error('[api:download] send failed', error)
+    res.status(500).json({ success: false, error: message })
   }
 })
 
@@ -117,35 +201,27 @@ downloadRouter.get('/file', (req, res) => {
       return
     }
 
-    const fileName = fileNameFor(payload.kind, payload)
-    console.log(`[api:download] file kind=${payload.kind} userId=${payload.userId} file=${fileName}`)
-
-    if (payload.kind === 'json-backup') {
-      const data = buildUserExport(payload.userId)
-      setDownloadHeaders(res, fileName, 'application/json; charset=utf-8')
-      res.send(`${JSON.stringify(data, null, 2)}\n`)
-      return
-    }
-
-    const year = Number(payload.year)
-    const month = Number(payload.month)
-    if (!Number.isFinite(year) || !Number.isFinite(month)) {
-      res.status(400).json({ success: false, error: 'Invalid report params' })
-      return
-    }
-
-    const report = buildTaxReport(
-      payload.userId,
-      year,
-      month,
-      payload.groupBy ?? 'both',
+    const body: DownloadBody = { kind: payload.kind }
+    if (payload.year != null) body.year = payload.year
+    if (payload.month != null) body.month = payload.month
+    if (payload.groupBy != null) body.groupBy = payload.groupBy
+    const built = buildDownloadFile(payload.userId, body)
+    console.log(
+      `[api:download] file kind=${payload.kind} userId=${payload.userId} file=${built.fileName}`,
     )
 
-    const xlsx = taxReportXlsx(report)
-    setDownloadHeaders(res, fileName, XLSX_MIME)
-    res.setHeader('Content-Length', String(xlsx.length))
-    res.end(xlsx)
+    setDownloadHeaders(res, built.fileName, built.contentType)
+    res.setHeader('Content-Length', String(built.bytes.length))
+    res.end(built.bytes)
   } catch (error) {
+    const status = Number((error as { status?: number }).status)
+    if (status === 400) {
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Bad request',
+      })
+      return
+    }
     console.error('[api:download] file failed', error)
     res.status(500).json({ success: false, error: 'Internal server error' })
   }

@@ -207,6 +207,7 @@ export const be: Record<MessageKey, string> = {
   'download.openInBrowser': 'Спасылка адкрыта ў браўзеры — захавайце файл адтуль',
   'download.linkMissing': 'Не атрымалася атрымаць спасылку на файл',
   'download.failed': 'Не атрымалася спампаваць файл',
+  'download.sentToBot': 'Файл адпраўлены ў чат з ботам: {{name}}',
 
   'templates.title': 'Шаблоны работ',
   'templates.pick': 'Шаблон',

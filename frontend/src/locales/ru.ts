@@ -205,6 +205,7 @@ export const ru = {
   'download.openInBrowser': 'Ссылка открыта в браузере — сохраните файл оттуда',
   'download.linkMissing': 'Не удалось получить ссылку на файл',
   'download.failed': 'Не удалось скачать файл',
+  'download.sentToBot': 'Файл отправлен в чат с ботом: {{name}}',
 
   'templates.title': 'Шаблоны работ',
   'templates.pick': 'Шаблон',

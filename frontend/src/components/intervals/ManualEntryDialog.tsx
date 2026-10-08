@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { StickyNote } from 'lucide-react'
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -129,11 +130,11 @@ export function ManualEntryDialog({ open, onOpenChange, onSubmit, initial }: Pro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-x-hidden overflow-y-auto sm:max-w-lg border-primary/15">
+      <DialogContent className="sm:max-w-lg border-primary/15">
         <DialogHeader>
           <DialogTitle>{t('manualDialog.title')}</DialogTitle>
         </DialogHeader>
-        <div className="min-w-0 space-y-4">
+        <DialogBody className="min-w-0 space-y-4 overflow-x-hidden">
           <div className="space-y-4 rounded-xl border border-primary/10 bg-primary/5 p-3">
             <DateTimeFields
               idPrefix="manual-start"
@@ -190,7 +191,7 @@ export function ManualEntryDialog({ open, onOpenChange, onSubmit, initial }: Pro
             )}
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
-        </div>
+        </DialogBody>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             {t('common.cancel')}

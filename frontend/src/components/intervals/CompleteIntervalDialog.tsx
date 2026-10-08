@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { StickyNote } from 'lucide-react'
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -230,11 +231,11 @@ export function CompleteIntervalDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-x-hidden overflow-y-auto sm:max-w-lg border-primary/15">
+      <DialogContent className="sm:max-w-lg border-primary/15">
         <DialogHeader>
           <DialogTitle>{dialogTitle ?? t('completeDialog.title')}</DialogTitle>
         </DialogHeader>
-        <div className="min-w-0 space-y-4">
+        <DialogBody className="min-w-0 space-y-4 overflow-x-hidden">
           {!editTime && viewEntry && (
             <div className="rounded-xl bg-primary/5 border border-primary/10 px-3 py-2 text-sm">
               <span className="font-medium">
@@ -323,7 +324,7 @@ export function CompleteIntervalDialog({
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
-        </div>
+        </DialogBody>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             {t('common.cancel')}

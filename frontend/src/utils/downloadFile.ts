@@ -5,6 +5,7 @@ import { t } from '@/lib/i18n'
 export type ApiDownloadKind = 'json-backup' | 'tax-csv' | 'tax-xlsx'
 
 type TokenResponse = { success: true; url: string; fileName: string }
+type SendResponse = { success: true; via: string; fileName: string }
 
 type TelegramWebApp = {
   platform?: string
@@ -117,8 +118,20 @@ export async function triggerFileDownload(url: string, fileName: string): Promis
 export async function requestApiDownload(
   kind: ApiDownloadKind,
   params?: { year?: number; month?: number; groupBy?: string },
-): Promise<void> {
+): Promise<{ via: 'telegram' | 'browser' }> {
   try {
+    if (isTelegramMiniApp()) {
+      const res = await apiFetch<SendResponse>('/api/download/send', {
+        method: 'POST',
+        body: JSON.stringify({ kind, ...params }),
+      })
+      if (!res?.fileName) {
+        throw new Error(t('download.failed'))
+      }
+      emitSyncStatus(t('download.sentToBot', { name: res.fileName }), 'ok')
+      return { via: 'telegram' }
+    }
+
     const res = await apiFetch<TokenResponse>('/api/download/token', {
       method: 'POST',
       body: JSON.stringify({ kind, ...params }),
@@ -127,6 +140,7 @@ export async function requestApiDownload(
       throw new Error(t('download.linkMissing'))
     }
     await triggerFileDownload(res.url, res.fileName)
+    return { via: 'browser' }
   } catch (error) {
     const message = error instanceof Error ? error.message : t('download.failed')
     emitSyncStatus(message, 'error')
