@@ -38,31 +38,33 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close
-        className={cn(
-          'absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full',
-          'text-muted-foreground transition-colors',
-          'hover:bg-muted hover:text-foreground',
-          'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ring-offset-background',
-          'disabled:pointer-events-none',
-        )}
-      >
-        <X className="h-5 w-5" strokeWidth={2} />
-        <span className="sr-only">{t('common.close')}</span>
-      </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </DialogPortal>
 ))
 DialogContent.displayName = DialogPrimitive.Content.displayName
 
-const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+const DialogHeader = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      'flex shrink-0 flex-row items-center justify-start gap-3 border-b border-border px-4 pb-3.5 pt-4 pr-12 text-left',
+      'relative flex shrink-0 flex-row items-center justify-start gap-3 border-b border-border px-4 py-3.5 pr-12 text-left',
       className,
     )}
     {...props}
-  />
+  >
+    {children}
+    <DialogPrimitive.Close
+      className={cn(
+        'absolute right-3 top-1/2 z-10 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full',
+        'text-muted-foreground transition-colors',
+        'hover:bg-muted hover:text-foreground',
+        'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ring-offset-background',
+        'disabled:pointer-events-none',
+      )}
+    >
+      <X className="h-5 w-5" strokeWidth={2} />
+      <span className="sr-only">{t('common.close')}</span>
+    </DialogPrimitive.Close>
+  </div>
 )
 
 const DialogBody = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
