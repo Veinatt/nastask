@@ -28,12 +28,18 @@ function publicApiBase(req: Request): string {
   return `${proto}://${host}`
 }
 
+function pad2(n: number): string {
+  return String(n).padStart(2, '0')
+}
+
+/** Local calendar stamp as day-month-year for download file names. */
 function fileNameFor(kind: DownloadKind, payload: { year?: number; month?: number }): string {
-  const stamp = new Date().toISOString().slice(0, 10)
+  const now = new Date()
+  const stamp = `${pad2(now.getDate())}-${pad2(now.getMonth() + 1)}-${now.getFullYear()}`
   if (kind === 'json-backup') return `nastask-backup-${stamp}.json`
-  const ym = `${payload.year}-${String(payload.month).padStart(2, '0')}`
-  if (kind === 'tax-csv') return `nastask-tasks-${ym}.xlsx`
-  return `nastask-tax-${ym}.xlsx`
+  const my = `${pad2(Number(payload.month))}-${payload.year}`
+  if (kind === 'tax-csv') return `nastask-tasks-${my}.xlsx`
+  return `nastask-tax-${my}.xlsx`
 }
 
 function setDownloadHeaders(res: Response, fileName: string, contentType: string): void {

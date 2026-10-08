@@ -1,7 +1,7 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useI18n } from '@/hooks/useI18n'
 import { t } from '@/lib/i18n'
+import { cn } from '@/lib/utils'
 
 export function splitLocalDateTime(iso: string): { date: string; time: string } {
   const d = new Date(iso)
@@ -23,6 +23,13 @@ export function joinLocalDateTime(date: string, time: string): string {
   return new Date(ms).toISOString()
 }
 
+/** ISO `yyyy-MM-dd` → display `dd.MM.yyyy`. */
+function formatDateDisplay(isoDate: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate)
+  if (!m) return isoDate
+  return `${m[3]}.${m[2]}.${m[1]}`
+}
+
 type Props = {
   label: string
   date: string
@@ -41,47 +48,51 @@ export function DateTimeFields({
   onTimeChange,
   idPrefix,
 }: Props) {
-  const { t } = useI18n()
-
-  // Pin native picker icons inside the field; give date a bit more width than time.
-  const pickerClassName =
-    'relative min-w-0 pr-9 ' +
-    '[&::-webkit-calendar-picker-indicator]:absolute ' +
-    '[&::-webkit-calendar-picker-indicator]:right-2.5 ' +
-    '[&::-webkit-calendar-picker-indicator]:top-1/2 ' +
-    '[&::-webkit-calendar-picker-indicator]:h-4 ' +
-    '[&::-webkit-calendar-picker-indicator]:w-4 ' +
-    '[&::-webkit-calendar-picker-indicator]:-translate-y-1/2 ' +
-    '[&::-webkit-calendar-picker-indicator]:cursor-pointer'
+  // Hide native picker icons; keep the indicator as a full-field hit target.
+  const timeClassName = cn(
+    'relative min-w-0 text-center tabular-nums',
+    '[&::-webkit-calendar-picker-indicator]:absolute',
+    '[&::-webkit-calendar-picker-indicator]:inset-0',
+    '[&::-webkit-calendar-picker-indicator]:h-full',
+    '[&::-webkit-calendar-picker-indicator]:w-full',
+    '[&::-webkit-calendar-picker-indicator]:cursor-pointer',
+    '[&::-webkit-calendar-picker-indicator]:opacity-0',
+    '[&::-webkit-datetime-edit]:mx-auto',
+    '[&::-webkit-datetime-edit]:w-full',
+    '[&::-webkit-datetime-edit]:text-center',
+    '[&::-webkit-date-and-time-value]:w-full',
+    '[&::-webkit-date-and-time-value]:text-center',
+  )
 
   return (
     <div className="space-y-2">
-      <Label className="text-muted-foreground">{label}</Label>
-      <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)] gap-2">
-        <div className="min-w-0 space-y-1.5">
-          <Label htmlFor={`${idPrefix}-date`} className="text-xs font-normal">
-            {t('dateTime.date')}
-          </Label>
+      <Label>{label}</Label>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="relative min-w-0">
           <Input
+            readOnly
+            tabIndex={-1}
+            value={formatDateDisplay(date)}
+            aria-hidden
+            className="pointer-events-none text-center tabular-nums"
+          />
+          <input
             id={`${idPrefix}-date`}
             type="date"
             value={date}
             onChange={(e) => onDateChange(e.target.value)}
-            className={pickerClassName}
+            aria-label={t('dateTime.date')}
+            className="absolute inset-0 cursor-pointer opacity-0"
           />
         </div>
-        <div className="min-w-0 space-y-1.5">
-          <Label htmlFor={`${idPrefix}-time`} className="text-xs font-normal">
-            {t('dateTime.time')}
-          </Label>
-          <Input
-            id={`${idPrefix}-time`}
-            type="time"
-            value={time}
-            onChange={(e) => onTimeChange(e.target.value)}
-            className={pickerClassName}
-          />
-        </div>
+        <Input
+          id={`${idPrefix}-time`}
+          type="time"
+          value={time}
+          onChange={(e) => onTimeChange(e.target.value)}
+          aria-label={t('dateTime.time')}
+          className={timeClassName}
+        />
       </div>
     </div>
   )
