@@ -40,14 +40,14 @@ const DialogContent = React.forwardRef<
       {children}
       <DialogPrimitive.Close
         className={cn(
-          'absolute right-3 top-2.5 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full',
+          'absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full',
           'text-muted-foreground transition-colors',
           'hover:bg-muted hover:text-foreground',
           'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ring-offset-background',
           'disabled:pointer-events-none',
         )}
       >
-        <X className="h-5 w-5" strokeWidth={2.25} />
+        <X className="h-5 w-5" strokeWidth={2} />
         <span className="sr-only">{t('common.close')}</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
@@ -58,7 +58,7 @@ DialogContent.displayName = DialogPrimitive.Content.displayName
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      'flex shrink-0 flex-row items-center justify-start gap-3 border-b border-border px-4 py-3 pr-12 text-left',
+      'flex shrink-0 flex-row items-center justify-start gap-3 border-b border-border px-4 pb-3.5 pt-4 pr-12 text-left',
       className,
     )}
     {...props}
@@ -75,7 +75,7 @@ const DialogBody = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement
 const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      'flex shrink-0 flex-col-reverse gap-2 border-t border-border p-4 sm:flex-row sm:justify-end',
+      'flex shrink-0 flex-col-reverse gap-2 p-4 pt-2 sm:flex-row sm:justify-end',
       className,
     )}
     {...props}
@@ -88,7 +88,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn('text-base font-semibold leading-none tracking-tight text-left', className)}
+    className={cn('text-[17px] font-semibold leading-none tracking-tight text-left', className)}
     {...props}
   />
 ))

@@ -135,24 +135,22 @@ export function ManualEntryDialog({ open, onOpenChange, onSubmit, initial }: Pro
           <DialogTitle>{t('manualDialog.title')}</DialogTitle>
         </DialogHeader>
         <DialogBody className="min-w-0 space-y-4 overflow-x-hidden">
-          <div className="space-y-4 rounded-xl border border-primary/10 bg-primary/5 p-3">
-            <DateTimeFields
-              idPrefix="manual-start"
-              label={t('manualDialog.start')}
-              date={startDate}
-              time={startTime}
-              onDateChange={setStartDate}
-              onTimeChange={setStartTime}
-            />
-            <DateTimeFields
-              idPrefix="manual-end"
-              label={t('manualDialog.end')}
-              date={endDate}
-              time={endTime}
-              onDateChange={setEndDate}
-              onTimeChange={setEndTime}
-            />
-          </div>
+          <DateTimeFields
+            idPrefix="manual-start"
+            label={t('manualDialog.start')}
+            date={startDate}
+            time={startTime}
+            onDateChange={setStartDate}
+            onTimeChange={setStartTime}
+          />
+          <DateTimeFields
+            idPrefix="manual-end"
+            label={t('manualDialog.end')}
+            date={endDate}
+            time={endTime}
+            onDateChange={setEndDate}
+            onTimeChange={setEndTime}
+          />
           <div className="space-y-2">
             <Label>{t('manualDialog.coefficient')}</Label>
             <Input

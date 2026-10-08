@@ -251,7 +251,7 @@ export function CompleteIntervalDialog({
           )}
 
           {editTime && (
-            <div className="space-y-4 rounded-xl border border-primary/10 bg-primary/5 p-3">
+            <div className="space-y-4">
               <DateTimeFields
                 idPrefix="edit-start"
                 label={t('completeDialog.start')}

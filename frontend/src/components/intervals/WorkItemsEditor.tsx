@@ -151,8 +151,9 @@ export function WorkItemsEditor({ items, onChange }: Props) {
             <Button
               ref={templatesTriggerRef}
               type="button"
-              variant="outline"
+              variant="secondary"
               size="sm"
+              className="bg-primary/15 text-primary-soft hover:bg-primary/25"
               disabled={templates.length === 0}
               aria-expanded={templatesOpen}
               aria-label={t('templates.title')}
@@ -191,8 +192,9 @@ export function WorkItemsEditor({ items, onChange }: Props) {
           </div>
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             size="sm"
+            className="bg-primary/15 text-primary-soft hover:bg-primary/25"
             onClick={() => onChange([...items, emptyWorkItemDraft()])}
           >
             <Plus className="h-4 w-4 mr-1" />
@@ -205,11 +207,14 @@ export function WorkItemsEditor({ items, onChange }: Props) {
         <p className="text-sm text-muted-foreground">{t('workItems.emptyHint')}</p>
       )}
 
-      {items.map((item) => {
+      {items.map((item, index) => {
         const alreadyTemplate = templates.some((tpl) => draftMatchesTemplate(item, tpl))
         const canSave = isValidDraft(item) && !alreadyTemplate
         return (
-          <div key={item.key} className="grid gap-2 rounded-lg border p-3">
+          <div
+            key={item.key}
+            className={cn('grid gap-2', index > 0 && 'border-t border-border/50 pt-3')}
+          >
             <DictAutocomplete
               kind="categories"
               value={item.categoryName}
