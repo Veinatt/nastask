@@ -32,6 +32,7 @@ import { recomputeWorkAndPause, sameEditInstant } from '@/utils/intervalDuration
 import { formatDuration, formatTimeRange } from '@/utils/timeDisplay'
 
 export type IntervalDialogPayload = {
+  title: string
   coefficient: number
   workItems: WorkItemInput[]
   notes?: string | null
@@ -60,6 +61,7 @@ export function CompleteIntervalDialog({
   editTime = false,
 }: Props) {
   const { t } = useI18n()
+  const [title, setTitle] = useState('')
   const [coefficient, setCoefficient] = useState('1')
   const [items, setItems] = useState<WorkItemDraft[]>([emptyWorkItemDraft()])
   const [notes, setNotes] = useState('')
@@ -112,6 +114,7 @@ export function CompleteIntervalDialog({
       }))
 
     const load = async () => {
+      setTitle(entry.title ?? '')
       setCoefficient(String(entry.coefficient ?? 1))
       setNotes(entry.notes ?? '')
       setShowNotes(Boolean(entry.notes?.trim()))
@@ -176,6 +179,7 @@ export function CompleteIntervalDialog({
       const workItems = draftsToWorkItems(items)
       const notesValue = notes.trim() ? notes.trim() : null
       const payload: IntervalDialogPayload = {
+        title: title.trim(),
         coefficient: coef,
         workItems,
         notes: notesValue,
@@ -236,6 +240,15 @@ export function CompleteIntervalDialog({
           <DialogTitle>{dialogTitle ?? t('completeDialog.title')}</DialogTitle>
         </DialogHeader>
         <DialogBody className="min-w-0 space-y-4 overflow-x-hidden">
+          <div className="space-y-2">
+            <Label htmlFor="interval-title">{t('interval.title')}</Label>
+            <Input
+              id="interval-title"
+              value={title}
+              placeholder={t('interval.titlePlaceholder')}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
           {!editTime && viewEntry && (
             <div className="rounded-xl bg-primary/5 border border-primary/10 px-3 py-2 text-sm">
               <span className="font-medium">

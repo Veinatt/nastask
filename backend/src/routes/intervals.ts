@@ -3,8 +3,8 @@ import { randomUUID } from 'node:crypto'
 import { telegramAuth } from '../middleware/telegramAuth'
 import { intervalsRepo, liveTotalSeconds } from '../db/intervalsRepo'
 import { settingsRepo } from '../db/settingsRepo'
-import { categoriesRepo, descriptionsRepo, unitsRepo } from '../db/dictRepo'
 import { salaryExpensesRepo } from '../db/expensesRepo'
+import { buildTaxReport } from '../services/taxReport'
 import type { WorkItemInput } from '../types'
 import { dateInTimezone, nowIso, secondsBetween } from '../utils/iso'
 import {
@@ -188,10 +188,14 @@ intervalsRouter.put('/:id/complete', (req, res) => {
       return
     }
     const completeOpts: {
+      title?: string
       coefficient: number
       workItems: WorkItemInput[]
       notes?: string | null
     } = { coefficient, workItems }
+    if (body.title != null) {
+      completeOpts.title = String(body.title).trim()
+    }
     if (body.notes !== undefined) {
       completeOpts.notes = body.notes == null ? null : String(body.notes)
     }
@@ -335,63 +339,13 @@ intervalsRouter.get('/report/tax', (req, res) => {
       res.status(400).json({ success: false, error: 'year and month required' })
       return
     }
-    const entries = intervalsRepo.listCompletedInMonth(userId, year, month)
-    const cats = new Map(categoriesRepo.list(userId).map((c) => [c.id, c.name]))
-    const descs = new Map(descriptionsRepo.list(userId).map((d) => [d.id, d.name]))
-    const units = new Map(unitsRepo.list(userId).map((u) => [u.id, u.name]))
-
-    type Agg = {
-      categoryId: string | null
-      descriptionId: string | null
-      categoryName: string | null
-      descriptionName: string | null
-      unitId: string
-      unitName: string
-      quantity: number
-    }
-    const map = new Map<string, Agg>()
-
-    for (const entry of entries) {
-      for (const w of intervalsRepo.listWorkItems(entry.id)) {
-        const catKey = groupBy === 'description' ? '' : w.categoryId
-        const descKey = groupBy === 'category' ? '' : w.descriptionId
-        const key = `${catKey}|${descKey}|${w.unitId}`
-        const prev = map.get(key)
-        if (prev) {
-          prev.quantity = Math.round((prev.quantity + w.quantity) * 1000) / 1000
-        } else {
-          map.set(key, {
-            categoryId: catKey || null,
-            descriptionId: descKey || null,
-            categoryName: catKey ? (cats.get(catKey) ?? null) : null,
-            descriptionName: descKey ? (descs.get(descKey) ?? null) : null,
-            unitId: w.unitId,
-            unitName: units.get(w.unitId) ?? '',
-            quantity: Math.round(w.quantity * 1000) / 1000,
-          })
-        }
-      }
-    }
-
-    res.json({
-      success: true,
-      report: {
-        year,
-        month,
-        groupBy,
-        rows: [...map.values()].sort((a, b) =>
-          `${a.categoryName}-${a.descriptionName}`.localeCompare(
-            `${b.categoryName}-${b.descriptionName}`,
-          ),
-        ),
-      },
-    })
+    const report = buildTaxReport(userId, year, month, groupBy)
+    res.json({ success: true, report })
   } catch (error) {
     console.error('[api:intervals] tax report failed', error)
     res.status(500).json({ success: false, error: 'Internal server error' })
   }
 })
-
 intervalsRouter.put('/:id', (req, res) => {
   try {
     const ctx = owned(req, res)

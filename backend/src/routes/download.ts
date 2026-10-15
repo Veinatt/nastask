@@ -57,6 +57,7 @@ function taxReportXlsx(report: TaxReport): Buffer {
     Описание: r.descriptionName ?? '',
     Количество: Math.round(r.quantity * 1000) / 1000,
     Единица: r.unitName ?? '',
+    Заметки: r.notes ?? '',
   }))
   const sheet = XLSX.utils.json_to_sheet(rows)
   const book = XLSX.utils.book_new()

@@ -226,6 +226,7 @@ export function ReportsPage() {
                   )}
                   <TableHead className="text-right">{t('reports.col.quantity')}</TableHead>
                   <TableHead>{t('reports.col.unit')}</TableHead>
+                  <TableHead>{t('reports.col.notes')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -241,6 +242,9 @@ export function ReportsPage() {
                       {formatDecimal(r.quantity)}
                     </TableCell>
                     <TableCell>{r.unitName}</TableCell>
+                    <TableCell className="max-w-[14rem] whitespace-normal break-words text-sm text-muted-foreground">
+                      {r.notes?.trim() ? r.notes : '—'}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

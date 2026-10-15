@@ -16,6 +16,12 @@ type Props = {
 export function TimerCard({ entry, onPause, onResume, onComplete, onDelete }: Props) {
   const { t } = useI18n()
   const paused = Boolean(entry.pauseStartedAt)
+  const title = entry.title?.trim()
+  const statusLabel = title
+    ? title
+    : paused
+      ? t('timer.paused')
+      : t('timer.running')
 
   return (
     <div
@@ -32,13 +38,13 @@ export function TimerCard({ entry, onPause, onResume, onComplete, onDelete }: Pr
         <div className="min-w-0 space-y-1">
           <p
             className={cn(
-              'text-xs font-semibold uppercase tracking-wide',
+              'text-xs font-semibold uppercase tracking-wide truncate',
               paused
                 ? 'text-[rgb(217_119_6)] dark:text-[rgb(252_211_77)]'
                 : 'text-[rgb(5_150_105)] dark:text-[rgb(110_231_183)]',
             )}
           >
-            {paused ? t('timer.paused') : t('timer.running')}
+            {statusLabel}
           </p>
           <p className="text-sm text-muted-foreground truncate">
             {formatIntervalWhen(entry.start)}

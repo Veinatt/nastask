@@ -34,6 +34,10 @@ export const be: Record<MessageKey, string> = {
   'home.editInterval': 'Рэдагаваць інтэрвал',
   'home.deleteTitle': 'Выдаліць інтэрвал?',
 
+  'startDialog.title': 'Новы інтэрвал',
+  'interval.title': 'Назва',
+  'interval.titlePlaceholder': 'Неабавязкова',
+
   'timer.paused': 'На паўзе',
   'timer.running': 'Ідзе',
   'timer.resume': 'Пуск',
@@ -132,6 +136,7 @@ export const be: Record<MessageKey, string> = {
   'stats.heatmap.less': 'Менш',
   'stats.heatmap.more': 'Больш',
   'stats.monthsChart': 'Гадзіны па месяцах',
+  'stats.untitled': 'Без назвы',
   'stats.topCategories': 'Топ катэгорый',
   'stats.topWorks': 'Топ работ',
   'stats.list.all': 'Усе інтэрвалы',
@@ -173,6 +178,7 @@ export const be: Record<MessageKey, string> = {
   'reports.col.description': 'Апісанне',
   'reports.col.quantity': 'Кол-ць',
   'reports.col.unit': 'Адз.',
+  'reports.col.notes': 'Нататкі',
   'reports.tasksEmpty': 'Няма работ за месяц.',
   'reports.loadError': 'Памылка загрузкі справаздачы',
 

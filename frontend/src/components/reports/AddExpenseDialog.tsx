@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -78,7 +79,7 @@ export function AddExpenseDialog({
         <DialogHeader>
           <DialogTitle>{t('expenses.addTitle')}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3">
+        <DialogBody className="space-y-3">
           <div className="space-y-1.5">
             <Label>{t('expenses.name')}</Label>
             <DictAutocomplete
@@ -110,7 +111,7 @@ export function AddExpenseDialog({
             />
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
-        </div>
+        </DialogBody>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             {t('common.cancel')}

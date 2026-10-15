@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -68,11 +69,11 @@ export function ExpensesListDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg border-[hsl(var(--primary)/0.15)]">
+        <DialogContent className="sm:max-w-lg border-[hsl(var(--primary)/0.15)]">
           <DialogHeader>
             <DialogTitle>{t('expenses.listTitle')}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <DialogBody className="space-y-3">
             {error && <p className="text-sm text-destructive">{error}</p>}
             {expenses.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
@@ -117,7 +118,7 @@ export function ExpensesListDialog({
             <p className="text-sm font-semibold tabular-nums text-right">
               {t('expenses.total')}: {formatDecimal(expensesSum, 2)} {currency}
             </p>
-          </div>
+          </DialogBody>
         </DialogContent>
       </Dialog>
 

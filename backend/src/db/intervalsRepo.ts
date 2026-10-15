@@ -246,6 +246,7 @@ export const intervalsRepo = {
   complete(
     entry: TimeEntry,
     opts: {
+      title?: string
       coefficient: number
       workItems: WorkItemInput[]
       end?: string
@@ -268,8 +269,11 @@ export const intervalsRepo = {
           ? null
           : String(opts.notes)
         : entry.notes
+    const title =
+      opts.title !== undefined ? String(opts.title).trim() : entry.title
     const updated = this.update({
       ...entry,
+      title,
       coefficient: opts.coefficient,
       end,
       totalSeconds,

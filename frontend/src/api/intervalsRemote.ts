@@ -71,7 +71,12 @@ export const intervalsRemote = {
 
   async complete(
     id: string,
-    payload: { coefficient: number; workItems: WorkItemInput[]; notes?: string | null },
+    payload: {
+      title?: string
+      coefficient: number
+      workItems: WorkItemInput[]
+      notes?: string | null
+    },
   ): Promise<{ entry: TimeEntry; workItems: WorkItem[] }> {
     const res = await apiFetch<OkInterval>(`/api/intervals/${id}/complete`, {
       method: 'PUT',

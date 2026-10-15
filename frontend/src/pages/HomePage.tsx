@@ -13,6 +13,7 @@ import {
 import { TimerCard } from '@/components/intervals/TimerCard'
 import { CompleteIntervalDialog } from '@/components/intervals/CompleteIntervalDialog'
 import { ManualEntryDialog } from '@/components/intervals/ManualEntryDialog'
+import { StartIntervalDialog } from '@/components/intervals/StartIntervalDialog'
 import { useActiveIntervals } from '@/hooks/useActiveIntervals'
 import { useI18n } from '@/hooks/useI18n'
 import { SoftDivider } from '@/components/ui/soft-divider'
@@ -51,6 +52,7 @@ function CompletedList({
             .map((e) => {
               const range = getTimeRangeParts(e.start, e.end)
               const hasNotes = Boolean(e.notes?.trim())
+              const title = e.title?.trim()
               return (
                 <div
                   key={e.id}
@@ -69,14 +71,14 @@ function CompletedList({
                   <div className="min-w-0 space-y-1">
                     <p className="flex min-w-0 items-center text-sm font-medium">
                       {range.dateLabel ? (
+                        <span className="shrink-0 tabular-nums">{range.dateLabel}</span>
+                      ) : null}
+                      {title ? (
                         <>
-                          <span className="shrink-0 tabular-nums">{range.dateLabel}</span>
-                          <SoftDivider />
-                          <span className="min-w-0 truncate tabular-nums">{range.timeLabel}</span>
+                          {range.dateLabel ? <SoftDivider /> : null}
+                          <span className="min-w-0 truncate">{title}</span>
                         </>
-                      ) : (
-                        <span className="truncate tabular-nums">{range.timeLabel}</span>
-                      )}
+                      ) : null}
                       {hasNotes ? (
                         <StickyNote
                           className="ml-1.5 h-3.5 w-3.5 shrink-0 text-muted-foreground"
@@ -84,7 +86,9 @@ function CompletedList({
                         />
                       ) : null}
                     </p>
-                    <p className="flex items-center text-xs text-muted-foreground tabular-nums">
+                    <p className="flex flex-wrap items-center text-xs text-muted-foreground tabular-nums">
+                      <span className="truncate">{range.timeLabel}</span>
+                      <SoftDivider />
                       <span>{formatDuration(e.totalSeconds)}</span>
                       {e.coefficient !== 1 ? (
                         <>
@@ -135,6 +139,7 @@ export function HomePage() {
     refreshActive,
   } = useActiveIntervals()
 
+  const [startOpen, setStartOpen] = useState(false)
   const [starting, setStarting] = useState(false)
   const [completeTarget, setCompleteTarget] = useState<TimeEntry | null>(null)
   const [editTarget, setEditTarget] = useState<TimeEntry | null>(null)
@@ -144,11 +149,12 @@ export function HomePage() {
   /** If we auto-paused this interval for the complete dialog, resume on cancel */
   const pausedForCompleteRef = useRef<string | null>(null)
 
-  const handleStart = async () => {
+  const handleStartConfirm = async (title: string) => {
     setStarting(true)
     setError(null)
     try {
-      await start()
+      await start(title)
+      setStartOpen(false)
       // Never block the button on a server round-trip.
       void refreshActive()
     } catch (e) {
@@ -201,7 +207,7 @@ export function HomePage() {
           <Button
             size="lg"
             className="w-full shadow-md shadow-primary/25"
-            onClick={() => void handleStart()}
+            onClick={() => setStartOpen(true)}
             disabled={starting}
           >
             <Play className="h-4 w-4 mr-1.5 fill-current" />
@@ -294,6 +300,7 @@ export function HomePage() {
         onSubmit={async (payload) => {
           if (!editTarget) return
           await updateInterval(editTarget.id, {
+            title: payload.title,
             coefficient: payload.coefficient,
             workItems: payload.workItems,
             start: payload.start,
@@ -301,6 +308,13 @@ export function HomePage() {
             notes: payload.notes ?? null,
           })
         }}
+      />
+
+      <StartIntervalDialog
+        open={startOpen}
+        busy={starting}
+        onOpenChange={setStartOpen}
+        onConfirm={handleStartConfirm}
       />
 
       <ManualEntryDialog

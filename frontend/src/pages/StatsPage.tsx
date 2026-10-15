@@ -112,12 +112,14 @@ export function StatsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const categoryName = useCallback(
-    (id: string) => categories.find((c) => c.id === id)?.name ?? id,
-    [categories],
+    (id: string) =>
+      categories.find((c) => c.id === id)?.name ?? t('stats.untitled'),
+    [categories, t],
   )
   const descriptionName = useCallback(
-    (id: string) => descriptions.find((d) => d.id === id)?.name ?? id,
-    [descriptions],
+    (id: string) =>
+      descriptions.find((d) => d.id === id)?.name ?? t('stats.untitled'),
+    [descriptions, t],
   )
 
   const formatDayLabel = (date: string): string => {
@@ -581,20 +583,15 @@ export function StatsPage() {
           value={`${metrics.earned.toFixed(2)} ${settings.currency}`}
           hint={earnedHint}
         />
-        <MetricCard
-          label={t('stats.metric.intervals')}
-          value={String(metrics.intervalCount)}
-          hint={t('stats.metric.avgLength', {
-            hours: formatDecimalHoursAsClock(metrics.avgIntervalHours),
-          })}
-        />
-        <MetricCard
-          label={t('stats.metric.pauses')}
-          value={formatHoursMinutes(metrics.pauseSeconds)}
-          hint={t('stats.metric.efficiency', {
-            percent: Math.round(metrics.workEfficiencyPercent),
-          })}
-        />
+        <div className="col-span-2">
+          <MetricCard
+            label={t('stats.metric.intervals')}
+            value={String(metrics.intervalCount)}
+            hint={t('stats.metric.avgLength', {
+              hours: formatDecimalHoursAsClock(metrics.avgIntervalHours),
+            })}
+          />
+        </div>
       </section>
 
       {topCategories.length > 0 && (
@@ -732,6 +729,7 @@ export function StatsPage() {
                           settings.hourlyRate
                         const range = getTimeRangeParts(entry.start, entry.end)
                         const hasNotes = Boolean(entry.notes?.trim())
+                        const title = entry.title?.trim()
                         return (
                           <li
                             key={entry.id}
@@ -750,20 +748,16 @@ export function StatsPage() {
                             <div className="min-w-0 space-y-1">
                               <p className="flex min-w-0 items-center text-sm font-medium">
                                 {range.dateLabel ? (
-                                  <>
-                                    <span className="shrink-0 tabular-nums">
-                                      {range.dateLabel}
-                                    </span>
-                                    <SoftDivider />
-                                    <span className="min-w-0 truncate tabular-nums">
-                                      {range.timeLabel}
-                                    </span>
-                                  </>
-                                ) : (
-                                  <span className="truncate tabular-nums">
-                                    {range.timeLabel}
+                                  <span className="shrink-0 tabular-nums">
+                                    {range.dateLabel}
                                   </span>
-                                )}
+                                ) : null}
+                                {title ? (
+                                  <>
+                                    {range.dateLabel ? <SoftDivider /> : null}
+                                    <span className="min-w-0 truncate">{title}</span>
+                                  </>
+                                ) : null}
                                 {hasNotes ? (
                                   <StickyNote
                                     className="ml-1.5 h-3.5 w-3.5 shrink-0 text-muted-foreground"
@@ -772,6 +766,8 @@ export function StatsPage() {
                                 ) : null}
                               </p>
                               <p className="flex flex-wrap items-center text-xs text-muted-foreground tabular-nums">
+                                <span className="truncate">{range.timeLabel}</span>
+                                <SoftDivider />
                                 <span>{formatDuration(entry.totalSeconds)}</span>
                                 {entry.coefficient !== 1 ? (
                                   <>
@@ -829,6 +825,7 @@ export function StatsPage() {
         onSubmit={async (payload) => {
           if (!editTarget) return
           await updateInterval(editTarget.id, {
+            title: payload.title,
             coefficient: payload.coefficient,
             workItems: payload.workItems,
             start: payload.start,

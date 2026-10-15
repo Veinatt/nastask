@@ -139,6 +139,7 @@ export interface TaxReportRow {
   unitId: string
   unitName: string
   quantity: number
+  notes: string
 }
 
 export interface TaxReport {

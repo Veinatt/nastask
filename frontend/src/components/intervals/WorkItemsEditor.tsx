@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -298,7 +299,7 @@ export function WorkItemsEditor({ items, onChange }: Props) {
           <DialogHeader>
             <DialogTitle>{t('templates.namePrompt')}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-2">
+          <DialogBody className="space-y-2">
             <Label htmlFor="template-name">{t('templates.nameLabel')}</Label>
             <Input
               id="template-name"
@@ -312,7 +313,7 @@ export function WorkItemsEditor({ items, onChange }: Props) {
               }}
               autoFocus
             />
-          </div>
+          </DialogBody>
           <DialogFooter>
             <Button
               type="button"

@@ -28,6 +28,7 @@ import { generateId } from '@/utils/idGenerator'
 import type { WorkItemInput } from '@/db/types'
 
 export type ManualEntryInitial = {
+  title?: string
   coefficient?: number
   workItems?: WorkItemInput[]
   notes?: string | null
@@ -37,6 +38,7 @@ type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (payload: {
+    title: string
     start: string
     end: string
     coefficient: number
@@ -55,6 +57,7 @@ export function ManualEntryDialog({ open, onOpenChange, onSubmit, initial }: Pro
   const [startTime, setStartTime] = useState('')
   const [endDate, setEndDate] = useState('')
   const [endTime, setEndTime] = useState('')
+  const [title, setTitle] = useState('')
   const [coefficient, setCoefficient] = useState('1')
   const [items, setItems] = useState<WorkItemDraft[]>([emptyWorkItemDraft()])
   const [notes, setNotes] = useState('')
@@ -69,6 +72,7 @@ export function ManualEntryDialog({ open, onOpenChange, onSubmit, initial }: Pro
     setStartTime(now.time)
     setEndDate(now.date)
     setEndTime(now.time)
+    setTitle(initial?.title ?? '')
     setCoefficient(String(initial?.coefficient ?? 1))
     setNotes(initial?.notes ?? '')
     setShowNotes(Boolean(initial?.notes?.trim()))
@@ -111,6 +115,7 @@ export function ManualEntryDialog({ open, onOpenChange, onSubmit, initial }: Pro
       }
       const workItems = draftsToWorkItems(items)
       await onSubmit({
+        title: title.trim(),
         start: startIso,
         end: endIso,
         coefficient: coef,
@@ -135,6 +140,15 @@ export function ManualEntryDialog({ open, onOpenChange, onSubmit, initial }: Pro
           <DialogTitle>{t('manualDialog.title')}</DialogTitle>
         </DialogHeader>
         <DialogBody className="min-w-0 space-y-4 overflow-x-hidden">
+          <div className="space-y-2">
+            <Label htmlFor="manual-interval-title">{t('interval.title')}</Label>
+            <Input
+              id="manual-interval-title"
+              value={title}
+              placeholder={t('interval.titlePlaceholder')}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
           <DateTimeFields
             idPrefix="manual-start"
             label={t('manualDialog.start')}

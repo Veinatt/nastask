@@ -74,28 +74,13 @@ export function useIntervals() {
     return paused
   }
 
-  /** Pause every running (non-paused) active interval. */
-  const pauseRunningActives = async (): Promise<void> => {
-    const actives = await intervalsLocal.listActive()
-    for (const entry of actives) {
-      if (entry.pauseStartedAt) continue
-      try {
-        await pause(entry.id)
-      } catch (error) {
-        console.error('[intervals] pauseRunningActives failed', entry.id, error)
-      }
-    }
-  }
-
-  const start = async (): Promise<TimeEntry> => {
-    // Only one timer runs at a time — pause the rest first (local, non-blocking)
-    await pauseRunningActives()
-
+  const start = async (title = ''): Promise<TimeEntry> => {
     const id = generateId()
     const now = new Date().toISOString()
+    const trimmedTitle = title.trim()
     const optimistic: TimeEntry = {
       id,
-      title: '',
+      title: trimmedTitle,
       coefficient: 1,
       start: now,
       end: null,
@@ -112,7 +97,9 @@ export function useIntervals() {
     }
     await intervalsLocal.putEntry(optimistic, [])
     // Queue first so a concurrent sync pull cannot wipe this optimistic row.
-    await queueThenFlush(() => enqueueOp('interval_start', id, { title: '', id }))
+    await queueThenFlush(() =>
+      enqueueOp('interval_start', id, { title: trimmedTitle, id }),
+    )
     return optimistic
   }
 
@@ -138,7 +125,12 @@ export function useIntervals() {
 
   const complete = async (
     id: string,
-    payload: { coefficient: number; workItems: WorkItemInput[]; notes?: string | null },
+    payload: {
+      title?: string
+      coefficient: number
+      workItems: WorkItemInput[]
+      notes?: string | null
+    },
   ): Promise<TimeEntry> => {
     try {
       return await applyRemote(() => intervalsRemote.complete(id, payload))
@@ -162,6 +154,7 @@ export function useIntervals() {
         }
         const done: TimeEntry = {
           ...entry,
+          title: payload.title !== undefined ? payload.title.trim() : entry.title,
           coefficient: payload.coefficient,
           notes: payload.notes !== undefined ? payload.notes : entry.notes ?? null,
           end: now,
@@ -189,6 +182,7 @@ export function useIntervals() {
   }
 
   const createManual = async (payload: {
+    title?: string
     start: string
     end: string
     coefficient: number
@@ -196,7 +190,8 @@ export function useIntervals() {
     notes?: string | null
   }): Promise<TimeEntry> => {
     const id = generateId()
-    const withTitle = { ...payload, title: '', notes: payload.notes ?? null }
+    const trimmedTitle = (payload.title ?? '').trim()
+    const withTitle = { ...payload, title: trimmedTitle, notes: payload.notes ?? null }
     const now = new Date().toISOString()
     const totalSeconds = Math.max(
       0,
@@ -204,7 +199,7 @@ export function useIntervals() {
     )
     const entry: TimeEntry = {
       id,
-      title: '',
+      title: trimmedTitle,
       coefficient: payload.coefficient,
       start: payload.start,
       end: payload.end,

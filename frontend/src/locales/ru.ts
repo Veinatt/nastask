@@ -32,6 +32,10 @@ export const ru = {
   'home.editInterval': 'Редактировать интервал',
   'home.deleteTitle': 'Удалить интервал?',
 
+  'startDialog.title': 'Новый интервал',
+  'interval.title': 'Название',
+  'interval.titlePlaceholder': 'Необязательно',
+
   'timer.paused': 'На паузе',
   'timer.running': 'Идёт',
   'timer.resume': 'Пуск',
@@ -130,6 +134,7 @@ export const ru = {
   'stats.heatmap.less': 'Меньше',
   'stats.heatmap.more': 'Больше',
   'stats.monthsChart': 'Часы по месяцам',
+  'stats.untitled': 'Без названия',
   'stats.topCategories': 'Топ категорий',
   'stats.topWorks': 'Топ работ',
   'stats.list.all': 'Все интервалы',
@@ -171,6 +176,7 @@ export const ru = {
   'reports.col.description': 'Описание',
   'reports.col.quantity': 'Количество',
   'reports.col.unit': 'Единица',
+  'reports.col.notes': 'Заметки',
   'reports.tasksEmpty': 'Нет работ за месяц.',
   'reports.loadError': 'Ошибка загрузки отчёта',
 
