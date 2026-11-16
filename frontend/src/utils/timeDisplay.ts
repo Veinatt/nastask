@@ -109,7 +109,7 @@ export function getTimeRangeParts(
     }
   }
   return {
-    dateLabel: null,
+    dateLabel: formatDateDdMm(start),
     timeLabel: `${formatIntervalWhen(startIso)} – ${formatIntervalWhen(endIso)}`,
     crossDay: true,
   }

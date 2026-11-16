@@ -136,7 +136,7 @@ function TemplatesSection() {
                     type="button"
                     size="icon"
                     variant="ghost"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    className="h-8 w-8 text-destructive hover:bg-destructive/15 hover:text-destructive"
                     aria-label={t('common.delete')}
                     onClick={() =>
                       void remove(item.id).catch((err) =>
@@ -272,7 +272,7 @@ function DictSection({ kind, title }: { kind: DictKind; title: string }) {
                     type="button"
                     size="icon"
                     variant="ghost"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    className="h-8 w-8 text-destructive hover:bg-destructive/15 hover:text-destructive"
                     aria-label={t('common.delete')}
                     onClick={() =>
                       void remove(item.id).catch((err) =>
@@ -369,11 +369,8 @@ export function SettingsPage() {
       {memoryViewerOpen && (
         <MemoryExportViewer onClose={() => setMemoryViewerOpen(false)} />
       )}
-      <header className="space-y-1">
+      <header>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('settings.title')}</h1>
-        <p className="text-sm text-muted-foreground">
-          {t('settings.subtitle')}
-        </p>
       </header>
 
       <section className="surface-panel p-4 sm:p-5 space-y-3">

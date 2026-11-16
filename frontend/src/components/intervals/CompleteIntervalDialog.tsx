@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { StickyNote } from 'lucide-react'
 import {
   Dialog,
@@ -28,7 +28,6 @@ import { intervalsLocal } from '@/api/intervalsLocal'
 import { intervalsRemote } from '@/api/intervalsRemote'
 import { generateId } from '@/utils/idGenerator'
 import type { TimeEntry, WorkItemInput } from '@/db/types'
-import { recomputeWorkAndPause, sameEditInstant } from '@/utils/intervalDuration'
 import { formatDuration, formatTimeRange } from '@/utils/timeDisplay'
 
 export type IntervalDialogPayload = {
@@ -49,6 +48,8 @@ type Props = {
   dialogTitle?: string
   /** When true, show editable start/end date+time fields */
   editTime?: boolean
+  /** draft = edit active without completing; complete = finish interval */
+  mode?: 'complete' | 'draft'
 }
 
 export function CompleteIntervalDialog({
@@ -59,6 +60,7 @@ export function CompleteIntervalDialog({
   onSubmit,
   dialogTitle,
   editTime = false,
+  mode = 'complete',
 }: Props) {
   const { t } = useI18n()
   const [title, setTitle] = useState('')
@@ -126,11 +128,6 @@ export function CompleteIntervalDialog({
       setEndDate(e.date)
       setEndTime(e.time)
 
-      if (!editTime && !entry.end) {
-        setItems([emptyWorkItemDraft()])
-        return
-      }
-
       let workItems = await intervalsLocal.workItemsFor(entry.id)
       if (workItems.length === 0) {
         try {
@@ -165,7 +162,7 @@ export function CompleteIntervalDialog({
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only reload when dialog/entry opens
-  }, [open, entry?.id, editTime])
+  }, [open, entry?.id, editTime, mode])
 
   const submit = async () => {
     if (!entry) return
@@ -204,40 +201,14 @@ export function CompleteIntervalDialog({
 
   const notesNonEmpty = Boolean(notes.trim())
 
-  const editDurationPreview = useMemo(() => {
-    if (!editTime || !entry) return null
-    try {
-      const start = joinLocalDateTime(startDate, startTime)
-      const end = joinLocalDateTime(endDate, endTime)
-      const startMs = Date.parse(start)
-      const endMs = Date.parse(end)
-      if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
-        return null
-      }
-      const timesUnchanged =
-        sameEditInstant(start, entry.start) && sameEditInstant(end, entry.end)
-      if (timesUnchanged) {
-        return {
-          totalSeconds: entry.totalSeconds,
-          pauseTotalSeconds: entry.pauseTotalSeconds,
-        }
-      }
-      const wall = Math.max(0, Math.floor((endMs - startMs) / 1000))
-      return recomputeWorkAndPause({
-        wallSeconds: wall,
-        prevTotalSeconds: entry.totalSeconds,
-        prevPauseSeconds: entry.pauseTotalSeconds,
-      })
-    } catch {
-      return null
-    }
-  }, [editTime, entry, startDate, startTime, endDate, endTime])
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg border-primary/15">
         <DialogHeader>
-          <DialogTitle>{dialogTitle ?? t('completeDialog.title')}</DialogTitle>
+          <DialogTitle>
+            {dialogTitle ??
+              (mode === 'draft' ? t('completeDialog.draftTitle') : t('completeDialog.title'))}
+          </DialogTitle>
         </DialogHeader>
         <DialogBody className="min-w-0 space-y-4 overflow-x-hidden">
           <div className="space-y-2">
@@ -281,17 +252,6 @@ export function CompleteIntervalDialog({
                 onDateChange={setEndDate}
                 onTimeChange={setEndTime}
               />
-              {editDurationPreview && (
-                <p className="text-xs text-muted-foreground tabular-nums">
-                  {t('completeDialog.workTime', {
-                    time: formatDuration(editDurationPreview.totalSeconds),
-                  })}
-                  {' · '}
-                  {t('completeDialog.pauseTime', {
-                    time: formatDuration(editDurationPreview.pauseTotalSeconds),
-                  })}
-                </p>
-              )}
             </div>
           )}
 
@@ -343,7 +303,11 @@ export function CompleteIntervalDialog({
             {t('common.cancel')}
           </Button>
           <Button onClick={() => void submit()} disabled={busy || !entry}>
-            {busy ? t('common.saving') : t('common.save')}
+            {busy
+              ? t('common.saving')
+              : mode === 'complete'
+                ? t('timer.complete')
+                : t('common.save')}
           </Button>
         </DialogFooter>
       </DialogContent>

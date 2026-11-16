@@ -66,7 +66,14 @@ async function pullAll(): Promise<void> {
   }
 }
 
-/** Pull server state + flush pending ops on launch / online. */
+/** Light pull so bot-side pause/resume shows up without full page reload. */
+async function pullActives(): Promise<void> {
+  const keepIds = await pendingEntityIds()
+  const active = await intervalsRemote.listActive()
+  await intervalsLocal.replaceActive(active, keepIds)
+}
+
+/** Pull server state + flush pending ops on launch / online; poll actives while open. */
 export function useSync() {
   const { userId } = useTelegram()
   const ranFor = useRef<number | null>(null)
@@ -90,7 +97,22 @@ export function useSync() {
     const onOnline = () => {
       void sync()
     }
+
+    const pollActives = () => {
+      if (document.visibilityState !== 'visible') return
+      void pullActives().catch((error) => {
+        console.error('[sync] active poll failed', error)
+      })
+    }
+    const pollId = window.setInterval(pollActives, 12_000)
+    window.addEventListener('focus', pollActives)
+    document.addEventListener('visibilitychange', pollActives)
     window.addEventListener('online', onOnline)
-    return () => window.removeEventListener('online', onOnline)
+    return () => {
+      window.clearInterval(pollId)
+      window.removeEventListener('focus', pollActives)
+      document.removeEventListener('visibilitychange', pollActives)
+      window.removeEventListener('online', onOnline)
+    }
   }, [userId])
 }

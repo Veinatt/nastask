@@ -23,8 +23,15 @@ export const config = {
   ),
   authDevBypass: envFlag('AUTH_DEV_BYPASS'),
   initDataMaxAgeSec: Number(process.env.INIT_DATA_MAX_AGE_SEC ?? 86400),
-  /** Optional — only if you still keep BOT_TOKEN for future use */
+  /** Optional — Telegram Bot API token (downloads / bot features) */
   botToken: (process.env.BOT_TOKEN ?? '').trim(),
+  /**
+   * Opt-in: long-poll + reminder digests that can send messages.
+   * BOT_TOKEN alone is not enough — set BOT_ENABLED=true explicitly.
+   */
+  botEnabled: envFlag('BOT_ENABLED'),
+  /** Mini App URL for bot «Открыть» buttons (Telegram web_app). */
+  webAppUrl: (process.env.WEBAPP_URL ?? '').trim().replace(/\/$/, ''),
   /** Secret for GET /api/memory/export (header X-Export-Key) */
   memoryExportKey: (process.env.MEMORY_EXPORT_KEY ?? '').trim(),
 }
@@ -39,5 +46,8 @@ export function assertRuntimeConfig(): void {
   console.log(`[config] DATABASE_PATH=${config.databasePath}`)
   console.log(
     `[config] MEMORY_EXPORT_KEY=${config.memoryExportKey ? 'set' : 'not set'}`,
+  )
+  console.log(
+    `[config] BOT_ENABLED=${config.botEnabled ? 'on' : 'off'} (token=${config.botToken ? 'set' : 'empty'})`,
   )
 }

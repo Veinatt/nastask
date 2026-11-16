@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Plus, Play, StickyNote, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -9,26 +9,57 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogDescription,
 } from '@/components/ui/alert-dialog'
 import { TimerCard } from '@/components/intervals/TimerCard'
 import { CompleteIntervalDialog } from '@/components/intervals/CompleteIntervalDialog'
 import { ManualEntryDialog } from '@/components/intervals/ManualEntryDialog'
-import { StartIntervalDialog } from '@/components/intervals/StartIntervalDialog'
+import {
+  StartIntervalDialog,
+  type StartIntervalPayload,
+} from '@/components/intervals/StartIntervalDialog'
 import { useActiveIntervals } from '@/hooks/useActiveIntervals'
 import { useI18n } from '@/hooks/useI18n'
 import { SoftDivider } from '@/components/ui/soft-divider'
 import { formatDecimal } from '@/utils/formatNumber'
 import { formatDuration, getTimeRangeParts } from '@/utils/timeDisplay'
+import {
+  formatFillSummary,
+  getIntervalFillState,
+  slavicPluralForm,
+} from '@/utils/intervalFill'
+import { continuousRunHours, isCompletedSparse } from '@/utils/intervalFreshness'
+import { cn } from '@/lib/utils'
 import type { TimeEntry } from '@/db/types'
+
+/** Same thresholds as backend bot still-working reminders. */
+const STILL_WORKING_HOURS = 1.5
+const STILL_WORKING_COOLDOWN_MS = 1.5 * 60 * 60 * 1000
+const STILL_WORKING_CHECK_MS = 30 * 60 * 1000
+
+/** entryId → last prompt ms (SPA lifetime; like bot in-memory map). */
+const stillWorkingSentAt = new Map<string, number>()
+
+function worksLabel(
+  t: (key: string, params?: Record<string, string | number>) => string,
+  n: number,
+): string {
+  const form = slavicPluralForm(n)
+  const key =
+    form === 'one' ? 'fill.worksOne' : form === 'few' ? 'fill.worksFew' : 'fill.worksMany'
+  return t(key, { n: String(n) })
+}
 
 function CompletedList({
   title,
   entries,
+  workCountByEntry,
   onEdit,
   onDelete,
 }: {
   title: string
   entries: TimeEntry[]
+  workCountByEntry: Record<string, number>
   onEdit: (e: TimeEntry) => void
   onDelete: (id: string) => void
 }) {
@@ -52,13 +83,24 @@ function CompletedList({
             .map((e) => {
               const range = getTimeRangeParts(e.start, e.end)
               const hasNotes = Boolean(e.notes?.trim())
-              const title = e.title?.trim()
+              const titleText = e.title?.trim()
+              const workCount = workCountByEntry[e.id] ?? 0
+              const fill = getIntervalFillState(e, workCount)
+              const sparse = isCompletedSparse(e, workCount)
+              const fillSummary = formatFillSummary(fill, {
+                empty: t('fill.empty'),
+                works: (n) => worksLabel(t, n),
+              })
               return (
                 <div
                   key={e.id}
                   role="button"
                   tabIndex={0}
-                  className="surface-panel flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-accent/40"
+                  className={cn(
+                    'surface-panel flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-accent/40',
+                    // surface-panel sets its own border shorthand — must override with ! + solid color
+                    sparse && '!border-[rgb(239_68_68_/0.65)]',
+                  )}
                   aria-label={t('common.edit')}
                   onClick={() => onEdit(e)}
                   onKeyDown={(ev) => {
@@ -73,10 +115,10 @@ function CompletedList({
                       {range.dateLabel ? (
                         <span className="shrink-0 tabular-nums">{range.dateLabel}</span>
                       ) : null}
-                      {title ? (
+                      {titleText ? (
                         <>
                           {range.dateLabel ? <SoftDivider /> : null}
-                          <span className="min-w-0 truncate">{title}</span>
+                          <span className="min-w-0 truncate">{titleText}</span>
                         </>
                       ) : null}
                       {hasNotes ? (
@@ -96,6 +138,10 @@ function CompletedList({
                           <span>×{formatDecimal(e.coefficient)}</span>
                         </>
                       ) : null}
+                      <SoftDivider />
+                      <span className={fill.needsWorks ? 'text-destructive' : undefined}>
+                        {fillSummary}
+                      </span>
                     </p>
                   </div>
                   <div
@@ -107,7 +153,7 @@ function CompletedList({
                       type="button"
                       size="icon"
                       variant="ghost"
-                      className="h-9 w-9 text-destructive hover:text-destructive"
+                      className="h-9 w-9 text-destructive hover:bg-destructive/15 hover:text-destructive"
                       aria-label={t('timer.deleteAria')}
                       onClick={() => onDelete(e.id)}
                     >
@@ -129,6 +175,7 @@ export function HomePage() {
     views,
     completedToday,
     completedYesterday,
+    workCountByEntry,
     start,
     pause,
     resume,
@@ -143,19 +190,50 @@ export function HomePage() {
   const [starting, setStarting] = useState(false)
   const [completeTarget, setCompleteTarget] = useState<TimeEntry | null>(null)
   const [editTarget, setEditTarget] = useState<TimeEntry | null>(null)
+  const [draftTarget, setDraftTarget] = useState<TimeEntry | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [manualOpen, setManualOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [stillWorking, setStillWorking] = useState<TimeEntry | null>(null)
+  const [stillWorkingHours, setStillWorkingHours] = useState(0)
   /** If we auto-paused this interval for the complete dialog, resume on cancel */
   const pausedForCompleteRef = useRef<string | null>(null)
+  const stillWorkingOpenRef = useRef(false)
+  stillWorkingOpenRef.current = stillWorking != null
 
-  const handleStartConfirm = async (title: string) => {
+  useEffect(() => {
+    const maybePrompt = () => {
+      if (stillWorkingOpenRef.current) return
+      if (document.visibilityState !== 'visible') return
+      const now = new Date()
+      for (const entry of views) {
+        if (entry.pauseStartedAt) continue
+        const hours = continuousRunHours(entry, now)
+        if (hours < STILL_WORKING_HOURS) continue
+        const last = stillWorkingSentAt.get(entry.id) ?? 0
+        if (now.getTime() - last < STILL_WORKING_COOLDOWN_MS) continue
+        stillWorkingSentAt.set(entry.id, now.getTime())
+        setStillWorkingHours(Math.floor(hours))
+        setStillWorking(entry)
+        break
+      }
+    }
+
+    maybePrompt()
+    const id = window.setInterval(maybePrompt, STILL_WORKING_CHECK_MS)
+    document.addEventListener('visibilitychange', maybePrompt)
+    return () => {
+      window.clearInterval(id)
+      document.removeEventListener('visibilitychange', maybePrompt)
+    }
+  }, [views])
+
+  const handleStartConfirm = async (payload: StartIntervalPayload) => {
     setStarting(true)
     setError(null)
     try {
-      await start(title)
+      await start(payload.title, payload.workItems ?? [])
       setStartOpen(false)
-      // Never block the button on a server round-trip.
       void refreshActive()
     } catch (e) {
       setError(e instanceof Error ? e.message : t('home.startError'))
@@ -192,17 +270,6 @@ export function HomePage() {
   return (
     <div className="grid gap-6 lg:gap-8">
       <header className="flex flex-col gap-4">
-        <div className="space-y-1 min-w-0">
-          <h1
-            id="home-brand-title"
-            className="logo w-fit cursor-default select-none text-2xl sm:text-3xl font-bold tracking-tight text-foreground"
-          >
-            {t('home.title')}
-          </h1>
-          <p className="text-sm text-muted-foreground max-w-xl">
-            {t('home.subtitle')}
-          </p>
-        </div>
         <div className="grid w-full grid-cols-2 gap-2">
           <Button
             size="lg"
@@ -241,11 +308,12 @@ export function HomePage() {
             {t('home.activeEmpty')}
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {views.map((entry) => (
               <TimerCard
                 key={entry.id}
                 entry={entry}
+                onEdit={() => setDraftTarget(entry)}
                 onPause={() => void pause(entry.id).then(() => refreshActive())}
                 onResume={() => void resume(entry.id).then(() => refreshActive())}
                 onComplete={() => void openComplete(entry)}
@@ -259,12 +327,14 @@ export function HomePage() {
       <CompletedList
         title={t('home.completedToday')}
         entries={completedToday}
+        workCountByEntry={workCountByEntry}
         onEdit={setEditTarget}
         onDelete={setDeleteId}
       />
       <CompletedList
         title={t('home.completedYesterday')}
         entries={completedYesterday}
+        workCountByEntry={workCountByEntry}
         onEdit={setEditTarget}
         onDelete={setDeleteId}
       />
@@ -272,6 +342,7 @@ export function HomePage() {
       <CompleteIntervalDialog
         open={completeTarget != null}
         entry={completeTarget}
+        mode="complete"
         displaySeconds={
           completeTarget
             ? views.find((v) => v.id === completeTarget.id)?.displaySeconds ??
@@ -281,9 +352,34 @@ export function HomePage() {
         onOpenChange={closeComplete}
         onSubmit={async (payload) => {
           if (!completeTarget) return
-          // Completed — do not resume on dialog close
           pausedForCompleteRef.current = null
           await complete(completeTarget.id, payload)
+          await refreshActive()
+        }}
+      />
+
+      <CompleteIntervalDialog
+        open={draftTarget != null}
+        entry={draftTarget}
+        mode="draft"
+        dialogTitle={t('completeDialog.draftTitle')}
+        displaySeconds={
+          draftTarget
+            ? views.find((v) => v.id === draftTarget.id)?.displaySeconds ??
+              draftTarget.totalSeconds
+            : undefined
+        }
+        onOpenChange={(open) => {
+          if (!open) setDraftTarget(null)
+        }}
+        onSubmit={async (payload) => {
+          if (!draftTarget) return
+          await updateInterval(draftTarget.id, {
+            title: payload.title,
+            coefficient: payload.coefficient,
+            workItems: payload.workItems,
+            notes: payload.notes ?? null,
+          })
           await refreshActive()
         }}
       />
@@ -345,6 +441,38 @@ export function HomePage() {
               }}
             >
               {t('common.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={stillWorking != null}
+        onOpenChange={(open) => {
+          if (!open) setStillWorking(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('home.stillWorkingTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('home.stillWorkingBody', {
+                title: stillWorking?.title.trim() || t('stats.untitled'),
+                hours: stillWorkingHours,
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('home.stillWorkingContinue')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const id = stillWorking?.id
+                setStillWorking(null)
+                if (!id) return
+                void pause(id).then(() => refreshActive())
+              }}
+            >
+              {t('timer.pause')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

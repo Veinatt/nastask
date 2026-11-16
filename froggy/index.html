@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
@@ -9,9 +9,16 @@
       rel="stylesheet"
     />
     <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-      html, body { height: 100%; }
+      html,
+      body {
+        height: 100%;
+      }
 
       body {
         font-family: "Caveat", cursive;
@@ -20,7 +27,8 @@
         overflow: hidden;
       }
 
-      button, button:focus {
+      button,
+      button:focus {
         font-family: inherit;
         border: 0;
         background: none;
@@ -28,11 +36,20 @@
         cursor: pointer;
       }
 
-      .stage { height: 100dvh; }
+      .stage {
+        height: 100dvh;
+      }
 
-      .postcard { width: 100vw; height: 100dvh; perspective: 1800px; }
+      .postcard {
+        width: 100vw;
+        height: 100dvh;
+        perspective: 1800px;
+      }
 
-      .card-inner { position: relative; height: 100%; }
+      .card-inner {
+        position: relative;
+        height: 100%;
+      }
 
       .face {
         position: absolute;
@@ -42,7 +59,9 @@
         -webkit-backface-visibility: hidden;
       }
 
-      .front { background: #102433; }
+      .front {
+        background: #102433;
+      }
       .back {
         z-index: 20;
         background: #f6e7c8;
@@ -59,9 +78,23 @@
         color: #3a3228;
       }
 
-      #film { position: absolute; inset: 0; z-index: 1; overflow: hidden; }
-      .scene { position: absolute; inset: 0; }
-      #scene-fly, #scene-map, #scene-places, #plane { opacity: 0; visibility: hidden; }
+      #film {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        overflow: hidden;
+      }
+      .scene {
+        position: absolute;
+        inset: 0;
+      }
+      #scene-fly,
+      #scene-map,
+      #scene-places,
+      #plane {
+        opacity: 0;
+        visibility: hidden;
+      }
 
       .bus-sky {
         position: absolute;
@@ -76,8 +109,18 @@
         overflow: hidden;
         pointer-events: none;
       }
-      .cloud-track { display: flex; width: max-content; height: 100%; align-items: center; }
-      .cloud-set { display: flex; align-items: center; gap: 10vw; padding-right: 10vw; }
+      .cloud-track {
+        display: flex;
+        width: max-content;
+        height: 100%;
+        align-items: center;
+      }
+      .cloud-set {
+        display: flex;
+        align-items: center;
+        gap: 10vw;
+        padding-right: 10vw;
+      }
       .puff {
         height: 110px;
         width: auto;
@@ -127,7 +170,11 @@
         top: 46%;
         width: 200%;
         height: 9px;
-        background: repeating-linear-gradient(90deg, #f7f4ee 0 72px, transparent 72px 156px);
+        background: repeating-linear-gradient(
+          90deg,
+          #f7f4ee 0 72px,
+          transparent 72px 156px
+        );
       }
       #sign {
         position: absolute;
@@ -177,7 +224,12 @@
         margin-top: -18.9%;
         display: block;
       }
-      .plane-svg { width: 100%; height: auto; display: block; overflow: visible; }
+      .plane-svg {
+        width: 100%;
+        height: auto;
+        display: block;
+        overflow: visible;
+      }
       .seat {
         position: absolute;
         overflow: visible;
@@ -186,19 +238,48 @@
       /* РЕДАКТИРУЙ ГЕРОЕВ В АВТОБУСЕ
          Прямоугольник — само стекло. left от левого края автобуса, top от верхнего.
          Нос слева. Картинка внутри больше стекла и обрезается по нему. */
-      #bus .seat { overflow: hidden; border-radius: 7px; }
-      #bus .seat-frog { left: 42.5%; top: 19.1%; width: 8.9%; aspect-ratio: 1; }
-      #bus .seat-dog { left: 63.6%; top: 19.1%; width: 9.2%; aspect-ratio: 1; }
-      #bus .seat img { position: absolute; height: auto; max-width: none; }
-      #bus .seat-frog img { width: 190%; margin-left: -44%; margin-top: -2%; }
-      #bus .seat-dog img { width: 190%; margin-left: -46%; margin-top: -4%; }
+      #bus .seat {
+        overflow: hidden;
+        border-radius: 7px;
+      }
+      #bus .seat-frog {
+        left: 42.5%;
+        top: 19.1%;
+        width: 8.9%;
+        aspect-ratio: 1;
+      }
+      #bus .seat-dog {
+        left: 63.6%;
+        top: 19.1%;
+        width: 9.2%;
+        aspect-ratio: 1;
+      }
+      #bus .seat img {
+        position: absolute;
+        height: auto;
+        max-width: none;
+      }
+      #bus .seat-frog img {
+        width: 190%;
+        margin-left: -44%;
+        margin-top: -2%;
+      }
+      #bus .seat-dog img {
+        width: 190%;
+        margin-left: -46%;
+        margin-top: -4%;
+      }
       .frog {
         width: 100%;
         height: auto;
         display: block;
         transform-origin: 50% 100%;
       }
-      .dog { width: 100%; height: auto; display: block; }
+      .dog {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
 
       .fly-sky {
         position: absolute;
@@ -213,8 +294,15 @@
         width: min(760px, 86vw);
         will-change: transform;
       }
-      #plane, #plane-riders, .sit { overflow: visible; }
-      #plane-riders { position: absolute; inset: 0; }
+      #plane,
+      #plane-riders,
+      .sit {
+        overflow: visible;
+      }
+      #plane-riders {
+        position: absolute;
+        inset: 0;
+      }
       /* РЕДАКТИРУЙ ГЕРОЕВ В САМОЛЁТЕ
          Круг — иллюминатор, все одного размера. Проценты от самолёта. Нос слева.
          Картинка больше стекла и обрезается по кругу. */
@@ -224,21 +312,52 @@
         border-radius: 50%;
         clip-path: ellipse(47% 47% at 50% 50%);
       }
-      #plane .porthole img { position: absolute; height: auto; max-width: none; }
-      #plane .porthole-frog { left: 41.94%; top: 45.56%; width: 1.84%; aspect-ratio: 3 / 4; }
-      #plane .porthole-dog { left: 45.82%; top: 45.56%; width: 1.84%; aspect-ratio: 3 / 4; }
-      #plane .porthole-frog img { width: 160%; margin-left: -28%; margin-top: 17%; }
-      #plane .porthole-dog img { width: 160%; margin-left: -30%; margin-top: -10%; }
+      #plane .porthole img {
+        position: absolute;
+        height: auto;
+        max-width: none;
+      }
+      #plane .porthole-frog {
+        left: 41.94%;
+        top: 45.56%;
+        width: 1.84%;
+        aspect-ratio: 3 / 4;
+      }
+      #plane .porthole-dog {
+        left: 45.82%;
+        top: 45.56%;
+        width: 1.84%;
+        aspect-ratio: 3 / 4;
+      }
+      #plane .porthole-frog img {
+        width: 160%;
+        margin-left: -28%;
+        margin-top: 17%;
+      }
+      #plane .porthole-dog img {
+        width: 160%;
+        margin-left: -30%;
+        margin-top: -10%;
+      }
 
-      #scene-map { background: #5eb0d4; }
-      #map-frame { position: absolute; overflow: hidden; }
-      #europe, #atlas {
+      #scene-map {
+        background: #5eb0d4;
+      }
+      #map-frame {
+        position: absolute;
+        overflow: hidden;
+      }
+      #europe,
+      #atlas {
         position: absolute;
         left: 0;
         top: 0;
         max-width: none;
       }
-      #atlas { display: block; overflow: visible; }
+      #atlas {
+        display: block;
+        overflow: visible;
+      }
 
       .plate {
         position: absolute;
@@ -248,11 +367,21 @@
         object-fit: cover;
         opacity: 0;
       }
-      .plate.on { opacity: 1; }
-      #plate-ischia { object-position: center 40%; }
-      #plate-naples { object-position: center 88%; }
-      #plate-pompeii { object-position: center 62%; }
-      #plate-vesuvius { object-position: center 42%; }
+      .plate.on {
+        opacity: 1;
+      }
+      #plate-ischia {
+        object-position: center 40%;
+      }
+      #plate-naples {
+        object-position: center 88%;
+      }
+      #plate-pompeii {
+        object-position: center 62%;
+      }
+      #plate-vesuvius {
+        object-position: center 42%;
+      }
       .place-fade {
         position: absolute;
         left: 0;
@@ -276,25 +405,64 @@
         gap: 8px;
         filter: drop-shadow(0 12px 10px rgba(0, 0, 0, 0.35));
       }
-      .sit.on { display: flex; }
-      .sit .frog { height: auto; position: relative; }
-      .sit .dog-slot { height: auto; }
+      .sit.on {
+        display: flex;
+      }
+      .sit .frog {
+        height: auto;
+        position: relative;
+      }
+      .sit .dog-slot {
+        height: auto;
+      }
 
-      .sit-ischia { left: 34%; top: 34.5%; }
-      .sit-ischia .frog { width: min(94px, 12vw); top: 5px; }
-      .sit-ischia .dog-slot { width: min(86px, 11vw); }
+      .sit-ischia {
+        left: 34%;
+        top: 34.5%;
+      }
+      .sit-ischia .frog {
+        width: min(94px, 12vw);
+        top: 5px;
+      }
+      .sit-ischia .dog-slot {
+        width: min(86px, 11vw);
+      }
 
-      .sit-naples { left: 25%; top: 90%; }
-      .sit-naples .frog { width: min(75px, 9.6vw); top: 4px; }
-      .sit-naples .dog-slot { width: min(69px, 8.8vw); }
+      .sit-naples {
+        left: 25%;
+        top: 90%;
+      }
+      .sit-naples .frog {
+        width: min(75px, 9.6vw);
+        top: 4px;
+      }
+      .sit-naples .dog-slot {
+        width: min(69px, 8.8vw);
+      }
 
-      .sit-pompeii { left: 48%; top: 62%; }
-      .sit-pompeii .frog { width: min(188px, 24vw); top: 10px; }
-      .sit-pompeii .dog-slot { width: min(172px, 22vw); }
+      .sit-pompeii {
+        left: 48%;
+        top: 62%;
+      }
+      .sit-pompeii .frog {
+        width: min(188px, 24vw);
+        top: 10px;
+      }
+      .sit-pompeii .dog-slot {
+        width: min(172px, 22vw);
+      }
 
-      .sit-vesuvius { left: 50%; top: 52.5%; }
-      .sit-vesuvius .frog { width: min(38px, 4.8vw); top: 2px; }
-      .sit-vesuvius .dog-slot { width: min(34px, 4.4vw); }
+      .sit-vesuvius {
+        left: 50%;
+        top: 52.5%;
+      }
+      .sit-vesuvius .frog {
+        width: min(38px, 4.8vw);
+        top: 2px;
+      }
+      .sit-vesuvius .dog-slot {
+        width: min(34px, 4.4vw);
+      }
 
       #iris {
         position: absolute;
@@ -319,7 +487,9 @@
         max-width: 100%;
         margin-bottom: 0.75rem;
       }
-      .letter p:nth-child(3) { margin-left: 0.4rem; }
+      .letter p:nth-child(3) {
+        margin-left: 0.4rem;
+      }
 
       #controls {
         position: fixed;
@@ -343,18 +513,38 @@
         color: inherit;
         border-radius: 999px;
       }
-      #controls button + button { box-shadow: inset 1px 0 0 rgba(46, 66, 88, 0.28); }
-      #controls svg { width: 16px; height: 16px; display: block; }
+      #controls button + button {
+        box-shadow: inset 1px 0 0 rgba(46, 66, 88, 0.28);
+      }
+      #controls svg {
+        width: 16px;
+        height: 16px;
+        display: block;
+      }
       #sound-btn .icon-off,
-      #pause-btn .icon-play { display: none; }
-      #sound-btn.off .icon-on { display: none; }
-      #sound-btn.off .icon-off { display: block; }
-      #pause-btn.held .icon-pause { display: none; }
-      #pause-btn.held .icon-play { display: block; }
+      #pause-btn .icon-play {
+        display: none;
+      }
+      #sound-btn.off .icon-on {
+        display: none;
+      }
+      #sound-btn.off .icon-off {
+        display: block;
+      }
+      #pause-btn.held .icon-pause {
+        display: none;
+      }
+      #pause-btn.held .icon-play {
+        display: block;
+      }
     </style>
   </head>
   <body>
-    <audio id="song" preload="auto" src="clips/steve-lacy-steve-lacy-playground-mp3pm_J0uqcUpU.mp3"></audio>
+    <audio
+      id="song"
+      preload="auto"
+      src="clips/steve-lacy-steve-lacy-playground-mp3pm_J0uqcUpU.mp3"
+    ></audio>
     <div class="stage">
       <div class="postcard" id="card">
         <div class="card-inner" id="card-inner">
@@ -362,7 +552,9 @@
             <div id="film">
               <div class="scene" id="scene-bus">
                 <div class="bus-sky"></div>
-                <div class="sky-clouds" style="top: 7%"><div class="cloud-track" id="bus-clouds"></div></div>
+                <div class="sky-clouds" style="top: 7%">
+                  <div class="cloud-track" id="bus-clouds"></div>
+                </div>
                 <div id="forest">
                   <img src="10692732.png" alt="" />
                 </div>
@@ -373,64 +565,174 @@
                 </div>
                 <div id="bus">
                   <div class="bus-flip">
-                    <img class="bus-photo" src="f5b86d9a-03c7-4e67-8c37-c1741b1e17e6-removebg-preview.png" alt="" />
+                    <img
+                      class="bus-photo"
+                      src="f5b86d9a-03c7-4e67-8c37-c1741b1e17e6-removebg-preview.png"
+                      alt=""
+                    />
                   </div>
-                  <div class="seat seat-dog"><img class="dog" src="200.gif" alt="" /></div>
-                  <div class="seat seat-frog"><img class="frog" src="image-Photoroom.png" alt="" /></div>
+                  <div class="seat seat-dog">
+                    <img class="dog" src="200.gif" alt="" />
+                  </div>
+                  <div class="seat seat-frog">
+                    <img class="frog" src="image-Photoroom.png" alt="" />
+                  </div>
                 </div>
               </div>
 
               <div class="scene" id="scene-fly">
                 <div class="fly-sky"></div>
-                <div class="sky-clouds" style="top: 6%"><div class="cloud-track" id="fly-clouds-a"></div></div>
-                <div class="sky-clouds" style="top: 36%"><div class="cloud-track" id="fly-clouds-b"></div></div>
-                <div class="sky-clouds" style="top: 64%"><div class="cloud-track" id="fly-clouds-c"></div></div>
+                <div class="sky-clouds" style="top: 6%">
+                  <div class="cloud-track" id="fly-clouds-a"></div>
+                </div>
+                <div class="sky-clouds" style="top: 36%">
+                  <div class="cloud-track" id="fly-clouds-b"></div>
+                </div>
+                <div class="sky-clouds" style="top: 64%">
+                  <div class="cloud-track" id="fly-clouds-c"></div>
+                </div>
               </div>
 
               <div class="scene" id="scene-map">
                 <div id="map-frame">
                   <img id="europe" src="europe.png" alt="" />
-                  <svg id="atlas" viewBox="0 0 2571 2412" preserveAspectRatio="none" aria-hidden="true">
-                    <path id="route" fill="none" stroke="#e10600" stroke-width="8" stroke-linecap="round" stroke-dasharray="26 16" />
+                  <svg
+                    id="atlas"
+                    viewBox="0 0 2571 2412"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      id="route"
+                      fill="none"
+                      stroke="#e10600"
+                      stroke-width="8"
+                      stroke-linecap="round"
+                      stroke-dasharray="26 16"
+                    />
                   </svg>
                 </div>
               </div>
 
               <div class="scene" id="scene-places">
-                <img class="plate" id="plate-ischia" data-place="ischia" alt="" src="clips/искья.jpg" />
-                <img class="plate" id="plate-naples" data-place="naples" alt="" src="clips/неаполь.jpg" />
-                <img class="plate" id="plate-pompeii" data-place="pompeii" alt="" src="clips/помпеи.jpg" />
-                <img class="plate" id="plate-vesuvius" data-place="vesuvius" alt="" src="clips/везувий.jpg" />
+                <img
+                  class="plate"
+                  id="plate-ischia"
+                  data-place="ischia"
+                  alt=""
+                  src="clips/искья.jpg"
+                />
+                <img
+                  class="plate"
+                  id="plate-naples"
+                  data-place="naples"
+                  alt=""
+                  src="clips/неаполь.jpg"
+                />
+                <img
+                  class="plate"
+                  id="plate-pompeii"
+                  data-place="pompeii"
+                  alt=""
+                  src="clips/помпеи.jpg"
+                />
+                <img
+                  class="plate"
+                  id="plate-vesuvius"
+                  data-place="vesuvius"
+                  alt=""
+                  src="clips/везувий.jpg"
+                />
                 <div class="place-fade"></div>
                 <div class="sit sit-ischia" data-place="ischia">
                   <img class="frog" src="image-Photoroom.png" alt="" />
-                  <div class="dog-slot"><img class="dog" src="200.gif" alt="" /></div>
+                  <div class="dog-slot">
+                    <img class="dog" src="200.gif" alt="" />
+                  </div>
                 </div>
                 <div class="sit sit-naples" data-place="naples">
                   <img class="frog" src="image-Photoroom.png" alt="" />
-                  <div class="dog-slot"><img class="dog" src="200.gif" alt="" /></div>
+                  <div class="dog-slot">
+                    <img class="dog" src="200.gif" alt="" />
+                  </div>
                 </div>
                 <div class="sit sit-pompeii" data-place="pompeii">
                   <img class="frog" src="image-Photoroom.png" alt="" />
-                  <div class="dog-slot"><img class="dog" src="200.gif" alt="" /></div>
+                  <div class="dog-slot">
+                    <img class="dog" src="200.gif" alt="" />
+                  </div>
                 </div>
                 <div class="sit sit-vesuvius" data-place="vesuvius">
                   <img class="frog" src="image-Photoroom.png" alt="" />
-                  <div class="dog-slot"><img class="dog" src="200.gif" alt="" /></div>
+                  <div class="dog-slot">
+                    <img class="dog" src="200.gif" alt="" />
+                  </div>
                 </div>
               </div>
 
               <div id="plane">
                 <svg class="plane-svg" viewBox="0 0 980 360" aria-hidden="true">
-                  <path fill="#e4eef6" stroke="#2a3340" stroke-width="2.5" stroke-linejoin="round" d="M400 198 C490 200 620 232 710 272 C724 278 718 292 698 288 C590 252 490 224 398 220 C376 216 378 196 400 198 Z" />
-                  <path fill="#d5e0ea" stroke="#2a3340" stroke-width="2.3" stroke-linejoin="round" d="M430 210 C448 190 530 188 556 206 C572 220 566 242 542 250 C504 262 448 256 426 238 C412 224 416 214 430 210 Z" />
-                  <ellipse cx="434" cy="226" rx="12" ry="17" fill="#7d93a6" stroke="#2a3340" stroke-width="2" />
-                  <path fill="#f4f8fb" stroke="#2a3340" stroke-width="2.3" stroke-linejoin="round" d="M790 162 C860 150 940 156 958 172 C938 186 858 184 786 174 Z" />
-                  <path fill="#f7fafc" stroke="#2a3340" stroke-width="2.5" stroke-linejoin="round" d="M720 156 C734 92 800 40 872 26 C902 22 912 42 898 60 C858 108 792 158 758 176 C738 164 724 158 720 156 Z" />
-                  <path fill="#f8fbfc" stroke="#2a3340" stroke-width="2.6" stroke-linejoin="round" d="M168 146 C96 150 50 168 46 190 C42 214 96 232 168 234 C280 238 640 244 770 236 C834 232 878 216 894 196 C876 172 822 158 756 154 C620 146 300 140 168 146 Z" />
-                  <path fill="#e6eef5" d="M170 206 C280 220 640 224 820 208 C770 228 280 230 160 220 C120 214 110 210 170 206 Z" />
-                  <path d="M120 186 C300 176 640 180 840 196" fill="none" stroke="#7eb6d8" stroke-width="9" stroke-linecap="round" />
-                  <path fill="#b7def2" stroke="#2a3340" stroke-width="1.8" d="M92 166 C118 154 152 158 162 176 C144 186 110 186 90 174 C84 170 86 166 92 166 Z" />
+                  <path
+                    fill="#e4eef6"
+                    stroke="#2a3340"
+                    stroke-width="2.5"
+                    stroke-linejoin="round"
+                    d="M400 198 C490 200 620 232 710 272 C724 278 718 292 698 288 C590 252 490 224 398 220 C376 216 378 196 400 198 Z"
+                  />
+                  <path
+                    fill="#d5e0ea"
+                    stroke="#2a3340"
+                    stroke-width="2.3"
+                    stroke-linejoin="round"
+                    d="M430 210 C448 190 530 188 556 206 C572 220 566 242 542 250 C504 262 448 256 426 238 C412 224 416 214 430 210 Z"
+                  />
+                  <ellipse
+                    cx="434"
+                    cy="226"
+                    rx="12"
+                    ry="17"
+                    fill="#7d93a6"
+                    stroke="#2a3340"
+                    stroke-width="2"
+                  />
+                  <path
+                    fill="#f4f8fb"
+                    stroke="#2a3340"
+                    stroke-width="2.3"
+                    stroke-linejoin="round"
+                    d="M790 162 C860 150 940 156 958 172 C938 186 858 184 786 174 Z"
+                  />
+                  <path
+                    fill="#f7fafc"
+                    stroke="#2a3340"
+                    stroke-width="2.5"
+                    stroke-linejoin="round"
+                    d="M720 156 C734 92 800 40 872 26 C902 22 912 42 898 60 C858 108 792 158 758 176 C738 164 724 158 720 156 Z"
+                  />
+                  <path
+                    fill="#f8fbfc"
+                    stroke="#2a3340"
+                    stroke-width="2.6"
+                    stroke-linejoin="round"
+                    d="M168 146 C96 150 50 168 46 190 C42 214 96 232 168 234 C280 238 640 244 770 236 C834 232 878 216 894 196 C876 172 822 158 756 154 C620 146 300 140 168 146 Z"
+                  />
+                  <path
+                    fill="#e6eef5"
+                    d="M170 206 C280 220 640 224 820 208 C770 228 280 230 160 220 C120 214 110 210 170 206 Z"
+                  />
+                  <path
+                    d="M120 186 C300 176 640 180 840 196"
+                    fill="none"
+                    stroke="#7eb6d8"
+                    stroke-width="9"
+                    stroke-linecap="round"
+                  />
+                  <path
+                    fill="#b7def2"
+                    stroke="#2a3340"
+                    stroke-width="1.8"
+                    d="M92 166 C118 154 152 158 162 176 C144 186 110 186 90 174 C84 170 86 166 92 166 Z"
+                  />
                   <g fill="#d7eef8" stroke="#2a3340" stroke-width="1.4">
                     <ellipse cx="230" cy="176" rx="9" ry="12" />
                     <ellipse cx="268" cy="176" rx="9" ry="12" />
@@ -446,39 +748,51 @@
                   </g>
                 </svg>
                 <div id="plane-riders">
-                  <div class="porthole porthole-frog"><img class="frog" src="image-Photoroom.png" alt="" /></div>
-                  <div class="porthole porthole-dog"><img class="dog" src="200.gif" alt="" /></div>
+                  <div class="porthole porthole-frog">
+                    <img class="frog" src="image-Photoroom.png" alt="" />
+                  </div>
+                  <div class="porthole porthole-dog">
+                    <img class="dog" src="200.gif" alt="" />
+                  </div>
                 </div>
               </div>
             </div>
 
-            <svg id="iris" viewBox="0 0 100 170" preserveAspectRatio="none" aria-hidden="true">
+            <svg
+              id="iris"
+              viewBox="0 0 100 170"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
               <defs>
                 <mask id="iris-mask">
                   <rect width="100" height="170" fill="white" />
                   <circle id="iris-hole" cx="50" cy="85" r="120" fill="black" />
                 </mask>
               </defs>
-              <rect width="100" height="170" fill="#101418" mask="url(#iris-mask)" />
+              <rect
+                width="100"
+                height="170"
+                fill="#101418"
+                mask="url(#iris-mask)"
+              />
             </svg>
-
           </div>
 
           <div class="face back">
             <div class="sheet">
-            <div class="letter">
-              <h1>С опозданием, нооооо... Счастливого пути, моя буська!</h1>
-              <p>
-                Очень надеюсь, что весь путь туда и обратно пройдет на отлично)
-              </p>
-              <p>
-                Пусть эта поездка принесет тебе массу ярких впечатлений и
-                крутых моментов!
-              </p>
-              <p>
-                Буду ждать твоего возвращения, уже скучаю!
-              </p>
-            </div>
+              <div class="letter">
+                <h1>С опозданием, нооооо... Счастливого пути, моя буська!</h1>
+                <p>
+                  Очень надеюсь, что весь путь туда и обратно пройдет на
+                  отлично)
+                </p>
+                <p>
+                  Пусть эта поездка принесет тебе массу ярких впечатлений и
+                  крутых моментов!
+                </p>
+                <p>Буду ждать твоего возвращения, уже скучаю!</p>
+              </div>
             </div>
           </div>
         </div>
@@ -488,11 +802,23 @@
       <button id="sound-btn" type="button" aria-label="Выключить звук">
         <svg class="icon-on" viewBox="0 0 24 24" aria-hidden="true">
           <path fill="currentColor" d="M4 9.2h3.2L12 5v14l-4.8-4.2H4z" />
-          <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M16 9.2a4 4 0 0 1 0 5.6M18.2 7a7 7 0 0 1 0 10" />
+          <path
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            d="M16 9.2a4 4 0 0 1 0 5.6M18.2 7a7 7 0 0 1 0 10"
+          />
         </svg>
         <svg class="icon-off" viewBox="0 0 24 24" aria-hidden="true">
           <path fill="currentColor" d="M4 9.2h3.2L12 5v14l-4.8-4.2H4z" />
-          <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M16 10l5 5M21 10l-5 5" />
+          <path
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            d="M16 10l5 5M21 10l-5 5"
+          />
         </svg>
       </button>
       <button id="pause-btn" type="button" aria-label="Пауза">
@@ -505,13 +831,25 @@
       </button>
       <button id="replay-btn" type="button" aria-label="Ещё раз">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M19.2 12a7.2 7.2 0 1 1-2.1-5.1" />
+          <path
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            d="M19.2 12a7.2 7.2 0 1 1-2.1-5.1"
+          />
           <path fill="currentColor" d="M15.4 3.1 20.2 5.6 16.4 9.2z" />
         </svg>
       </button>
       <button id="close-btn" type="button" aria-label="Закрыть">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M7 7l10 10M17 7L7 17" />
+          <path
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            d="M7 7l10 10M17 7L7 17"
+          />
         </svg>
       </button>
     </div>
@@ -582,29 +920,41 @@
       function cloudTween(id, duration, dir) {
         const track = document.getElementById(id);
         const distance = () => -track.scrollWidth / 2;
-        return gsap.fromTo(track,
+        return gsap.fromTo(
+          track,
           { x: dir < 0 ? 0 : distance },
-          { x: dir < 0 ? distance : 0, duration, ease: "none", repeat: -1, paused: true }
+          {
+            x: dir < 0 ? distance : 0,
+            duration,
+            ease: "none",
+            repeat: -1,
+            paused: true,
+          },
         );
       }
       const busClouds = cloudTween("bus-clouds", 140, 1);
-      const flyClouds = ["fly-clouds-a", "fly-clouds-b", "fly-clouds-c"].map((id, i) =>
-        cloudTween(id, 9 + i * 2.4, 1)
+      const flyClouds = ["fly-clouds-a", "fly-clouds-b", "fly-clouds-c"].map(
+        (id, i) => cloudTween(id, 9 + i * 2.4, 1),
       );
-      const laneTween = gsap.fromTo("#lane", { x: -156 }, {
-        x: 0,
-        duration: 0.24,
-        ease: "none",
-        repeat: -1,
-        paused: true,
-      });
+      const laneTween = gsap.fromTo(
+        "#lane",
+        { x: -156 },
+        {
+          x: 0,
+          duration: 0.24,
+          ease: "none",
+          repeat: -1,
+          paused: true,
+        },
+      );
       /* РЕДАКТИРУЙ ЛЕС
          width в стилях #forest img — насколько мелкие деревья. Меньше число — больше деревьев в кадре.
          xPercent — сдвиг в процентах ширины картинки. Минус уводит лес влево.
          Первое число — откуда стартует, второе — куда приезжает. Они должны отличаться, иначе лес стоит. */
-      const forestTween = gsap.fromTo("#forest img",
+      const forestTween = gsap.fromTo(
+        "#forest img",
         { xPercent: -38 },
-        { xPercent: -32, duration: 4, ease: "none", paused: true }
+        { xPercent: -32, duration: 4, ease: "none", paused: true },
       );
 
       /* РЕДАКТИРУЙ ЛЯГУШКУ
@@ -616,10 +966,38 @@
          duration — секунды шага. Больше число — медленнее. */
       const dance = gsap.timeline({ repeat: -1, paused: true });
       dance
-        .to(".frog", { scaleX: 1.05, scaleY: 0.92, duration: 0.2, ease: "sine.inOut" })
-        .to(".frog:not(#plane .frog)", { scaleX: 0.98, scaleY: 1.03, y: -6, duration: 0.2, ease: "sine.inOut" })
-        .to("#plane .frog", { scaleX: 0.98, scaleY: 1.03, yPercent: -6, duration: 0.2, ease: "sine.inOut" }, "<")
-        .to(".frog", { scaleX: 1, scaleY: 1, y: 0, yPercent: 0, duration: 0.2, ease: "sine.inOut" });
+        .to(".frog", {
+          scaleX: 1.05,
+          scaleY: 0.92,
+          duration: 0.2,
+          ease: "sine.inOut",
+        })
+        .to(".frog:not(#plane .frog)", {
+          scaleX: 0.98,
+          scaleY: 1.03,
+          y: -6,
+          duration: 0.2,
+          ease: "sine.inOut",
+        })
+        .to(
+          "#plane .frog",
+          {
+            scaleX: 0.98,
+            scaleY: 1.03,
+            yPercent: -6,
+            duration: 0.2,
+            ease: "sine.inOut",
+          },
+          "<",
+        )
+        .to(".frog", {
+          scaleX: 1,
+          scaleY: 1,
+          y: 0,
+          yPercent: 0,
+          duration: 0.2,
+          ease: "sine.inOut",
+        });
 
       function showPlace(name) {
         document.querySelectorAll(".plate, .sit").forEach((el) => {
@@ -628,8 +1006,13 @@
       }
 
       function signMeet() {
-        const scene = document.getElementById("scene-bus").getBoundingClientRect();
-        const nose = document.querySelector(".bus-flip").getBoundingClientRect().left - scene.left + 12;
+        const scene = document
+          .getElementById("scene-bus")
+          .getBoundingClientRect();
+        const nose =
+          document.querySelector(".bus-flip").getBoundingClientRect().left -
+          scene.left +
+          12;
         const sign = document.getElementById("sign");
         const post = sign.querySelector(".post").getBoundingClientRect();
         const currentX = Number(gsap.getProperty(sign, "x")) || 0;
@@ -672,10 +1055,26 @@
         cropH /= MAP_ZOOM;
         const points = [FLIGHT.from, FLIGHT.bend, FLIGHT.to];
         const pad = 140;
-        const minX = Math.min.apply(null, points.map((p) => p.x)) - pad;
-        const maxX = Math.max.apply(null, points.map((p) => p.x)) + pad;
-        const minY = Math.min.apply(null, points.map((p) => p.y)) - pad;
-        const maxY = Math.max.apply(null, points.map((p) => p.y)) + pad;
+        const minX =
+          Math.min.apply(
+            null,
+            points.map((p) => p.x),
+          ) - pad;
+        const maxX =
+          Math.max.apply(
+            null,
+            points.map((p) => p.x),
+          ) + pad;
+        const minY =
+          Math.min.apply(
+            null,
+            points.map((p) => p.y),
+          ) - pad;
+        const maxY =
+          Math.max.apply(
+            null,
+            points.map((p) => p.y),
+          ) + pad;
         let x = (minX + maxX) / 2 - cropW / 2 + cropW * MAP_PAN_X;
         let y = (minY + maxY) / 2 - cropH / 2;
         x = Math.max(0, Math.min(MAP_W - cropW, x));
@@ -700,7 +1099,10 @@
         frame.style.height = view.height + "px";
         const imgLeft = -x * scale;
         const imgTop = -y * scale;
-        [document.getElementById("europe"), document.getElementById("atlas")].forEach((el) => {
+        [
+          document.getElementById("europe"),
+          document.getElementById("atlas"),
+        ].forEach((el) => {
           el.style.left = imgLeft + "px";
           el.style.top = imgTop + "px";
           el.style.width = MAP_W * scale + "px";
@@ -724,7 +1126,8 @@
         const ahead = Math.min(1, t + 0.06);
         const here = arcMap(Math.max(0, ahead - 0.06));
         const next = arcMap(ahead);
-        const flight = Math.atan2(next.y - here.y, next.x - here.x) * 180 / Math.PI;
+        const flight =
+          (Math.atan2(next.y - here.y, next.x - here.x) * 180) / Math.PI;
         return flight - 180 + (FLIGHT.turn || 0);
       }
 
@@ -748,8 +1151,13 @@
         const steps = Math.max(8, Math.ceil(t * 36));
         let d = "";
         for (let i = 0; i <= steps; i += 1) {
-          const point = arcMap(t * i / steps);
-          d += (i === 0 ? "M" : "L") + point.x.toFixed(1) + " " + point.y.toFixed(1) + " ";
+          const point = arcMap((t * i) / steps);
+          d +=
+            (i === 0 ? "M" : "L") +
+            point.x.toFixed(1) +
+            " " +
+            point.y.toFixed(1) +
+            " ";
         }
         route.setAttribute("d", d);
       }
@@ -757,7 +1165,9 @@
       const flightProgress = { t: 0 };
 
       layoutMap();
-      gsap.set("#scene-fly, #scene-map, #scene-places, #plane", { autoAlpha: 0 });
+      gsap.set("#scene-fly, #scene-map, #scene-places, #plane", {
+        autoAlpha: 0,
+      });
 
       function resetOpening() {
         gsap.set("#scene-bus", { autoAlpha: 1 });
@@ -786,85 +1196,158 @@
       tl.call(resetOpening, null, 0);
 
       tl.add("bus", 0);
-      tl.call(() => {
-        track(busClouds);
-        track(laneTween);
-        track(forestTween);
-        track(dance);
-      }, null, "bus");
-      tl.fromTo("#sign",
+      tl.call(
+        () => {
+          track(busClouds);
+          track(laneTween);
+          track(forestTween);
+          track(dance);
+        },
+        null,
+        "bus",
+      );
+      tl.fromTo(
+        "#sign",
         { x: signStart },
         { x: signMeet, duration: signRide, ease: "none" },
-        "bus"
+        "bus",
       );
 
       tl.add("bump", "bus+=4.6");
-      tl.call(() => {
-        release(busClouds);
-        release(laneTween);
-        release(forestTween);
-      }, null, "bump");
-      tl.to("#bus", { scaleX: 0.94, scaleY: 1.04, duration: 0.12, ease: "power2.in" }, "bump");
-      tl.to("#bus", { scaleX: 1, scaleY: 1, duration: 0.45, ease: "power3.out" }, "bump+=0.12");
-      tl.to("#sign", { rotation: -12, duration: 0.16, ease: "power2.out" }, "bump");
-      tl.to("#sign", { rotation: -2, duration: 0.6, ease: "power3.out" }, "bump+=0.18");
+      tl.call(
+        () => {
+          release(busClouds);
+          release(laneTween);
+          release(forestTween);
+        },
+        null,
+        "bump",
+      );
+      tl.to(
+        "#bus",
+        { scaleX: 0.94, scaleY: 1.04, duration: 0.12, ease: "power2.in" },
+        "bump",
+      );
+      tl.to(
+        "#bus",
+        { scaleX: 1, scaleY: 1, duration: 0.45, ease: "power3.out" },
+        "bump+=0.12",
+      );
+      tl.to(
+        "#sign",
+        { rotation: -12, duration: 0.16, ease: "power2.out" },
+        "bump",
+      );
+      tl.to(
+        "#sign",
+        { rotation: -2, duration: 0.6, ease: "power3.out" },
+        "bump+=0.18",
+      );
 
       tl.add("iris1", "bump+=0.9");
-      tl.to("#iris-hole", { attr: { r: 0 }, duration: 0.7, ease: "power3.in" }, "iris1");
-      tl.call(() => {
-        gsap.set("#scene-bus", { autoAlpha: 0 });
-        gsap.set("#scene-fly", { autoAlpha: 1 });
-        gsap.set("#plane", { autoAlpha: 1 });
-        flyClouds.forEach((tween) => track(tween));
-      }, null, "iris1+=0.7");
-      tl.to("#iris-hole", { attr: { r: 120 }, duration: 0.78, ease: "power3.out" }, "iris1+=0.78");
+      tl.to(
+        "#iris-hole",
+        { attr: { r: 0 }, duration: 0.7, ease: "power3.in" },
+        "iris1",
+      );
+      tl.call(
+        () => {
+          gsap.set("#scene-bus", { autoAlpha: 0 });
+          gsap.set("#scene-fly", { autoAlpha: 1 });
+          gsap.set("#plane", { autoAlpha: 1 });
+          flyClouds.forEach((tween) => track(tween));
+        },
+        null,
+        "iris1+=0.7",
+      );
+      tl.to(
+        "#iris-hole",
+        { attr: { r: 120 }, duration: 0.78, ease: "power3.out" },
+        "iris1+=0.78",
+      );
 
       tl.add("map", "iris1+=4.4");
-      tl.call(() => {
-        layoutMap();
-        flightProgress.t = 0;
-        drawRoute(0);
-      }, null, "map");
-      tl.set("#plane", { transformOrigin: "50% 50%" }, "map");
-      tl.to("#scene-map", { autoAlpha: 1, duration: 1.05, ease: "power2.inOut" }, "map");
-      tl.to("#scene-fly", { autoAlpha: 0, duration: 0.9 }, "map+=0.15");
-      tl.to("#plane", {
-        scale: 0.2,
-        x: () => arcPose(0).x,
-        y: () => arcPose(0).y,
-        rotation: () => arcPose(0).rotation,
-        duration: 1.15,
-        ease: "power2.inOut",
-      }, "map+=0.02");
-      tl.to(flightProgress, {
-        t: 1,
-        duration: FLIGHT.duration,
-        ease: "none",
-        onUpdate: () => {
-          const pose = arcPose(flightProgress.t);
-          gsap.set("#plane", { x: pose.x, y: pose.y, rotation: pose.rotation });
-          drawRoute(flightProgress.t);
+      tl.call(
+        () => {
+          layoutMap();
+          flightProgress.t = 0;
+          drawRoute(0);
         },
-      }, "map+=1.18");
+        null,
+        "map",
+      );
+      tl.set("#plane", { transformOrigin: "50% 50%" }, "map");
+      tl.to(
+        "#scene-map",
+        { autoAlpha: 1, duration: 1.05, ease: "power2.inOut" },
+        "map",
+      );
+      tl.to("#scene-fly", { autoAlpha: 0, duration: 0.9 }, "map+=0.15");
+      tl.to(
+        "#plane",
+        {
+          scale: 0.2,
+          x: () => arcPose(0).x,
+          y: () => arcPose(0).y,
+          rotation: () => arcPose(0).rotation,
+          duration: 1.15,
+          ease: "power2.inOut",
+        },
+        "map+=0.02",
+      );
+      tl.to(
+        flightProgress,
+        {
+          t: 1,
+          duration: FLIGHT.duration,
+          ease: "none",
+          onUpdate: () => {
+            const pose = arcPose(flightProgress.t);
+            gsap.set("#plane", {
+              x: pose.x,
+              y: pose.y,
+              rotation: pose.rotation,
+            });
+            drawRoute(flightProgress.t);
+          },
+        },
+        "map+=1.18",
+      );
 
       tl.add("iris2", "map+=" + (1.18 + FLIGHT.duration));
-      tl.to("#iris-hole", { attr: { r: 0 }, duration: 0.7, ease: "power3.in" }, "iris2");
-      tl.call(() => {
-        gsap.set("#scene-fly", { autoAlpha: 0 });
-        gsap.set("#scene-map", { autoAlpha: 0 });
-        gsap.set("#plane", { autoAlpha: 0 });
-        gsap.set("#scene-places", { autoAlpha: 1 });
-        flyClouds.forEach((tween) => release(tween));
-        showPlace("ischia");
-      }, null, "iris2+=0.7");
-      tl.to("#iris-hole", { attr: { r: 120 }, duration: 0.78, ease: "power3.out" }, "iris2+=0.78");
+      tl.to(
+        "#iris-hole",
+        { attr: { r: 0 }, duration: 0.7, ease: "power3.in" },
+        "iris2",
+      );
+      tl.call(
+        () => {
+          gsap.set("#scene-fly", { autoAlpha: 0 });
+          gsap.set("#scene-map", { autoAlpha: 0 });
+          gsap.set("#plane", { autoAlpha: 0 });
+          gsap.set("#scene-places", { autoAlpha: 1 });
+          flyClouds.forEach((tween) => release(tween));
+          showPlace("ischia");
+        },
+        null,
+        "iris2+=0.7",
+      );
+      tl.to(
+        "#iris-hole",
+        { attr: { r: 120 }, duration: 0.78, ease: "power3.out" },
+        "iris2+=0.78",
+      );
 
       tl.call(() => showPlace("naples"), null, "iris2+=5.6");
       tl.call(() => showPlace("pompeii"), null, "iris2+=9.8");
       tl.call(() => showPlace("vesuvius"), null, "iris2+=14");
 
       tl.add("letter", "iris2+=18");
-      tl.to(".back", { autoAlpha: 1, duration: 1.4, ease: "power2.inOut" }, "letter");
+      tl.to(
+        ".back",
+        { autoAlpha: 1, duration: 1.4, ease: "power2.inOut" },
+        "letter",
+      );
       window.addEventListener("resize", () => {
         if (tl.time() < tl.labels.map) layoutMap();
       });
@@ -901,7 +1384,9 @@
         pauseBtn.setAttribute("aria-label", "Пауза");
         ambient.forEach((tween) => tween.pause(0));
         ambient.clear();
-        [busClouds, laneTween, forestTween, dance, ...flyClouds].forEach((tween) => tween.pause(0));
+        [busClouds, laneTween, forestTween, dance, ...flyClouds].forEach(
+          (tween) => tween.pause(0),
+        );
         mapLayout = null;
         resetOpening();
         song.pause();
@@ -916,8 +1401,12 @@
       }
 
       soundBtn.addEventListener("click", () => {
-        const waitingForGesture = soundOn && song.paused && !song.ended && started
-          && !document.body.classList.contains("held");
+        const waitingForGesture =
+          soundOn &&
+          song.paused &&
+          !song.ended &&
+          started &&
+          !document.body.classList.contains("held");
         if (waitingForGesture) {
           song.muted = false;
           song.volume = 0.2;
@@ -928,8 +1417,17 @@
         song.muted = false;
         song.volume = soundOn ? 0.2 : 0;
         soundBtn.classList.toggle("off", !soundOn);
-        soundBtn.setAttribute("aria-label", soundOn ? "Выключить звук" : "Включить звук");
-        if (song.paused && started && !document.body.classList.contains("held") && tl.progress() < 1 && !song.ended) {
+        soundBtn.setAttribute(
+          "aria-label",
+          soundOn ? "Выключить звук" : "Включить звук",
+        );
+        if (
+          song.paused &&
+          started &&
+          !document.body.classList.contains("held") &&
+          tl.progress() < 1 &&
+          !song.ended
+        ) {
           song.play().catch(() => {});
         }
       });
@@ -937,14 +1435,18 @@
         if (!started || tl.progress() === 1) return;
         hold(!document.body.classList.contains("held"));
       });
-      document.getElementById("replay-btn").addEventListener("click", replayFilm);
+      document
+        .getElementById("replay-btn")
+        .addEventListener("click", replayFilm);
       function rewindPostcard() {
         document.body.classList.remove("held");
         pauseBtn.classList.remove("held");
         pauseBtn.setAttribute("aria-label", "Пауза");
         ambient.forEach((tween) => tween.pause(0));
         ambient.clear();
-        [busClouds, laneTween, forestTween, dance, ...flyClouds].forEach((tween) => tween.pause(0));
+        [busClouds, laneTween, forestTween, dance, ...flyClouds].forEach(
+          (tween) => tween.pause(0),
+        );
         mapLayout = null;
         resetOpening();
         song.pause();
@@ -963,7 +1465,10 @@
 
       document.getElementById("close-btn").addEventListener("click", () => {
         if (window.parent !== window) {
-          window.parent.postMessage({ type: "postcard-close" }, location.origin);
+          window.parent.postMessage(
+            { type: "postcard-close" },
+            location.origin,
+          );
           return;
         }
         location.href = "/";

@@ -274,7 +274,7 @@ export function WorkItemsEditor({ items, onChange }: Props) {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="text-destructive hover:text-destructive"
+                  className="text-destructive hover:bg-destructive/15 hover:text-destructive"
                   onClick={() => onChange(items.filter((i) => i.key !== item.key))}
                   aria-label={t('workItems.deleteAria')}
                 >

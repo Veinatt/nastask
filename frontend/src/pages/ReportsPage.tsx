@@ -58,11 +58,8 @@ export function ReportsPage() {
   return (
     <div className="grid gap-6">
       <header className="flex flex-col gap-4">
-        <div className="space-y-1">
+        <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('reports.title')}</h1>
-          <p className="text-sm text-muted-foreground">
-            {t('reports.subtitle')}
-          </p>
         </div>
         <MonthPicker
           year={year}

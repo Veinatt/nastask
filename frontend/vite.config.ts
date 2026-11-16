@@ -80,6 +80,10 @@ export default defineConfig({
     alias: {
       '@': path.resolve(rootDir, './src'),
     },
+    dedupe: ['react', 'react-dom'],
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'lucide-react'],
   },
   // Bind IPv4 explicitly — on Windows `localhost` often hits 127.0.0.1 while
   // Vite's default listen is [::1] only, which looks like ERR_CONNECTION_REFUSED.

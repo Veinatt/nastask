@@ -101,7 +101,7 @@ export function ExpensesListDialog({
                             type="button"
                             size="icon"
                             variant="ghost"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            className="h-8 w-8 text-destructive hover:bg-destructive/15 hover:text-destructive"
                             disabled={busyId === item.id}
                             aria-label={t('common.delete')}
                             onClick={() => setDeleteId(item.id)}

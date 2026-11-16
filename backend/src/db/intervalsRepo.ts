@@ -196,7 +196,21 @@ export const intervalsRepo = {
     return this.listWorkItems(timeEntryId)
   },
 
+  /** Pause all running (non-paused) actives for user, optionally skipping one id. */
+  pauseRunningForUser(userId: number, skipId?: string): void {
+    for (const entry of this.listActive(userId)) {
+      if (skipId && entry.id === skipId) continue
+      if (entry.pauseStartedAt) continue
+      try {
+        this.pause(entry)
+      } catch (error) {
+        console.error('[intervals] pauseRunningForUser failed', entry.id, error)
+      }
+    }
+  },
+
   start(userId: number, title: string, id: string = randomUUID()): TimeEntry {
+    this.pauseRunningForUser(userId)
     const settings = settingsRepo.getOrCreate(userId)
     const start = nowIso()
     return this.insert({
@@ -232,6 +246,7 @@ export const intervalsRepo = {
   resume(entry: TimeEntry): TimeEntry {
     if (entry.end) throw new Error('Interval already completed')
     if (!entry.pauseStartedAt) throw new Error('Not paused')
+    this.pauseRunningForUser(entry.userId, entry.id)
     const now = nowIso()
     const pauseExtra = secondsBetween(entry.pauseStartedAt, now)
     return this.update({

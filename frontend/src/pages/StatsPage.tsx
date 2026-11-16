@@ -39,6 +39,12 @@ import {
 import { monthLabel } from '@/utils/dateHelpers'
 import { formatDecimal } from '@/utils/formatNumber'
 import { SoftDivider } from '@/components/ui/soft-divider'
+import { isCompletedSparse } from '@/utils/intervalFreshness'
+import {
+  formatFillSummary,
+  getIntervalFillState,
+  slavicPluralForm,
+} from '@/utils/intervalFill'
 import {
   aggregateCategoryAndWorkStats,
   computeStatsMetrics,
@@ -357,11 +363,8 @@ export function StatsPage() {
 
   return (
     <div className="grid min-w-0 gap-6">
-      <header className="space-y-1">
+      <header>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('stats.title')}</h1>
-        <p className="text-sm text-muted-foreground">
-          {t('stats.subtitle')}
-        </p>
       </header>
 
       <SegmentedControl
@@ -722,7 +725,7 @@ export function StatsPage() {
                       </span>
                     </div>
                     <ul className="grid gap-2">
-                      {day.items.map(({ entry }) => {
+                      {day.items.map(({ entry, workItems }) => {
                         const amount =
                           (entry.totalSeconds / 3600) *
                           entry.coefficient *
@@ -730,12 +733,31 @@ export function StatsPage() {
                         const range = getTimeRangeParts(entry.start, entry.end)
                         const hasNotes = Boolean(entry.notes?.trim())
                         const title = entry.title?.trim()
+                        const fill = getIntervalFillState(entry, workItems.length)
+                        const sparse = isCompletedSparse(entry, workItems.length)
+                        const fillSummary = formatFillSummary(fill, {
+                          empty: t('fill.empty'),
+                          works: (n) => {
+                            const form = slavicPluralForm(n)
+                            const key =
+                              form === 'one'
+                                ? 'fill.worksOne'
+                                : form === 'few'
+                                  ? 'fill.worksFew'
+                                  : 'fill.worksMany'
+                            return t(key, { n: String(n) })
+                          },
+                        })
                         return (
                           <li
                             key={entry.id}
                             role="button"
                             tabIndex={0}
-                            className="surface-panel flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-accent/40"
+                            className={cn(
+                              'surface-panel flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-accent/40',
+                              // surface-panel sets its own border shorthand — must override with ! + solid color
+                              sparse && '!border-[rgb(239_68_68_/0.65)]',
+                            )}
                             aria-label={t('common.edit')}
                             onClick={() => setEditTarget(entry)}
                             onKeyDown={(ev) => {
@@ -783,6 +805,14 @@ export function StatsPage() {
                                     </span>
                                   </>
                                 ) : null}
+                                <SoftDivider />
+                                <span
+                                  className={
+                                    fill.needsWorks ? 'text-destructive' : undefined
+                                  }
+                                >
+                                  {fillSummary}
+                                </span>
                               </p>
                             </div>
                             <div
@@ -794,7 +824,7 @@ export function StatsPage() {
                                 type="button"
                                 size="icon"
                                 variant="ghost"
-                                className="h-9 w-9 text-destructive hover:text-destructive"
+                                className="h-9 w-9 text-destructive hover:bg-destructive/15 hover:text-destructive"
                                 aria-label={t('common.delete')}
                                 onClick={() => setDeleteId(entry.id)}
                               >

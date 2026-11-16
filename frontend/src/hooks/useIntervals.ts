@@ -74,7 +74,26 @@ export function useIntervals() {
     return paused
   }
 
-  const start = async (title = ''): Promise<TimeEntry> => {
+  /** Pause every running active except optional skipId. */
+  const pauseRunningActives = async (skipId?: string): Promise<void> => {
+    const actives = await intervalsLocal.listActive()
+    for (const entry of actives) {
+      if (skipId && entry.id === skipId) continue
+      if (entry.pauseStartedAt) continue
+      try {
+        await pause(entry.id)
+      } catch (error) {
+        console.error('[intervals] pauseRunningActives failed', entry.id, error)
+      }
+    }
+  }
+
+  const start = async (
+    title = '',
+    workItems: WorkItemInput[] = [],
+  ): Promise<TimeEntry> => {
+    await pauseRunningActives()
+
     const id = generateId()
     const now = new Date().toISOString()
     const trimmedTitle = title.trim()
@@ -95,17 +114,39 @@ export function useIntervals() {
       isPaused: false,
       liveTotalSeconds: 0,
     }
-    await intervalsLocal.putEntry(optimistic, [])
-    // Queue first so a concurrent sync pull cannot wipe this optimistic row.
-    await queueThenFlush(() =>
-      enqueueOp('interval_start', id, { title: trimmedTitle, id }),
-    )
+    const localWorks: WorkItem[] = workItems.map((w) => ({
+      id: w.id ?? generateId(),
+      timeEntryId: id,
+      categoryId: w.categoryId,
+      descriptionId: w.descriptionId,
+      quantity: w.quantity,
+      unitId: w.unitId,
+    }))
+    await intervalsLocal.putEntry(optimistic, localWorks)
+    // Queue start (+ optional works) so flush order is start → update.
+    // Do not PUT /update until start exists on the server.
+    await enqueueOp('interval_start', id, { title: trimmedTitle, id })
+    if (localWorks.length) {
+      await enqueueOp('interval_update', id, {
+        workItems: localWorks.map((w) => ({
+          id: w.id,
+          categoryId: w.categoryId,
+          descriptionId: w.descriptionId,
+          quantity: w.quantity,
+          unitId: w.unitId,
+        })),
+      })
+    }
+    void flushPendingOps().catch((error) => {
+      console.error('[intervals] background sync failed', error)
+    })
     return optimistic
   }
 
   const resume = async (id: string): Promise<TimeEntry> => {
     const entry = await intervalsLocal.listActive().then((xs) => xs.find((e) => e.id === id))
     if (!entry?.pauseStartedAt) return entry!
+    await pauseRunningActives(id)
     const now = new Date().toISOString()
     const pauseExtra = Math.max(
       0,

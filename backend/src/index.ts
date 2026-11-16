@@ -2,6 +2,8 @@ import cors from 'cors'
 import express from 'express'
 import { assertRuntimeConfig, config } from './config'
 import { closeDb, initDb } from './db'
+import { startBotPolling, stopBotPolling } from './bot/polling'
+import { startReminderJobs, stopReminderJobs } from './jobs/reminders'
 import { intervalsRouter } from './routes/intervals'
 import {
   categoriesRouter,
@@ -15,6 +17,7 @@ import { workTemplatesRouter } from './routes/workTemplates'
 import { exportRouter } from './routes/export'
 import { memoryRouter } from './routes/memory'
 import { downloadRouter } from './routes/download'
+import { debugRouter } from './routes/debug'
 
 async function main(): Promise<void> {
   console.log('[boot] ===== NasTask backend starting =====')
@@ -47,6 +50,7 @@ async function main(): Promise<void> {
   app.use('/api/export', exportRouter)
   app.use('/api/memory', memoryRouter)
   app.use('/api/download', downloadRouter)
+  app.use('/api/debug', debugRouter)
 
   app.use(
     (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -55,12 +59,22 @@ async function main(): Promise<void> {
     },
   )
   console.log(
-    '[boot] routes: /health /api/intervals /api/categories /api/descriptions /api/units /api/expense-articles /api/settings /api/expenses /api/work-templates /api/export /api/memory /api/download',
+    '[boot] routes: /health /api/intervals … /api/download /api/debug',
   )
 
   console.log('[boot] stage 4/4 — HTTP listen')
   const server = app.listen(config.port, () => {
     console.log(`[boot] HTTP READY http://localhost:${config.port}`)
+    if (config.botEnabled && config.botToken) {
+      startBotPolling()
+      startReminderJobs()
+    } else if (config.botToken && !config.botEnabled) {
+      console.log(
+        '[boot] BOT_TOKEN set but BOT_ENABLED off — no polling/reminders (no outbound TG messages)',
+      )
+    } else {
+      console.log('[boot] bot polling/reminders off')
+    }
     console.log('[boot] ===== startup complete =====')
   })
 
@@ -71,6 +85,8 @@ async function main(): Promise<void> {
 
   const shutdown = (signal: string) => {
     console.log(`[shutdown] signal=${signal}`)
+    stopBotPolling()
+    stopReminderJobs()
     server.close(() => {
       closeDb()
       console.log('[shutdown] done')
