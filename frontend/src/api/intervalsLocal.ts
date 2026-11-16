@@ -18,7 +18,14 @@ export const intervalsLocal = {
   },
 
   async listActive(): Promise<TimeEntry[]> {
-    return db.timeEntries.filter((e) => e.end == null).toArray()
+    const rows = await db.timeEntries.filter((e) => e.end == null).toArray()
+    // Dexie filter() has no ORDER BY — match server: running first, then newest start.
+    return rows.sort((a, b) => {
+      const aRun = a.pauseStartedAt ? 0 : 1
+      const bRun = b.pauseStartedAt ? 0 : 1
+      if (aRun !== bRun) return bRun - aRun
+      return (b.start ?? '').localeCompare(a.start ?? '')
+    })
   },
 
   async listByDate(date: string): Promise<TimeEntry[]> {
