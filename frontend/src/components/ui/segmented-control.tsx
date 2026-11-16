@@ -58,20 +58,20 @@ export function SegmentedControl<T extends string>({
       ref={rootRef}
       role="tablist"
       className={cn(
-        'relative inline-flex rounded-xl border border-[hsl(var(--primary)/0.15)] bg-[hsl(var(--muted)/0.5)] p-1 shadow-sm',
+        'relative inline-flex rounded-xl border border-border bg-muted p-1',
         fullWidth && 'flex w-full',
         className,
       )}
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute top-1 bottom-1 left-0 rounded-lg bg-primary shadow-sm shadow-primary/30"
+        className="pointer-events-none absolute top-1 bottom-1 left-0 rounded-lg bg-card border border-border"
         style={{
           width: pill.w,
           transform: `translate3d(${pill.x}px, 0, 0)`,
           opacity: pill.ready ? 1 : 0,
           transition: pill.ready
-            ? 'transform 0.4s var(--ease-bounce), width 0.4s var(--ease-bounce), opacity 0.15s ease'
+            ? 'transform 0.25s var(--ease-out-soft), width 0.25s var(--ease-out-soft), opacity 0.15s ease'
             : 'none',
         }}
       />
@@ -98,7 +98,7 @@ export function SegmentedControl<T extends string>({
               iconOnly ? 'px-2 py-2.5' : 'px-3 py-2',
               fullWidth && 'flex-1',
               active
-                ? 'text-primary-foreground'
+                ? 'text-foreground'
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >

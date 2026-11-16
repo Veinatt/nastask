@@ -6,9 +6,9 @@ import { useMemoryOpen } from '@/components/memory/MemoryOpenContext'
 import { SyncStatusIcon } from '@/components/layout/SyncStatusBanner'
 import { useTripleTap } from '@/hooks/useTripleTap'
 
-/** Brand gradient only — size comes from parent / inline style / text-* class. */
+/** Solid wordmark — size from parent / inline style / text-* class. */
 export const APP_LOGO_GRADIENT =
-  'logo bg-gradient-to-r from-primary to-[hsl(var(--brand-end))] bg-clip-text text-transparent font-bold tracking-tight'
+  'logo font-semibold tracking-tight text-foreground'
 
 /** Nav wordmark (fixed text-lg). */
 export const APP_LOGO_CLASS = cn(
@@ -41,26 +41,15 @@ export function Navigation({ className }: Props) {
                   isActive ? 'text-primary-soft' : 'text-muted-foreground',
                 )
               : cn(
-                  'inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200',
+                  'inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors duration-200',
                   isActive
-                    ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25'
-                    : 'text-muted-foreground hover:bg-primary/8 hover:text-foreground active:scale-[0.97]',
+                    ? 'bg-secondary text-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 )
           }
         >
-          <Icon
-            key={isActive ? 'on' : 'off'}
-            className={cn(mobile ? 'h-5 w-5' : 'h-4 w-4', isActive && 'animate-nav-bounce')}
-          />
-          <span
-            className={
-              mobile
-                ? 'transition-transform duration-300 ease-[var(--ease-bounce)]'
-                : undefined
-            }
-          >
-            {t(labelKey)}
-          </span>
+          <Icon className={cn(mobile ? 'h-5 w-5' : 'h-4 w-4')} />
+          <span>{t(labelKey)}</span>
         </button>
       )
     })
@@ -68,7 +57,7 @@ export function Navigation({ className }: Props) {
   return (
     <div className={cn(className)}>
       {/* Top bar: single #app-logo for all breakpoints (enter/exit fly to this slot) */}
-      <nav className="sticky top-0 z-40 flex items-center gap-1 border-b border-primary/10 bg-card/70 px-4 py-2.5 backdrop-blur-md md:px-6">
+      <nav className="sticky top-0 z-40 flex items-center gap-1 border-b border-border bg-card px-4 py-2.5 md:px-6">
         <div className="mr-0 flex items-center gap-1.5 md:mr-8">
           <button
             type="button"
@@ -85,7 +74,7 @@ export function Navigation({ className }: Props) {
         {tab === '/' && (
           <button
             type="button"
-            className="relative ml-auto inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/8 hover:text-foreground"
+            className="relative ml-auto inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label="1 новое сообщение"
             onClick={() => {
               window.dispatchEvent(new Event('open-postcard'))

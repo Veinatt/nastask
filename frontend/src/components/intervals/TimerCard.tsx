@@ -29,12 +29,12 @@ function Tag({ tone, label }: { tone: TagTone; label: string }) {
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium tracking-wide',
-        tone === 'stale' && 'bg-red-600/30 text-red-700 dark:text-red-200',
+        'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-medium tracking-normal',
+        tone === 'stale' && 'bg-red-600/15 text-red-700 dark:text-red-300',
         tone === 'paused' &&
-          'bg-amber-500/20 text-amber-700 dark:text-amber-300',
+          'bg-amber-500/15 text-amber-800 dark:text-amber-200',
         tone === 'running' &&
-          'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300',
+          'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200',
       )}
     >
       <span
@@ -184,7 +184,7 @@ export function TimerCard({
             'text-3xl font-semibold tabular-nums tracking-tight sm:text-4xl',
             entry.displaySeconds > 8 * 3600
               ? 'text-destructive'
-              : 'text-primary-soft',
+              : 'text-foreground',
           )}
         >
           {formatDuration(entry.displaySeconds)}
@@ -194,7 +194,7 @@ export function TimerCard({
             type="button"
             size="icon"
             variant="outline"
-            className="h-10 w-10 rounded-full border-primary/30 text-primary-soft"
+            className="h-10 w-10 rounded-lg border-border text-foreground"
             onClick={paused ? onResume : onPause}
             aria-label={paused ? t('timer.resume') : t('timer.pause')}
             title={paused ? t('timer.resume') : t('timer.pause')}
@@ -205,7 +205,7 @@ export function TimerCard({
             type="button"
             size="icon"
             variant="default"
-            className="h-10 w-10 rounded-full shadow-sm shadow-primary/25"
+            className="h-10 w-10 rounded-lg"
             onClick={onComplete}
             aria-label={t('timer.complete')}
             title={t('timer.complete')}

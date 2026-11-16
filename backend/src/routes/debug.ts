@@ -3,7 +3,13 @@ import { randomUUID } from 'node:crypto'
 import { config } from '../config'
 import { telegramAuth } from '../middleware/telegramAuth'
 import { intervalsRepo } from '../db/intervalsRepo'
-import { categoriesRepo, descriptionsRepo, unitsRepo } from '../db/dictRepo'
+import {
+  categoriesRepo,
+  descriptionsRepo,
+  unitsRepo,
+  expenseArticlesRepo,
+} from '../db/dictRepo'
+import { salaryExpensesRepo } from '../db/expensesRepo'
 import { settingsRepo } from '../db/settingsRepo'
 import { dateInTimezone, nowIso } from '../utils/iso'
 import type { TimeEntry } from '../types'
@@ -120,7 +126,7 @@ debugRouter.post('/scenarios', (req, res) => {
       created.push({ key: 'empty_paused', id: e.id })
     }
 
-    // 2. running >90 min (still-working)
+    // 2. running >90 min (still-working), empty fill
     {
       const start = new Date(now.getTime() - 2 * 3600 * 1000).toISOString()
       const e = insertEntry({
@@ -136,6 +142,51 @@ debugRouter.post('/scenarios', (req, res) => {
         notes: null,
       })
       created.push({ key: 'running_still_working', id: e.id })
+    }
+
+    // 2b. running filled (title + works) — only one running after pause-others;
+    // keep paused so still-working stays the sole runner for modal tests.
+    {
+      const start = new Date(now.getTime() - 25 * 60 * 1000).toISOString()
+      const e = insertEntry({
+        id: randomUUID(),
+        userId,
+        title: 'Running filled sample',
+        coefficient: 1,
+        start,
+        end: null,
+        totalSeconds: 20 * 60,
+        pauseTotalSeconds: 0,
+        pauseStartedAt: nowIso(),
+        notes: null,
+      })
+      intervalsRepo.replaceWorkItems(e.id, [
+        {
+          categoryId: dicts.categoryId,
+          descriptionId: dicts.descriptionId,
+          unitId: dicts.unitId,
+          quantity: 2,
+        },
+      ])
+      created.push({ key: 'paused_was_running_filled', id: e.id })
+    }
+
+    // 2c. long run >8h (red timer), paused so it does not steal still-working
+    {
+      const start = new Date(now.getTime() - 9 * 3600 * 1000).toISOString()
+      const e = insertEntry({
+        id: randomUUID(),
+        userId,
+        title: 'Over 8h sample',
+        coefficient: 1,
+        start,
+        end: null,
+        totalSeconds: 9 * 3600,
+        pauseTotalSeconds: 0,
+        pauseStartedAt: nowIso(),
+        notes: null,
+      })
+      created.push({ key: 'paused_over_8h', id: e.id })
     }
 
     // 3. paused with title + works (draft ok)
@@ -246,6 +297,46 @@ debugRouter.post('/scenarios', (req, res) => {
         },
       ])
       created.push({ key: 'completed_ok', id: e.id })
+    }
+
+    // 8. completed yesterday sparse (Home «вчера»)
+    {
+      const start = daysAgoIso(1, 8)
+      const end = daysAgoIso(1, 10)
+      const e = insertEntry({
+        id: randomUUID(),
+        userId,
+        title: '',
+        coefficient: 1,
+        start,
+        end,
+        totalSeconds: 3600,
+        pauseTotalSeconds: 0,
+        pauseStartedAt: null,
+        notes: null,
+      })
+      created.push({ key: 'completed_yesterday_sparse', id: e.id })
+    }
+
+    // 9. salary expense for current month (Reports)
+    try {
+      const y = now.getUTCFullYear()
+      const m = now.getUTCMonth() + 1
+      const articleName = 'UI matrix expense'
+      const existing = expenseArticlesRepo
+        .list(userId)
+        .find((a) => a.name.toLowerCase() === articleName.toLowerCase())
+      const article = existing ?? expenseArticlesRepo.create(userId, articleName)
+      const expense = salaryExpensesRepo.create(userId, {
+        year: y,
+        month: m,
+        name: article.name,
+        amount: 42.5,
+      })
+      created.push({ key: 'expense_article', id: article.id })
+      created.push({ key: 'salary_expense', id: expense.id })
+    } catch (error) {
+      console.error('[debug] expense seed skipped', error)
     }
 
     console.log(`[debug] seeded scenarios for userId=${userId} count=${created.length}`)

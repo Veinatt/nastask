@@ -1,4 +1,10 @@
 *.md
+# Keep Cursor skills readable/committable
+!.cursor/skills/
+!.cursor/skills/**/*.md
+
+# Local unslop audit screenshots
+design/unslop-audit/
 
 # Secrets / local env (keep examples)
 .env

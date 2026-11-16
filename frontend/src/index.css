@@ -32,60 +32,62 @@
 }
 
 :root {
-  --background: 214 45% 97%;
-  --foreground: 222 47% 11%;
+  /* Graphite-light neutrals; blue only as accent */
+  --background: 240 5% 98%;
+  --foreground: 240 6% 10%;
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
+  --card-foreground: 240 6% 10%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-  --primary: 217 91% 50%;
-  --primary-foreground: 210 40% 98%;
-  --primary-soft: 217 91% 50%;
-  --secondary: 210 55% 94%;
-  --secondary-foreground: 222 47% 18%;
-  --muted: 214 32% 93%;
-  --muted-foreground: 215 16% 42%;
-  --accent: 199 89% 94%;
-  --accent-foreground: 201 90% 28%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214 32% 88%;
-  --input: 214 32% 88%;
-  --ring: 217 91% 50%;
-  --brand-end: 199 89% 48%;
-  --glow-a: 217 91% 50%;
-  --glow-b: 199 89% 48%;
-  --glow-c: 221 83% 53%;
+  --popover-foreground: 240 6% 10%;
+  --primary: 217 82% 46%;
+  --primary-foreground: 0 0% 100%;
+  --primary-soft: 217 72% 40%;
+  --secondary: 240 5% 94%;
+  --secondary-foreground: 240 6% 16%;
+  --muted: 240 5% 93%;
+  --muted-foreground: 240 4% 42%;
+  --accent: 240 5% 94%;
+  --accent-foreground: 240 6% 16%;
+  --destructive: 0 72% 48%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 6% 88%;
+  --input: 240 6% 88%;
+  --ring: 217 82% 46%;
+  --brand-end: 217 82% 46%;
+  --glow-a: 240 5% 50%;
+  --glow-b: 240 5% 50%;
+  --glow-c: 240 5% 50%;
   --radius: 0.75rem;
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .dark {
-  --background: 222 47% 7%;
-  --foreground: 210 40% 98%;
-  --card: 222 44% 11%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222 44% 11%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 217 96% 56%;
-  --primary-foreground: 210 40% 98%;
-  --primary-soft: 213 94% 68%;
-  --secondary: 217 33% 17%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217 33% 16%;
-  --muted-foreground: 215 20% 65%;
-  --accent: 217 40% 16%;
-  --accent-foreground: 213 94% 78%;
-  --destructive: 0 63% 45%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217 33% 20%;
-  --input: 217 33% 20%;
-  --ring: 217 96% 56%;
-  --brand-end: 199 80% 55%;
-  --glow-a: 217 91% 50%;
-  --glow-b: 199 89% 48%;
-  --glow-c: 221 83% 53%;
+  /* Graphite dark — surfaces stay grey, accent stays blue */
+  --background: 240 6% 8%;
+  --foreground: 240 5% 93%;
+  --card: 240 5% 11%;
+  --card-foreground: 240 5% 93%;
+  --popover: 240 5% 11%;
+  --popover-foreground: 240 5% 93%;
+  --primary: 217 86% 58%;
+  --primary-foreground: 240 6% 8%;
+  --primary-soft: 217 70% 72%;
+  --secondary: 240 4% 16%;
+  --secondary-foreground: 240 5% 93%;
+  --muted: 240 4% 15%;
+  --muted-foreground: 240 4% 62%;
+  --accent: 240 4% 16%;
+  --accent-foreground: 240 5% 93%;
+  --destructive: 0 62% 48%;
+  --destructive-foreground: 240 5% 96%;
+  --border: 240 4% 18%;
+  --input: 240 4% 18%;
+  --ring: 217 86% 58%;
+  --brand-end: 217 86% 58%;
+  --glow-a: 240 4% 40%;
+  --glow-b: 240 4% 40%;
+  --glow-c: 240 4% 40%;
 }
 
 /* Warm cozy: sand + moss green + brown */
@@ -166,11 +168,6 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    background-image:
-      radial-gradient(ellipse 80% 50% at 0% -10%, hsl(var(--glow-a) / 0.14), transparent),
-      radial-gradient(ellipse 60% 40% at 100% 0%, hsl(var(--glow-b) / 0.12), transparent),
-      radial-gradient(ellipse 50% 30% at 50% 100%, hsl(var(--glow-c) / 0.08), transparent);
-    background-attachment: fixed;
   }
 }
 
@@ -381,44 +378,34 @@
    * and solid blue count chips. Use hsl(var(--token) / a) instead.
    */
   .surface-panel {
-    @apply rounded-2xl bg-card backdrop-blur-sm;
-    border: 1px solid hsl(var(--border) / 0.7);
-    box-shadow:
-      0 1px 2px rgb(0 0 0 / 0.05),
-      0 6px 18px rgb(0 0 0 / 0.07);
+    @apply rounded-xl bg-card;
+    border: 1px solid hsl(var(--foreground) / 0.08);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
     transition:
-      box-shadow 0.25s var(--ease-out-soft),
-      border-color 0.25s var(--ease-out-soft),
-      transform 0.25s var(--ease-out-soft),
-      background-color 0.25s ease;
+      border-color 0.2s var(--ease-out-soft),
+      background-color 0.2s ease;
+  }
+
+  .dark .surface-panel {
+    box-shadow: none;
   }
 
   .surface-tint {
-    @apply rounded-2xl;
-    border: 1px solid hsl(var(--primary) / 0.12);
-    box-shadow:
-      0 1px 2px rgb(0 0 0 / 0.05),
-      0 6px 18px rgb(0 0 0 / 0.07);
-    background-image: linear-gradient(
-      to bottom right,
-      hsl(var(--primary) / 0.1),
-      hsl(var(--card)),
-      hsl(var(--brand-end) / 0.12)
-    );
-    transition:
-      box-shadow 0.25s var(--ease-out-soft),
-      border-color 0.25s var(--ease-out-soft);
+    @apply rounded-xl bg-card;
+    border: 1px solid hsl(var(--foreground) / 0.08);
+    box-shadow: none;
+    transition: border-color 0.2s var(--ease-out-soft);
   }
 
   .section-label {
-    @apply text-xs font-semibold uppercase tracking-wider;
-    color: hsl(var(--primary-soft) / 0.72);
+    @apply text-xs font-medium tracking-normal;
+    color: hsl(var(--muted-foreground));
   }
 
   .count-chip {
-    @apply inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-semibold tabular-nums;
-    background-color: hsl(var(--primary) / 0.12);
-    color: hsl(var(--primary-soft));
+    @apply inline-flex items-center justify-center rounded-md px-2 py-0.5 text-xs font-medium tabular-nums;
+    background-color: hsl(var(--muted));
+    color: hsl(var(--muted-foreground));
   }
 
   .animate-fade-up {
@@ -458,7 +445,8 @@
   }
 
   .animate-nav-bounce {
-    animation: nav-bounce 0.48s var(--ease-bounce) both;
+    /* Unslop: no bouncy nav icon motion */
+    animation: none;
   }
 
   .dialog-overlay {

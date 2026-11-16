@@ -471,7 +471,7 @@ export function StatsPage() {
           <span className="font-medium">{t('stats.filters')}</span>
           <ChevronDown
             className={cn(
-              'h-5 w-5 text-muted-foreground transition-transform duration-300 ease-[var(--ease-bounce)]',
+              'h-5 w-5 text-muted-foreground transition-transform duration-300 ease-[var(--ease-out-soft)]',
               filtersOpen && 'rotate-180',
             )}
           />
@@ -608,7 +608,7 @@ export function StatsPage() {
             <span className="font-medium">{t('stats.topCategories')}</span>
             <ChevronDown
               className={cn(
-                'h-5 w-5 text-muted-foreground transition-transform duration-300 ease-[var(--ease-bounce)]',
+                'h-5 w-5 text-muted-foreground transition-transform duration-300 ease-[var(--ease-out-soft)]',
                 topCategoriesOpen && 'rotate-180',
               )}
             />
@@ -651,7 +651,7 @@ export function StatsPage() {
             <span className="font-medium">{t('stats.topWorks')}</span>
             <ChevronDown
               className={cn(
-                'h-5 w-5 text-muted-foreground transition-transform duration-300 ease-[var(--ease-bounce)]',
+                'h-5 w-5 text-muted-foreground transition-transform duration-300 ease-[var(--ease-out-soft)]',
                 topWorksOpen && 'rotate-180',
               )}
             />

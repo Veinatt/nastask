@@ -273,7 +273,7 @@ export function HomePage() {
         <div className="grid w-full grid-cols-2 gap-2">
           <Button
             size="lg"
-            className="w-full shadow-md shadow-primary/25"
+            className="w-full"
             onClick={() => setStartOpen(true)}
             disabled={starting}
           >
@@ -283,7 +283,7 @@ export function HomePage() {
           <Button
             size="lg"
             variant="outline"
-            className="w-full border-[hsl(var(--primary)/0.2)] bg-[hsl(var(--card)/0.8)] shadow-sm"
+            className="w-full"
             onClick={() => setManualOpen(true)}
           >
             <Plus className="h-4 w-4 mr-1" />

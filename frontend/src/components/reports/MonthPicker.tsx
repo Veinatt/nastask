@@ -17,25 +17,25 @@ export function MonthPicker({ year, month, onChange }: MonthPickerProps) {
     year === now.getFullYear() && month === now.getMonth() + 1
 
   return (
-    <div className="flex w-full items-center gap-1 rounded-xl border border-primary/15 bg-gradient-to-r from-primary/10 via-card to-[hsl(var(--brand-end)/0.1)] p-1 shadow-sm">
+    <div className="flex w-full items-center gap-1 rounded-xl border border-border bg-card p-1">
       <Button
         type="button"
         variant="ghost"
         size="icon"
-        className="h-9 w-9 shrink-0 text-primary-soft hover:bg-primary/10"
+        className="h-9 w-9 shrink-0 text-muted-foreground hover:bg-muted hover:text-foreground"
         aria-label={t('monthPicker.prev')}
         onClick={() => onChange(addMonthsSafe(year, month, -1))}
       >
         <ChevronLeft className="h-5 w-5" />
       </Button>
-      <div className="min-w-0 flex-1 px-2 text-center text-sm font-semibold tracking-tight">
+      <div className="min-w-0 flex-1 px-2 text-center text-sm font-medium tracking-tight">
         {label}
       </div>
       <Button
         type="button"
         variant="ghost"
         size="icon"
-        className="h-9 w-9 shrink-0 text-primary-soft hover:bg-primary/10"
+        className="h-9 w-9 shrink-0 text-muted-foreground hover:bg-muted hover:text-foreground"
         aria-label={t('monthPicker.next')}
         disabled={isCurrent}
         onClick={() => {
