@@ -139,7 +139,9 @@ async function sendSundayDigest(userId: number, now: Date): Promise<void> {
   await sendMessage({
     chatId: userId,
     text: lines.join('\n'),
-    replyMarkup: openApp.length ? { inline_keyboard: openApp } : undefined,
+    ...(openApp.length > 0
+      ? { replyMarkup: { inline_keyboard: openApp } }
+      : {}),
   })
 }
 
