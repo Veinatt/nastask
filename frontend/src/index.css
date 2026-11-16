@@ -3,7 +3,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "DM Sans", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-card: hsl(var(--card));
@@ -377,34 +377,38 @@
    * color-mix(); macOS Telegram WKWebView skips that → bright blue borders
    * and solid blue count chips. Use hsl(var(--token) / a) instead.
    */
+  /* Soft fill panels — no hairline borders (banking-adjacent, restrained). */
   .surface-panel {
-    @apply rounded-xl bg-card;
-    border: 1px solid hsl(var(--foreground) / 0.08);
-    box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
-    transition:
-      border-color 0.2s var(--ease-out-soft),
-      background-color 0.2s ease;
+    @apply rounded-2xl;
+    background-color: hsl(var(--muted) / 0.72);
+    border: none;
+    box-shadow: none;
+    transition: background-color 0.2s ease;
   }
 
   .dark .surface-panel {
-    box-shadow: none;
+    background-color: hsl(var(--muted) / 0.9);
   }
 
   .surface-tint {
-    @apply rounded-xl bg-card;
-    border: 1px solid hsl(var(--foreground) / 0.08);
+    @apply rounded-2xl;
+    background-color: hsl(var(--muted) / 0.72);
+    border: none;
     box-shadow: none;
-    transition: border-color 0.2s var(--ease-out-soft);
+    transition: background-color 0.2s ease;
+  }
+
+  .dark .surface-tint {
+    background-color: hsl(var(--muted) / 0.9);
   }
 
   .section-label {
-    @apply text-xs font-medium tracking-normal;
-    color: hsl(var(--muted-foreground));
+    @apply text-sm font-semibold tracking-tight text-foreground;
   }
 
   .count-chip {
-    @apply inline-flex items-center justify-center rounded-md px-2 py-0.5 text-xs font-medium tabular-nums;
-    background-color: hsl(var(--muted));
+    @apply inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-medium tabular-nums;
+    background-color: hsl(var(--foreground) / 0.06);
     color: hsl(var(--muted-foreground));
   }
 

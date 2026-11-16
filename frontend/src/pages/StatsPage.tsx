@@ -756,7 +756,8 @@ export function StatsPage() {
                             className={cn(
                               'surface-panel flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-accent/40',
                               // surface-panel sets its own border shorthand — must override with ! + solid color
-                              sparse && '!border-[rgb(239_68_68_/0.65)]',
+                              sparse &&
+                                'bg-[hsl(0_72%_48%/0.1)] dark:bg-[hsl(0_62%_48%/0.16)]',
                             )}
                             aria-label={t('common.edit')}
                             onClick={() => setEditTarget(entry)}

@@ -57,7 +57,7 @@ export function Navigation({ className }: Props) {
   return (
     <div className={cn(className)}>
       {/* Top bar: single #app-logo for all breakpoints (enter/exit fly to this slot) */}
-      <nav className="sticky top-0 z-40 flex items-center gap-1 border-b border-border bg-card px-4 py-2.5 md:px-6">
+      <nav className="sticky top-0 z-40 flex items-center gap-1 bg-background px-4 py-2.5 md:px-6">
         <div className="mr-0 flex items-center gap-1.5 md:mr-8">
           <button
             type="button"

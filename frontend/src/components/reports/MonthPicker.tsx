@@ -17,7 +17,7 @@ export function MonthPicker({ year, month, onChange }: MonthPickerProps) {
     year === now.getFullYear() && month === now.getMonth() + 1
 
   return (
-    <div className="flex w-full items-center gap-1 rounded-xl border border-border bg-card p-1">
+    <div className="flex w-full items-center gap-1 rounded-2xl bg-[hsl(var(--foreground)/0.06)] p-1">
       <Button
         type="button"
         variant="ghost"

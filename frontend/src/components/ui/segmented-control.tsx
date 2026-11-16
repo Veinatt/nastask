@@ -58,14 +58,14 @@ export function SegmentedControl<T extends string>({
       ref={rootRef}
       role="tablist"
       className={cn(
-        'relative inline-flex rounded-xl border border-border bg-muted p-1',
+        'relative inline-flex rounded-2xl bg-[hsl(var(--foreground)/0.06)] p-1',
         fullWidth && 'flex w-full',
         className,
       )}
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute top-1 bottom-1 left-0 rounded-lg bg-card border border-border"
+        className="pointer-events-none absolute top-1 bottom-1 left-0 rounded-xl bg-background"
         style={{
           width: pill.w,
           transform: `translate3d(${pill.x}px, 0, 0)`,

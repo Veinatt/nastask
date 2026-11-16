@@ -97,9 +97,8 @@ function CompletedList({
                   role="button"
                   tabIndex={0}
                   className={cn(
-                    'surface-panel flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-accent/40',
-                    // surface-panel sets its own border shorthand — must override with ! + solid color
-                    sparse && '!border-[rgb(239_68_68_/0.65)]',
+                    'surface-panel flex cursor-pointer items-center justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-[hsl(var(--foreground)/0.04)]',
+                    sparse && 'bg-[hsl(0_72%_48%/0.1)] dark:bg-[hsl(0_62%_48%/0.16)]',
                   )}
                   aria-label={t('common.edit')}
                   onClick={() => onEdit(e)}
@@ -273,7 +272,7 @@ export function HomePage() {
         <div className="grid w-full grid-cols-2 gap-2">
           <Button
             size="lg"
-            className="w-full"
+            className="w-full rounded-2xl"
             onClick={() => setStartOpen(true)}
             disabled={starting}
           >
@@ -282,8 +281,8 @@ export function HomePage() {
           </Button>
           <Button
             size="lg"
-            variant="outline"
-            className="w-full"
+            variant="secondary"
+            className="w-full rounded-2xl"
             onClick={() => setManualOpen(true)}
           >
             <Plus className="h-4 w-4 mr-1" />

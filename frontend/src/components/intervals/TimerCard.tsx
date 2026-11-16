@@ -29,18 +29,19 @@ function Tag({ tone, label }: { tone: TagTone; label: string }) {
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-medium tracking-normal',
-        tone === 'stale' && 'bg-red-600/15 text-red-700 dark:text-red-300',
+        'inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium tracking-normal',
+        tone === 'stale' &&
+          'bg-[hsl(0_72%_48%/0.12)] text-red-700 dark:text-red-300',
         tone === 'paused' &&
-          'bg-amber-500/15 text-amber-800 dark:text-amber-200',
+          'bg-[hsl(38_92%_50%/0.14)] text-amber-800 dark:text-amber-200',
         tone === 'running' &&
-          'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200',
+          'bg-[hsl(152_60%_40%/0.14)] text-emerald-800 dark:text-emerald-200',
       )}
     >
       <span
         className={cn(
-          'h-1.5 w-1.5 rounded-full',
-          tone === 'stale' && 'bg-red-600',
+          'h-1.5 w-1.5 shrink-0 rounded-full',
+          tone === 'stale' && 'bg-red-500',
           tone === 'paused' && 'bg-amber-500',
           tone === 'running' && 'bg-emerald-500',
         )}
@@ -140,13 +141,13 @@ export function TimerCard({
           : undefined
       }
       className={cn(
-        'surface-panel animate-fade-up flex h-full flex-col gap-3 p-4 sm:p-5 select-none',
-        onEdit && 'cursor-pointer hover:bg-accent/30',
+        'surface-panel animate-fade-up flex h-full flex-col gap-4 p-5 select-none',
+        onEdit && 'cursor-pointer hover:bg-[hsl(var(--foreground)/0.04)]',
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-1">
-          <p className="flex min-w-0 items-center gap-1.5 text-base font-semibold tracking-tight text-foreground">
+          <p className="flex min-w-0 items-center gap-1.5 text-[15px] font-semibold tracking-tight text-foreground">
             <span className="min-w-0 truncate">{title}</span>
             {fill.hasNotes ? (
               <StickyNote
@@ -181,7 +182,7 @@ export function TimerCard({
       <div className="mt-auto flex items-end justify-between gap-3 pt-1">
         <p
           className={cn(
-            'text-3xl font-semibold tabular-nums tracking-tight sm:text-4xl',
+            'text-4xl font-bold tabular-nums tracking-tight sm:text-5xl',
             entry.displaySeconds > 8 * 3600
               ? 'text-destructive'
               : 'text-foreground',
@@ -189,12 +190,12 @@ export function TimerCard({
         >
           {formatDuration(entry.displaySeconds)}
         </p>
-        <div className="flex shrink-0 items-center gap-3.5">
+        <div className="flex shrink-0 items-center gap-2.5">
           <Button
             type="button"
             size="icon"
-            variant="outline"
-            className="h-10 w-10 rounded-lg border-border text-foreground"
+            variant="secondary"
+            className="h-10 w-10 rounded-full"
             onClick={paused ? onResume : onPause}
             aria-label={paused ? t('timer.resume') : t('timer.pause')}
             title={paused ? t('timer.resume') : t('timer.pause')}
@@ -205,7 +206,7 @@ export function TimerCard({
             type="button"
             size="icon"
             variant="default"
-            className="h-10 w-10 rounded-lg"
+            className="h-10 w-10 rounded-full"
             onClick={onComplete}
             aria-label={t('timer.complete')}
             title={t('timer.complete')}
