@@ -1,0 +1,26 @@
+*.md
+
+# Secrets / local env (keep examples)
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Local databases / dumps
+*.sqlite
+*.b64
+nastask.sqlite
+nastask.b64
+
+# Exports / personal reports
+*.xlsx
+*.xls
+*.csv
+
+# Huge / unrelated binaries
+froggy/clips/*.zip
+froggy/clips/**/*.exe
+
+# OS / logs
+.DS_Store
+*.log
