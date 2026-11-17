@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { StickyNote } from 'lucide-react'
 import {
   Dialog,
@@ -68,6 +68,8 @@ export function CompleteIntervalDialog({
   const [items, setItems] = useState<WorkItemDraft[]>([emptyWorkItemDraft()])
   const [notes, setNotes] = useState('')
   const [showNotes, setShowNotes] = useState(false)
+  const notesRef = useRef<HTMLTextAreaElement>(null)
+  const focusNotesOnOpen = useRef(false)
   const [startDate, setStartDate] = useState('')
   const [startTime, setStartTime] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -83,6 +85,19 @@ export function CompleteIntervalDialog({
   useEffect(() => {
     if (entry) setViewEntry(entry)
   }, [entry])
+
+  useEffect(() => {
+    if (!showNotes || !focusNotesOnOpen.current) return
+    focusNotesOnOpen.current = false
+    const id = window.requestAnimationFrame(() => {
+      const el = notesRef.current
+      if (!el) return
+      el.focus()
+      const end = el.value.length
+      el.setSelectionRange(end, end)
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [showNotes])
 
   useEffect(() => {
     if (displaySeconds != null) setViewSeconds(displaySeconds)
@@ -200,39 +215,65 @@ export function CompleteIntervalDialog({
   }
 
   const notesNonEmpty = Boolean(notes.trim())
+  const timeSubtitle =
+    !editTime && viewEntry
+      ? [
+          formatTimeRange(viewEntry.start, viewEntry.end),
+          viewSeconds != null ? formatDuration(viewSeconds) : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      : null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg border-primary/15">
+      <DialogContent className="sm:max-w-lg border-0">
         <DialogHeader>
-          <DialogTitle>
-            {dialogTitle ??
-              (mode === 'draft' ? t('completeDialog.draftTitle') : t('completeDialog.title'))}
-          </DialogTitle>
+          <div className="min-w-0 flex-1 space-y-1 pr-1">
+            <DialogTitle>
+              {dialogTitle ??
+                (mode === 'draft' ? t('completeDialog.draftTitle') : t('completeDialog.title'))}
+            </DialogTitle>
+            {timeSubtitle ? (
+              <p className="truncate text-xs tabular-nums text-muted-foreground">
+                {timeSubtitle}
+              </p>
+            ) : null}
+          </div>
         </DialogHeader>
         <DialogBody className="min-w-0 space-y-4 overflow-x-hidden">
-          <div className="space-y-2">
-            <Label htmlFor="interval-title">{t('interval.title')}</Label>
-            <Input
-              id="interval-title"
-              value={title}
-              placeholder={t('interval.titlePlaceholder')}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
-          {!editTime && viewEntry && (
-            <div className="rounded-xl bg-primary/5 border border-primary/10 px-3 py-2 text-sm">
-              <span className="font-medium">
-                {formatTimeRange(viewEntry.start, viewEntry.end)}
-              </span>
-              {viewSeconds != null && (
-                <span className="text-muted-foreground">
-                  {' '}
-                  · {formatDuration(viewSeconds)}
-                </span>
-              )}
+          <div className="flex items-end gap-2.5">
+            <div className="min-w-0 flex-1 space-y-2">
+              <Label htmlFor="interval-title">{t('interval.title')}</Label>
+              <Input
+                id="interval-title"
+                value={title}
+                placeholder={t('interval.titlePlaceholder')}
+                onChange={(e) => setTitle(e.target.value)}
+              />
             </div>
-          )}
+            <div className="w-[4.5rem] shrink-0 space-y-2">
+              <Label
+                htmlFor="coef"
+                className="block truncate"
+                title={t('completeDialog.coefficient')}
+              >
+                {t('completeDialog.coefficientShort')}
+              </Label>
+              <Input
+                id="coef"
+                type="number"
+                min={0.01}
+                max={5}
+                step="any"
+                inputMode="decimal"
+                value={coefficient}
+                aria-label={t('completeDialog.coefficient')}
+                className="px-2 tabular-nums"
+                onChange={(e) => setCoefficient(e.target.value)}
+              />
+            </div>
+          </div>
 
           {editTime && (
             <div className="space-y-4">
@@ -255,46 +296,46 @@ export function CompleteIntervalDialog({
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="coef">{t('completeDialog.coefficient')}</Label>
-            <Input
-              id="coef"
-              type="number"
-              min={0.01}
-              step="any"
-              value={coefficient}
-              onChange={(e) => setCoefficient(e.target.value)}
-            />
-          </div>
-
-          <WorkItemsEditor items={items} onChange={setItems} />
-
-          <div className="space-y-2">
-            <Button
-              type="button"
-              variant={showNotes || notesNonEmpty ? 'secondary' : 'outline'}
-              className="h-10 w-full justify-start gap-2"
-              aria-pressed={showNotes}
-              onClick={() => setShowNotes((v) => !v)}
-            >
-              <StickyNote className="h-4 w-4" />
-              {notesNonEmpty ? t('notes.label') : t('notes.toggle')}
-              {notesNonEmpty ? (
-                <span className="ml-auto min-w-0 max-w-[50%] truncate text-xs text-muted-foreground">
-                  {notes.trim()}
+          <WorkItemsEditor
+            items={items}
+            onChange={setItems}
+            headerExtra={
+              <Button
+                type="button"
+                variant={notesNonEmpty ? 'default' : 'secondary'}
+                className={
+                  notesNonEmpty
+                    ? 'h-10 px-3'
+                    : 'control-surface h-10 px-3 text-primary-soft'
+                }
+                aria-pressed={showNotes || notesNonEmpty}
+                aria-label={notesNonEmpty ? t('notes.label') : t('notes.toggle')}
+                title={notesNonEmpty ? t('notes.label') : t('notes.toggle')}
+                onClick={() => {
+                  setShowNotes((v) => {
+                    if (!v) focusNotesOnOpen.current = true
+                    return !v
+                  })
+                }}
+              >
+                <span className="hidden min-[420px]:inline">
+                  {notesNonEmpty ? t('notes.label') : t('notes.toggle')}
                 </span>
-              ) : null}
-            </Button>
-            {showNotes && (
-              <textarea
-                id="notes"
-                className="flex min-h-[100px] w-full min-w-0 max-w-full break-words [overflow-wrap:anywhere] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                placeholder={t('notes.placeholder')}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
-            )}
-          </div>
+                <StickyNote className="h-4 w-4" />
+              </Button>
+            }
+          />
+
+          {showNotes && (
+            <textarea
+              ref={notesRef}
+              id="notes"
+              className="flex min-h-[88px] w-full min-w-0 max-w-full break-words [overflow-wrap:anywhere] rounded-md border border-input bg-card px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 focus-visible:border-primary"
+              placeholder={t('notes.placeholder')}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          )}
 
           {error && <p className="text-sm text-destructive">{error}</p>}
         </DialogBody>

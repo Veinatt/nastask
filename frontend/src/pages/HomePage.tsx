@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Plus, Play, StickyNote, Trash2 } from 'lucide-react'
+import { Plus, Play, StickyNote } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -21,6 +21,8 @@ import {
 import { useActiveIntervals } from '@/hooks/useActiveIntervals'
 import { useI18n } from '@/hooks/useI18n'
 import { SoftDivider } from '@/components/ui/soft-divider'
+import { StatusChip } from '@/components/ui/status-chip'
+import { SwipeToDelete } from '@/components/ui/swipe-to-delete'
 import { formatDecimal } from '@/utils/formatNumber'
 import { formatDuration, getTimeRangeParts } from '@/utils/timeDisplay'
 import {
@@ -28,8 +30,7 @@ import {
   getIntervalFillState,
   slavicPluralForm,
 } from '@/utils/intervalFill'
-import { continuousRunHours, isCompletedSparse } from '@/utils/intervalFreshness'
-import { cn } from '@/lib/utils'
+import { continuousRunHours } from '@/utils/intervalFreshness'
 import type { TimeEntry } from '@/db/types'
 
 /** Same thresholds as backend bot still-working reminders. */
@@ -48,6 +49,83 @@ function worksLabel(
   const key =
     form === 'one' ? 'fill.worksOne' : form === 'few' ? 'fill.worksFew' : 'fill.worksMany'
   return t(key, { n: String(n) })
+}
+
+function CompletedRow({
+  entry,
+  workCount,
+  onEdit,
+  onDelete,
+}: {
+  entry: TimeEntry
+  workCount: number
+  onEdit: (e: TimeEntry) => void
+  onDelete: (id: string) => void
+}) {
+  const { t } = useI18n()
+
+  const range = getTimeRangeParts(entry.start, entry.end)
+  const hasNotes = Boolean(entry.notes?.trim())
+  const titleText = entry.title?.trim()
+  const fill = getIntervalFillState(entry, workCount)
+  const fillSummary = formatFillSummary(fill, {
+    empty: t('fill.empty'),
+    works: (n) => worksLabel(t, n),
+  })
+
+  return (
+    <SwipeToDelete
+      onDelete={() => onDelete(entry.id)}
+      deleteAriaLabel={t('timer.deleteAria')}
+      onTap={() => onEdit(entry)}
+      contentClassName="surface-card flex cursor-pointer items-center justify-between gap-3 px-4 py-3 select-none"
+    >
+      <div
+        title={t('timer.swipeDelete')}
+        aria-label={t('common.edit')}
+        className="flex min-w-0 flex-1 items-center justify-between gap-3 outline-none"
+      >
+        <div className="min-w-0 flex-1 space-y-1">
+          <p className="flex min-w-0 items-center text-sm font-medium">
+            {range.dateLabel ? (
+              <span className="shrink-0 tabular-nums">{range.dateLabel}</span>
+            ) : null}
+            {titleText ? (
+              <>
+                {range.dateLabel ? <SoftDivider /> : null}
+                <span className="min-w-0 truncate">{titleText}</span>
+              </>
+            ) : null}
+            {hasNotes ? (
+              <StickyNote
+                className="ml-1.5 h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                aria-label={t('list.notesIndicator')}
+              />
+            ) : null}
+          </p>
+          <div className="min-w-0 space-y-0.5 text-xs text-muted-foreground tabular-nums">
+            <p className="min-w-0 break-words [overflow-wrap:anywhere]">
+              {range.timeLabel}
+            </p>
+            <p className="flex flex-wrap items-center gap-x-0">
+              <span>{formatDuration(entry.totalSeconds)}</span>
+              {entry.coefficient !== 1 ? (
+                <>
+                  <SoftDivider />
+                  <span>×{formatDecimal(entry.coefficient)}</span>
+                </>
+              ) : null}
+            </p>
+          </div>
+        </div>
+        <StatusChip
+          className="shrink-0"
+          label={fillSummary}
+          tone={fill.needsWorks ? 'warn' : 'ok'}
+        />
+      </div>
+    </SwipeToDelete>
+  )
 }
 
 function CompletedList({
@@ -72,97 +150,25 @@ function CompletedList({
         <span className="count-chip">{entries.length}</span>
       </div>
       {entries.length === 0 ? (
-        <div className="surface-panel px-5 py-8 text-center text-sm text-muted-foreground">
+        <div className="surface-card px-5 py-8 text-center text-sm text-muted-foreground">
           {t('home.completedEmpty')}
         </div>
       ) : (
-        <div className="grid gap-2 sm:grid-cols-2">
+        <ul className="grid gap-2">
           {entries
             .slice()
             .sort((a, b) => (b.end ?? '').localeCompare(a.end ?? ''))
-            .map((e) => {
-              const range = getTimeRangeParts(e.start, e.end)
-              const hasNotes = Boolean(e.notes?.trim())
-              const titleText = e.title?.trim()
-              const workCount = workCountByEntry[e.id] ?? 0
-              const fill = getIntervalFillState(e, workCount)
-              const sparse = isCompletedSparse(e, workCount)
-              const fillSummary = formatFillSummary(fill, {
-                empty: t('fill.empty'),
-                works: (n) => worksLabel(t, n),
-              })
-              return (
-                <div
-                  key={e.id}
-                  role="button"
-                  tabIndex={0}
-                  className={cn(
-                    'surface-panel flex cursor-pointer items-center justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-[hsl(var(--foreground)/0.04)]',
-                    sparse && 'bg-[hsl(0_72%_48%/0.1)] dark:bg-[hsl(0_62%_48%/0.16)]',
-                  )}
-                  aria-label={t('common.edit')}
-                  onClick={() => onEdit(e)}
-                  onKeyDown={(ev) => {
-                    if (ev.key === 'Enter' || ev.key === ' ') {
-                      ev.preventDefault()
-                      onEdit(e)
-                    }
-                  }}
-                >
-                  <div className="min-w-0 space-y-1">
-                    <p className="flex min-w-0 items-center text-sm font-medium">
-                      {range.dateLabel ? (
-                        <span className="shrink-0 tabular-nums">{range.dateLabel}</span>
-                      ) : null}
-                      {titleText ? (
-                        <>
-                          {range.dateLabel ? <SoftDivider /> : null}
-                          <span className="min-w-0 truncate">{titleText}</span>
-                        </>
-                      ) : null}
-                      {hasNotes ? (
-                        <StickyNote
-                          className="ml-1.5 h-3.5 w-3.5 shrink-0 text-muted-foreground"
-                          aria-label={t('list.notesIndicator')}
-                        />
-                      ) : null}
-                    </p>
-                    <p className="flex flex-wrap items-center text-xs text-muted-foreground tabular-nums">
-                      <span className="truncate">{range.timeLabel}</span>
-                      <SoftDivider />
-                      <span>{formatDuration(e.totalSeconds)}</span>
-                      {e.coefficient !== 1 ? (
-                        <>
-                          <SoftDivider />
-                          <span>×{formatDecimal(e.coefficient)}</span>
-                        </>
-                      ) : null}
-                      <SoftDivider />
-                      <span className={fill.needsWorks ? 'text-destructive' : undefined}>
-                        {fillSummary}
-                      </span>
-                    </p>
-                  </div>
-                  <div
-                    className="flex items-center gap-0.5 shrink-0"
-                    onClick={(ev) => ev.stopPropagation()}
-                    onKeyDown={(ev) => ev.stopPropagation()}
-                  >
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="h-9 w-9 text-destructive hover:bg-destructive/15 hover:text-destructive"
-                      aria-label={t('timer.deleteAria')}
-                      onClick={() => onDelete(e.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )
-            })}
-        </div>
+            .map((e) => (
+              <li key={e.id}>
+                <CompletedRow
+                  entry={e}
+                  workCount={workCountByEntry[e.id] ?? 0}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
+              </li>
+            ))}
+        </ul>
       )}
     </section>
   )
@@ -267,32 +273,30 @@ export function HomePage() {
   }
 
   return (
-    <div className="grid gap-6 lg:gap-8">
-      <header className="flex flex-col gap-4">
-        <div className="grid w-full grid-cols-2 gap-2">
-          <Button
-            size="lg"
-            className="w-full rounded-2xl"
-            onClick={() => setStartOpen(true)}
-            disabled={starting}
-          >
-            <Play className="h-4 w-4 mr-1.5 fill-current" />
-            {starting ? t('home.starting') : t('home.start')}
-          </Button>
-          <Button
-            size="lg"
-            variant="secondary"
-            className="w-full rounded-2xl"
-            onClick={() => setManualOpen(true)}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            {t('home.manual')}
-          </Button>
-        </div>
-      </header>
+    <div className="grid min-w-0 gap-6">
+      <div className="grid w-full grid-cols-2 gap-2">
+        <Button
+          size="lg"
+          className="w-full"
+          onClick={() => setStartOpen(true)}
+          disabled={starting}
+        >
+          <Play className="h-4 w-4 mr-1.5 fill-current" />
+          {starting ? t('home.starting') : t('home.start')}
+        </Button>
+        <Button
+          size="lg"
+          variant="secondary"
+          className="w-full"
+          onClick={() => setManualOpen(true)}
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          {t('home.manual')}
+        </Button>
+      </div>
 
       {error && (
-        <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+        <p className="surface-card px-4 py-2 text-sm text-destructive">
           {error}
         </p>
       )}
@@ -303,11 +307,11 @@ export function HomePage() {
           <span className="count-chip">{views.length}</span>
         </div>
         {views.length === 0 ? (
-          <div className="surface-panel px-5 py-10 text-center text-sm text-muted-foreground">
+          <div className="surface-card px-5 py-8 text-center text-sm text-muted-foreground">
             {t('home.activeEmpty')}
           </div>
         ) : (
-          <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 items-stretch gap-2 md:grid-cols-2 xl:grid-cols-3">
             {views.map((entry) => (
               <TimerCard
                 key={entry.id}

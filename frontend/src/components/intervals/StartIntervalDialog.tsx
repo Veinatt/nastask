@@ -73,7 +73,7 @@ export function StartIntervalDialog({ open, busy = false, onOpenChange, onConfir
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm border-primary/15">
+      <DialogContent className="sm:max-w-sm border-0">
         <DialogHeader>
           <DialogTitle>{t('startDialog.title')}</DialogTitle>
         </DialogHeader>
@@ -120,7 +120,7 @@ export function StartIntervalDialog({ open, busy = false, onOpenChange, onConfir
             </div>
           )}
         </DialogBody>
-        <DialogFooter className="grid grid-cols-2 gap-2 sm:grid-cols-2">
+        <DialogFooter>
           <Button variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>
             {t('common.cancel')}
           </Button>

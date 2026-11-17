@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { FileSpreadsheet, List, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -55,20 +54,27 @@ export function ReportsPage() {
         })
       : t('reports.employer', { taxRate: salary?.taxRate ?? 0 })
 
+  const groupByLabels = useMemo(
+    () => ({
+      both: t('reports.groupBy.both'),
+      category: t('reports.groupBy.category'),
+      description: t('reports.groupBy.description'),
+    }),
+    [t],
+  )
+
+  const noteLines = (notes: string | null | undefined): string[] => {
+    if (!notes?.trim()) return []
+    return notes
+      .split(/;|\n/)
+      .map((part) => part.trim())
+      .filter(Boolean)
+  }
+
   return (
-    <div className="grid gap-6">
-      <header className="flex flex-col gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('reports.title')}</h1>
-        </div>
-        <MonthPicker
-          year={year}
-          month={month}
-          onChange={({ year: y, month: m }) => {
-            setYear(y)
-            setMonth(m)
-          }}
-        />
+    <div className="grid min-w-0 gap-6">
+      <header>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-wide">{t('reports.title')}</h1>
       </header>
 
       <SegmentedControl
@@ -79,6 +85,15 @@ export function ReportsPage() {
           { value: 'salary', label: t('reports.tab.salary') },
           { value: 'tax', label: t('reports.tab.tasks') },
         ]}
+      />
+
+      <MonthPicker
+        year={year}
+        month={month}
+        onChange={({ year: y, month: m }) => {
+          setYear(y)
+          setMonth(m)
+        }}
       />
 
       {loading && <p className="text-sm text-muted-foreground">{t('common.loading')}</p>}
@@ -108,25 +123,25 @@ export function ReportsPage() {
             </Button>
           </div>
 
-          <div className="grid gap-3">
-            <div className="surface-panel px-4 py-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="surface-card px-4 py-3">
               <p className="section-label">{t('reports.total')}</p>
-              <p className="mt-1 text-lg font-semibold tabular-nums text-primary-soft">
+              <p className="mt-1.5 text-xl font-bold tabular-nums tracking-tight text-primary">
                 {salary.monthSum.toFixed(2)} {salary.currency}
               </p>
             </div>
-            <div className="surface-panel px-4 py-3">
+            <div className="surface-card px-4 py-3">
               <p className="section-label">{employerLabel}</p>
-              <p className="mt-1 text-lg font-semibold tabular-nums">
+              <p className="mt-1.5 text-xl font-bold tabular-nums tracking-tight text-primary">
                 {salary.employerPay.toFixed(2)} {salary.currency}
               </p>
             </div>
           </div>
 
-          <div className="surface-panel overflow-hidden">
+          <div className="surface-card overflow-hidden rounded-2xl">
             <Table>
               <TableHeader>
-                <TableRow className="bg-primary/5 hover:bg-primary/5">
+                <TableRow>
                   <TableHead>{t('reports.col.dateTime')}</TableHead>
                   <TableHead className="text-right">{t('reports.col.hours')}</TableHead>
                   <TableHead className="text-right">{t('reports.col.coef')}</TableHead>
@@ -178,72 +193,106 @@ export function ReportsPage() {
 
       {tab === 'tax' && tax && (
         <section key="tax" className="grid gap-4 animate-fade-up">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div className="space-y-1.5 min-w-0 flex-1">
-              <Label>{t('reports.groupBy')}</Label>
-              <Select
-                value={groupBy}
-                onValueChange={(v) =>
-                  setGroupBy(v as 'category' | 'description' | 'both')
-                }
+          <div className="flex w-full flex-wrap items-center gap-2">
+            <Select
+              value={groupBy}
+              onValueChange={(v) =>
+                setGroupBy(v as 'category' | 'description' | 'both')
+              }
+            >
+              <SelectTrigger
+                aria-label={t('reports.groupBy')}
+                className="control-surface !w-max max-w-full justify-start gap-2 border-0 px-4 font-medium text-primary-soft shadow-none hover:text-primary-soft focus:border-0 focus:ring-0 data-[state=open]:border-0 [&>span]:line-clamp-none [&>span]:max-w-none"
               >
-                <SelectTrigger className="w-full max-w-xs bg-card">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="both">{t('reports.groupBy.both')}</SelectItem>
-                  <SelectItem value="category">{t('reports.groupBy.category')}</SelectItem>
-                  <SelectItem value="description">{t('reports.groupBy.description')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <DownloadBurstButton
-                variant="outline"
-                className="h-9 border-primary/20 px-2"
-                aria-label={t('common.excel')}
-                title={t('common.excel')}
-                onDownload={() => exportTaxExcel(tax)}
-              >
-                <FileSpreadsheet className="h-4 w-4" />
-                {t('common.excel')}
-              </DownloadBurstButton>
-            </div>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="!w-auto !max-w-none min-w-[var(--radix-select-trigger-width)]">
+                <SelectItem value="both" className="pr-3">
+                  {groupByLabels.both}
+                </SelectItem>
+                <SelectItem value="category" className="pr-3">
+                  {groupByLabels.category}
+                </SelectItem>
+                <SelectItem value="description" className="pr-3">
+                  {groupByLabels.description}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <DownloadBurstButton
+              variant="outline"
+              wrapperClassName="ml-auto shrink-0"
+              className="h-10 border-0 px-4 font-medium"
+              aria-label={t('common.excel')}
+              title={t('common.excel')}
+              onDownload={() => exportTaxExcel(tax)}
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              {t('common.excel')}
+            </DownloadBurstButton>
           </div>
 
-          <div className="surface-panel overflow-hidden">
-            <Table>
+          <div className="surface-card overflow-hidden rounded-2xl">
+            <Table className="min-w-[36rem]">
               <TableHeader>
-                <TableRow className="bg-primary/5 hover:bg-primary/5">
+                <TableRow>
                   {(groupBy === 'both' || groupBy === 'category') && (
-                    <TableHead>{t('reports.col.category')}</TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      {t('reports.col.category')}
+                    </TableHead>
                   )}
                   {(groupBy === 'both' || groupBy === 'description') && (
-                    <TableHead>{t('reports.col.description')}</TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      {t('reports.col.description')}
+                    </TableHead>
                   )}
-                  <TableHead className="text-right">{t('reports.col.quantity')}</TableHead>
-                  <TableHead>{t('reports.col.unit')}</TableHead>
-                  <TableHead>{t('reports.col.notes')}</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    {t('reports.col.quantity')}
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    {t('reports.col.unit')}
+                  </TableHead>
+                  <TableHead className="min-w-[9rem] whitespace-nowrap">
+                    {t('reports.col.notes')}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tax.rows.map((r, i) => (
-                  <TableRow key={i}>
-                    {(groupBy === 'both' || groupBy === 'category') && (
-                      <TableCell className="font-medium">{r.categoryName ?? '—'}</TableCell>
-                    )}
-                    {(groupBy === 'both' || groupBy === 'description') && (
-                      <TableCell>{r.descriptionName ?? '—'}</TableCell>
-                    )}
-                    <TableCell className="text-right tabular-nums">
-                      {formatDecimal(r.quantity)}
-                    </TableCell>
-                    <TableCell>{r.unitName}</TableCell>
-                    <TableCell className="max-w-[14rem] whitespace-normal break-words text-sm text-muted-foreground">
-                      {r.notes?.trim() ? r.notes : '—'}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {tax.rows.map((r, i) => {
+                  const notes = noteLines(r.notes)
+                  return (
+                    <TableRow key={i}>
+                      {(groupBy === 'both' || groupBy === 'category') && (
+                        <TableCell className="align-middle font-medium whitespace-nowrap">
+                          {r.categoryName ?? '—'}
+                        </TableCell>
+                      )}
+                      {(groupBy === 'both' || groupBy === 'description') && (
+                        <TableCell className="align-middle whitespace-nowrap">
+                          {r.descriptionName ?? '—'}
+                        </TableCell>
+                      )}
+                      <TableCell className="align-middle tabular-nums whitespace-nowrap">
+                        {formatDecimal(r.quantity)}
+                      </TableCell>
+                      <TableCell className="align-middle whitespace-nowrap">
+                        {r.unitName}
+                      </TableCell>
+                      <TableCell className="align-top min-w-[9rem] text-sm text-muted-foreground">
+                        {notes.length === 0 ? (
+                          '—'
+                        ) : (
+                          <ul className="space-y-0.5">
+                            {notes.map((line, j) => (
+                              <li key={j} className="whitespace-nowrap">
+                                {line}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
             {tax.rows.length === 0 && (

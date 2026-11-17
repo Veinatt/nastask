@@ -58,20 +58,21 @@ export function SegmentedControl<T extends string>({
       ref={rootRef}
       role="tablist"
       className={cn(
-        'relative inline-flex rounded-2xl bg-[hsl(var(--foreground)/0.06)] p-1',
+        'relative inline-flex h-11 items-stretch rounded-2xl bg-card p-1 surface-elevate',
+        'transition-[background-color,box-shadow,color] duration-[280ms] ease-[var(--ease-out-soft)]',
         fullWidth && 'flex w-full',
         className,
       )}
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute top-1 bottom-1 left-0 rounded-xl bg-background"
+        className="pointer-events-none absolute top-1 bottom-1 left-0 rounded-xl bg-primary"
         style={{
           width: pill.w,
           transform: `translate3d(${pill.x}px, 0, 0)`,
           opacity: pill.ready ? 1 : 0,
           transition: pill.ready
-            ? 'transform 0.25s var(--ease-out-soft), width 0.25s var(--ease-out-soft), opacity 0.15s ease'
+            ? 'transform 0.38s var(--ease-bounce), width 0.38s var(--ease-bounce), opacity 0.15s ease'
             : 'none',
         }}
       />
@@ -94,11 +95,11 @@ export function SegmentedControl<T extends string>({
               if (opt.value !== value) onChange(opt.value)
             }}
             className={cn(
-              'relative z-10 flex min-w-0 items-center justify-center rounded-lg text-sm font-medium transition-colors duration-200',
-              iconOnly ? 'px-2 py-2.5' : 'px-3 py-2',
+              'relative z-10 flex min-w-0 items-center justify-center rounded-lg text-sm font-medium transition-colors duration-[280ms] ease-[var(--ease-out-soft)]',
+              iconOnly ? 'px-2' : 'px-3',
               fullWidth && 'flex-1',
               active
-                ? 'text-foreground'
+                ? 'text-primary-foreground'
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >

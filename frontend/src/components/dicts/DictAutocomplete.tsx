@@ -1,7 +1,7 @@
-import { useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Check } from 'lucide-react'
 import { useAutoComplete } from '@/hooks/useDictionaries'
-import { useDropdownMaxWidth } from '@/hooks/useDropdownMaxWidth'
 import { useI18n } from '@/hooks/useI18n'
 import type { DictKind } from '@/db/types'
 import { cn } from '@/lib/utils'
@@ -16,7 +16,11 @@ type Props = {
   placeholder?: string
   className?: string
   resolvedId?: string
+  autoFocus?: boolean
 }
+
+const MENU_MAX_H = 160
+const VIEWPORT_PAD = 8
 
 export function DictAutocomplete({
   kind,
@@ -25,18 +29,95 @@ export function DictAutocomplete({
   onResolved,
   placeholder,
   className,
+  autoFocus = false,
 }: Props) {
   const { t } = useI18n()
   const { suggestions, findExact, create } = useAutoComplete(kind)
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [menuPos, setMenuPos] = useState<{
+    top: number
+    left: number
+    width: number
+    maxHeight: number
+  } | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
-  const maxWidth = useDropdownMaxWidth(open, rootRef)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const menuRef = useRef<HTMLUListElement>(null)
+  const portalRef = useRef<HTMLElement | null>(null)
   const list = useMemo(() => suggestions(value), [suggestions, value])
+
+  useLayoutEffect(() => {
+    if (!autoFocus) return
+    inputRef.current?.focus()
+  }, [autoFocus])
 
   const exact = findExact(value)
   const trimmed = value.trim()
   const needsCreate = trimmed.length > 0 && !exact
+  const showMenu = open && list.length > 0
+
+  useLayoutEffect(() => {
+    if (!showMenu) {
+      setMenuPos(null)
+      portalRef.current = null
+      return
+    }
+    const update = () => {
+      const el = rootRef.current
+      if (!el) return
+      // Portal into dialog content (RemoveScroll shard). Body portals stay
+      // outside the dialog and clicks/scroll get blocked or dismiss the modal.
+      const portal =
+        el.closest<HTMLElement>('.dialog-content') ??
+        el.closest<HTMLElement>('[role="dialog"]') ??
+        document.body
+      portalRef.current = portal
+      const r = el.getBoundingClientRect()
+      const pr = portal.getBoundingClientRect()
+      const width = Math.floor(r.width)
+      const spaceBelow = pr.bottom - r.bottom - VIEWPORT_PAD
+      const spaceAbove = r.top - pr.top - VIEWPORT_PAD
+      const openUp = spaceBelow < MENU_MAX_H && spaceAbove > spaceBelow
+      const maxHeight = Math.max(
+        72,
+        Math.min(MENU_MAX_H, openUp ? spaceAbove : spaceBelow),
+      )
+      setMenuPos({
+        top: openUp
+          ? r.top - pr.top - 4 - maxHeight
+          : r.bottom - pr.top + 4,
+        left: r.left - pr.left,
+        width,
+        maxHeight,
+      })
+    }
+    const onScroll = (e: Event) => {
+      const menu = menuRef.current
+      if (menu && (e.target === menu || menu.contains(e.target as Node))) return
+      update()
+    }
+    update()
+    window.addEventListener('resize', update)
+    window.addEventListener('scroll', onScroll, true)
+    return () => {
+      window.removeEventListener('resize', update)
+      window.removeEventListener('scroll', onScroll, true)
+    }
+  }, [showMenu, value, list.length])
+
+  useLayoutEffect(() => {
+    if (!showMenu) return
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node | null
+      if (!target) return
+      if (rootRef.current?.contains(target)) return
+      if (menuRef.current?.contains(target)) return
+      setOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown, true)
+    return () => document.removeEventListener('pointerdown', onPointerDown, true)
+  }, [showMenu])
 
   const pick = (id: string, name: string) => {
     setOpen(false)
@@ -57,14 +138,10 @@ export function DictAutocomplete({
     }
   }
 
-  const menuWidth =
-    maxWidth != null
-      ? Math.min(rootRef.current?.offsetWidth ?? maxWidth, maxWidth)
-      : undefined
-
   return (
     <div ref={rootRef} className={cn('relative min-w-0', className)}>
       <input
+        ref={inputRef}
         value={value}
         placeholder={placeholder}
         onChange={(e) => {
@@ -78,13 +155,10 @@ export function DictAutocomplete({
           }
         }}
         onFocus={() => setOpen(true)}
-        onBlur={() => {
-          window.setTimeout(() => setOpen(false), 150)
-        }}
         autoComplete="off"
         className={cn(
-          'flex h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background transition-colors md:text-sm',
-          'placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          'flex h-10 w-full min-w-0 rounded-md border border-input bg-card px-3 py-2 text-base transition-colors md:text-sm',
+          'placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 focus-visible:border-primary',
           'disabled:cursor-not-allowed disabled:opacity-50',
           needsCreate ? 'pr-10' : 'pr-3',
         )}
@@ -92,7 +166,7 @@ export function DictAutocomplete({
       {needsCreate && (
         <button
           type="button"
-          className="absolute right-1 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
+          className="absolute right-1 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-success hover:bg-[hsl(var(--success)/0.1)] disabled:opacity-50"
           aria-label={t('dict.saveAria')}
           disabled={busy}
           onMouseDown={(e) => e.preventDefault()}
@@ -101,29 +175,45 @@ export function DictAutocomplete({
           <Check className="h-4 w-4" strokeWidth={2.5} />
         </button>
       )}
-      {open && list.length > 0 && (
-        <ul
-          className="absolute left-0 top-full z-50 mt-1 max-h-40 overflow-auto rounded-md border bg-popover text-sm shadow-md"
-          style={{
-            width: menuWidth ?? '100%',
-            maxWidth: maxWidth,
-          }}
-        >
-          {list.map((item) => (
-            <li key={item.id} className="min-w-0">
-              <button
-                type="button"
-                className="block w-full truncate px-3 py-2 text-left hover:bg-accent"
-                title={item.name}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => pick(item.id, item.name)}
+      {showMenu &&
+        menuPos &&
+        portalRef.current &&
+        createPortal(
+          <ul
+            ref={menuRef}
+            className="absolute z-[200] overflow-x-hidden overflow-y-auto overscroll-contain rounded-md border border-border bg-popover text-sm shadow-sm [touch-action:pan-y]"
+            style={{
+              top: menuPos.top,
+              left: menuPos.left,
+              width: menuPos.width,
+              maxHeight: menuPos.maxHeight,
+            }}
+          >
+            {list.map((item, index) => (
+              <li
+                key={item.id}
+                className={cn(
+                  'min-w-0',
+                  index > 0 && 'border-t border-border/60',
+                )}
               >
-                {item.name}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+                <button
+                  type="button"
+                  className="block w-full truncate px-3 py-2 text-left hover:bg-accent"
+                  title={item.name}
+                  onPointerDown={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    pick(item.id, item.name)
+                  }}
+                >
+                  {item.name}
+                </button>
+              </li>
+            ))}
+          </ul>,
+          portalRef.current,
+        )}
     </div>
   )
 }

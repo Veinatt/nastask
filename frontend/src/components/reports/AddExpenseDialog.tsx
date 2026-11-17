@@ -96,7 +96,6 @@ export function AddExpenseDialog({
                 setName(resolvedName)
               }}
             />
-            <p className="text-xs text-muted-foreground">{t('expenses.nameHint')}</p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="expense-amount">

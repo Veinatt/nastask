@@ -30,7 +30,7 @@ const AlertDialogContent = React.forwardRef<
       className={cn(
         'dialog-content fixed left-1/2 top-1/2 z-50 flex w-[calc(100%-1.5rem)] max-w-sm',
         'max-h-[calc(100dvh-1.5rem)] -translate-x-1/2 -translate-y-1/2',
-        'flex-col overflow-hidden rounded-2xl border border-border/70 bg-card p-0 shadow-lg',
+        'flex-col overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-lg',
         className,
       )}
       {...props}
@@ -47,7 +47,10 @@ const AlertDialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDiv
 )
 
 const AlertDialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn('grid shrink-0 grid-cols-2 gap-2 p-4 pt-2', className)} {...props} />
+  <div
+    className={cn('grid shrink-0 grid-cols-2 gap-2 p-4 pt-2', className)}
+    {...props}
+  />
 )
 
 const AlertDialogTitle = React.forwardRef<
@@ -80,7 +83,7 @@ const AlertDialogAction = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Action
     ref={ref}
-    className={cn(buttonVariants(), 'rounded-xl', className)}
+    className={cn(buttonVariants(), className)}
     {...props}
   />
 ))
@@ -92,7 +95,7 @@ const AlertDialogCancel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Cancel
     ref={ref}
-    className={cn(buttonVariants({ variant: 'outline' }), 'rounded-xl', className)}
+    className={cn(buttonVariants({ variant: 'outline' }), className)}
     {...props}
   />
 ))

@@ -91,7 +91,7 @@ export function SyncStatusIcon({ className }: { className?: string }) {
         <LoaderCircle className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
       ) : null}
       {visual === 'ok' ? (
-        <Check className="h-3.5 w-3.5 text-emerald-500" strokeWidth={2.6} />
+        <Check className="h-3.5 w-3.5 text-success" strokeWidth={2.6} />
       ) : null}
       {visual === 'error' ? (
         <TriangleAlert className="h-3.5 w-3.5 text-destructive" />

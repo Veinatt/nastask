@@ -80,10 +80,10 @@ export function ExpensesListDialog({
                 {t('expenses.empty')}
               </p>
             ) : (
-              <div className="overflow-hidden rounded-xl border border-[hsl(var(--border)/0.65)]">
+              <div className="surface-card overflow-hidden rounded-2xl">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-[hsl(var(--primary)/0.05)] hover:bg-[hsl(var(--primary)/0.05)]">
+                    <TableRow>
                       <TableHead>{t('expenses.name')}</TableHead>
                       <TableHead className="text-right">{t('expenses.amount')}</TableHead>
                       <TableHead className="w-10" />

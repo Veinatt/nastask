@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ChevronDown, StickyNote, Trash2 } from 'lucide-react'
+import { format as formatDate } from 'date-fns'
+import { ChevronDown, StickyNote } from 'lucide-react'
 import { expensesRemote } from '@/api/expensesRemote'
 import { intervalsRemote } from '@/api/intervalsRemote'
 import { MonthPicker } from '@/components/reports/MonthPicker'
 import { HoursCalendar } from '@/components/stats/HoursCalendar'
 import { CompleteIntervalDialog } from '@/components/intervals/CompleteIntervalDialog'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Label } from '@/components/ui/label'
+import { StatusChip } from '@/components/ui/status-chip'
+import { SwipeToDelete } from '@/components/ui/swipe-to-delete'
 import {
   Select,
   SelectContent,
@@ -39,7 +41,6 @@ import {
 import { monthLabel } from '@/utils/dateHelpers'
 import { formatDecimal } from '@/utils/formatNumber'
 import { SoftDivider } from '@/components/ui/soft-divider'
-import { isCompletedSparse } from '@/utils/intervalFreshness'
 import {
   formatFillSummary,
   getIntervalFillState,
@@ -77,16 +78,119 @@ function MetricCard({
   hint?: string
 }) {
   return (
-    <div className="surface-panel px-4 py-3">
+    <div className="surface-card px-4 py-3">
       <p className="section-label">{label}</p>
-      <p className="mt-1.5 text-xl font-bold tabular-nums tracking-tight">{value}</p>
+      <p className="mt-1.5 text-xl font-bold tabular-nums tracking-tight text-primary">
+        {value}
+      </p>
       {hint && <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>}
     </div>
   )
 }
 
+function StatsCompletedRow({
+  entry,
+  workCount,
+  currency,
+  hourlyRate,
+  onEdit,
+  onDelete,
+}: {
+  entry: TimeEntry
+  workCount: number
+  currency: string
+  hourlyRate: number
+  onEdit: (e: TimeEntry) => void
+  onDelete: (id: string) => void
+}) {
+  const { t } = useI18n()
+
+  const amount = (entry.totalSeconds / 3600) * entry.coefficient * hourlyRate
+  const range = getTimeRangeParts(entry.start, entry.end)
+  const hasNotes = Boolean(entry.notes?.trim())
+  const title = entry.title?.trim()
+  const fill = getIntervalFillState(entry, workCount)
+  const fillSummary = formatFillSummary(fill, {
+    empty: t('fill.empty'),
+    works: (n) => {
+      const form = slavicPluralForm(n)
+      const key =
+        form === 'one'
+          ? 'fill.worksOne'
+          : form === 'few'
+            ? 'fill.worksFew'
+            : 'fill.worksMany'
+      return t(key, { n: String(n) })
+    },
+  })
+
+  return (
+    <li>
+      <SwipeToDelete
+        onDelete={() => onDelete(entry.id)}
+        deleteAriaLabel={t('common.delete')}
+        onTap={() => onEdit(entry)}
+        contentClassName="surface-card flex cursor-pointer items-center justify-between gap-3 px-4 py-3 select-none"
+      >
+        <div
+          title={t('timer.swipeDelete')}
+          aria-label={t('common.edit')}
+          className="flex min-w-0 flex-1 items-center justify-between gap-3 outline-none"
+        >
+          <div className="min-w-0 flex-1 space-y-1">
+            <p className="flex min-w-0 items-center text-sm font-medium">
+              {range.dateLabel ? (
+                <span className="shrink-0 tabular-nums">{range.dateLabel}</span>
+              ) : null}
+              {title ? (
+                <>
+                  {range.dateLabel ? <SoftDivider /> : null}
+                  <span className="min-w-0 truncate">{title}</span>
+                </>
+              ) : null}
+              {hasNotes ? (
+                <StickyNote
+                  className="ml-1.5 h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                  aria-label={t('list.notesIndicator')}
+                />
+              ) : null}
+            </p>
+            <div className="min-w-0 space-y-0.5 text-xs text-muted-foreground tabular-nums">
+              <p className="min-w-0 break-words [overflow-wrap:anywhere]">
+                {range.timeLabel}
+              </p>
+              <p className="flex flex-wrap items-center">
+                <span>{formatDuration(entry.totalSeconds)}</span>
+                {entry.coefficient !== 1 ? (
+                  <>
+                    <SoftDivider />
+                    <span>×{formatDecimal(entry.coefficient)}</span>
+                  </>
+                ) : null}
+                {hourlyRate > 0 ? (
+                  <>
+                    <SoftDivider />
+                    <span>
+                      {amount.toFixed(2)} {currency}
+                    </span>
+                  </>
+                ) : null}
+              </p>
+            </div>
+          </div>
+          <StatusChip
+            className="shrink-0"
+            label={fillSummary}
+            tone={fill.needsWorks ? 'warn' : 'ok'}
+          />
+        </div>
+      </SwipeToDelete>
+    </li>
+  )
+}
+
 export function StatsPage() {
-  const { t, locale, intlLocale } = useI18n()
+  const { t, locale, dateFnsLocale } = useI18n()
   const now = useMemo(() => currentYearMonth(), [])
   const today = todayDateString()
   const { settings } = useSettings()
@@ -130,10 +234,8 @@ export function StatsPage() {
 
   const formatDayLabel = (date: string): string => {
     try {
-      return new Date(`${date}T12:00:00`).toLocaleDateString(intlLocale, {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'long',
+      return formatDate(new Date(`${date}T12:00:00`), 'EEE, d MMMM', {
+        locale: dateFnsLocale,
       })
     } catch {
       return date
@@ -337,6 +439,13 @@ export function StatsPage() {
 
   const handleCalendarSelect = (key: string) => {
     if (mode === 'range') {
+      // Second tap on the start day clears the range.
+      if (rangeFrom === key) {
+        setRangeFrom(null)
+        setRangeTo(null)
+        setRangePicking('from')
+        return
+      }
       if (rangePicking === 'from' || !rangeFrom) {
         setRangeFrom(key)
         setRangeTo(null)
@@ -351,6 +460,20 @@ export function StatsPage() {
     setMode('day')
   }
 
+  useEffect(() => {
+    if (mode !== 'range' || (!rangeFrom && !rangeTo)) return
+    if (editTarget != null || deleteId != null) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.preventDefault()
+      setRangeFrom(null)
+      setRangeTo(null)
+      setRangePicking('from')
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [mode, rangeFrom, rangeTo, editTarget, deleteId])
+
   const selectMonthFromChart = (y: number, m: number) => {
     setYear(y)
     setMonth(m)
@@ -364,7 +487,7 @@ export function StatsPage() {
   return (
     <div className="grid min-w-0 gap-6">
       <header>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('stats.title')}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-wide">{t('stats.title')}</h1>
       </header>
 
       <SegmentedControl
@@ -384,7 +507,7 @@ export function StatsPage() {
       />
 
       {mode !== 'all' && (
-        <div key={mode} className="grid gap-4 animate-fade-up">
+        <div key={mode} className="grid gap-3 animate-fade-up">
           <MonthPicker
             year={year}
             month={month}
@@ -399,18 +522,6 @@ export function StatsPage() {
               }
             }}
           />
-          {mode === 'range' && (
-            <p className="text-sm text-muted-foreground -mt-2">
-              {rangePicking === 'from' || !rangeFrom
-                ? t('stats.rangePickFrom')
-                : !rangeTo
-                  ? t('stats.rangePickTo')
-                  : t('stats.rangeSelected', {
-                      from: periodBounds.from,
-                      to: periodBounds.to,
-                    })}
-            </p>
-          )}
           <HoursCalendar
             year={year}
             month={month}
@@ -424,7 +535,7 @@ export function StatsPage() {
       )}
 
       {mode === 'all' && (
-        <section className="surface-panel grid gap-3 px-4 py-4">
+        <section className="surface-card grid gap-3 px-4 py-4">
           <h2 className="section-label">{t('stats.monthsChart')}</h2>
           <div className="flex h-32 items-end gap-1 sm:gap-1.5">
             {monthChart.map((m) => {
@@ -436,7 +547,7 @@ export function StatsPage() {
                   type="button"
                   className={cn(
                     'group flex min-w-0 flex-1 flex-col items-center gap-1.5',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    'focus-visible:outline-none focus-visible:ring-0',
                   )}
                   onClick={() => selectMonthFromChart(m.year, m.month)}
                   aria-label={`${monthLabel(m.year, m.month, locale)}: ${formatHoursMinutes(m.totalSeconds)}`}
@@ -444,7 +555,7 @@ export function StatsPage() {
                   <div className="flex h-24 w-full items-end justify-center">
                     <div
                       className={cn(
-                        'w-full max-w-8 rounded-t-sm transition-colors',
+                        'w-full max-w-8 rounded-t-sm transition-colors duration-[280ms] ease-[var(--ease-out-soft)]',
                         'bg-primary/35 group-hover:bg-primary/55',
                         m.totalSeconds === 0 && 'min-h-0.5 bg-muted',
                       )}
@@ -461,7 +572,7 @@ export function StatsPage() {
         </section>
       )}
 
-      <div className="surface-panel min-w-0 w-full overflow-hidden">
+      <div className="surface-card min-w-0 w-full overflow-hidden">
         <button
           type="button"
           className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
@@ -586,19 +697,10 @@ export function StatsPage() {
           value={`${metrics.earned.toFixed(2)} ${settings.currency}`}
           hint={earnedHint}
         />
-        <div className="col-span-2">
-          <MetricCard
-            label={t('stats.metric.intervals')}
-            value={String(metrics.intervalCount)}
-            hint={t('stats.metric.avgLength', {
-              hours: formatDecimalHoursAsClock(metrics.avgIntervalHours),
-            })}
-          />
-        </div>
       </section>
 
       {topCategories.length > 0 && (
-        <div className="surface-panel min-w-0 w-full overflow-hidden">
+        <div className="surface-card min-w-0 w-full overflow-hidden">
           <button
             type="button"
             className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
@@ -641,7 +743,7 @@ export function StatsPage() {
       )}
 
       {topWorks.length > 0 && (
-        <div className="surface-panel min-w-0 w-full overflow-hidden">
+        <div className="surface-card min-w-0 w-full overflow-hidden">
           <button
             type="button"
             className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
@@ -699,14 +801,14 @@ export function StatsPage() {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="surface-panel px-5 py-8 text-center text-sm text-muted-foreground">
+          <div className="surface-card px-5 py-8 text-center text-sm text-muted-foreground">
             {t('stats.listEmpty')}
           </div>
         ) : (
           <div className="grid gap-5">
             {grouped.map((monthGroup) => (
               <div key={monthGroup.key} className="grid gap-3">
-                <div className="flex items-baseline justify-between gap-3 border-b border-primary/15 pb-2">
+                <div className="flex items-baseline justify-between gap-3 border-b border-border/60 pb-2">
                   <h3 className="text-base font-semibold">
                     {monthLabel(monthGroup.year, monthGroup.month, locale)}
                   </h3>
@@ -725,116 +827,17 @@ export function StatsPage() {
                       </span>
                     </div>
                     <ul className="grid gap-2">
-                      {day.items.map(({ entry, workItems }) => {
-                        const amount =
-                          (entry.totalSeconds / 3600) *
-                          entry.coefficient *
-                          settings.hourlyRate
-                        const range = getTimeRangeParts(entry.start, entry.end)
-                        const hasNotes = Boolean(entry.notes?.trim())
-                        const title = entry.title?.trim()
-                        const fill = getIntervalFillState(entry, workItems.length)
-                        const sparse = isCompletedSparse(entry, workItems.length)
-                        const fillSummary = formatFillSummary(fill, {
-                          empty: t('fill.empty'),
-                          works: (n) => {
-                            const form = slavicPluralForm(n)
-                            const key =
-                              form === 'one'
-                                ? 'fill.worksOne'
-                                : form === 'few'
-                                  ? 'fill.worksFew'
-                                  : 'fill.worksMany'
-                            return t(key, { n: String(n) })
-                          },
-                        })
-                        return (
-                          <li
-                            key={entry.id}
-                            role="button"
-                            tabIndex={0}
-                            className={cn(
-                              'surface-panel flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-accent/40',
-                              // surface-panel sets its own border shorthand — must override with ! + solid color
-                              sparse &&
-                                'bg-[hsl(0_72%_48%/0.1)] dark:bg-[hsl(0_62%_48%/0.16)]',
-                            )}
-                            aria-label={t('common.edit')}
-                            onClick={() => setEditTarget(entry)}
-                            onKeyDown={(ev) => {
-                              if (ev.key === 'Enter' || ev.key === ' ') {
-                                ev.preventDefault()
-                                setEditTarget(entry)
-                              }
-                            }}
-                          >
-                            <div className="min-w-0 space-y-1">
-                              <p className="flex min-w-0 items-center text-sm font-medium">
-                                {range.dateLabel ? (
-                                  <span className="shrink-0 tabular-nums">
-                                    {range.dateLabel}
-                                  </span>
-                                ) : null}
-                                {title ? (
-                                  <>
-                                    {range.dateLabel ? <SoftDivider /> : null}
-                                    <span className="min-w-0 truncate">{title}</span>
-                                  </>
-                                ) : null}
-                                {hasNotes ? (
-                                  <StickyNote
-                                    className="ml-1.5 h-3.5 w-3.5 shrink-0 text-muted-foreground"
-                                    aria-label={t('list.notesIndicator')}
-                                  />
-                                ) : null}
-                              </p>
-                              <p className="flex flex-wrap items-center text-xs text-muted-foreground tabular-nums">
-                                <span className="truncate">{range.timeLabel}</span>
-                                <SoftDivider />
-                                <span>{formatDuration(entry.totalSeconds)}</span>
-                                {entry.coefficient !== 1 ? (
-                                  <>
-                                    <SoftDivider />
-                                    <span>×{formatDecimal(entry.coefficient)}</span>
-                                  </>
-                                ) : null}
-                                {settings.hourlyRate > 0 ? (
-                                  <>
-                                    <SoftDivider />
-                                    <span>
-                                      {amount.toFixed(2)} {settings.currency}
-                                    </span>
-                                  </>
-                                ) : null}
-                                <SoftDivider />
-                                <span
-                                  className={
-                                    fill.needsWorks ? 'text-destructive' : undefined
-                                  }
-                                >
-                                  {fillSummary}
-                                </span>
-                              </p>
-                            </div>
-                            <div
-                              className="flex items-center gap-0.5 shrink-0"
-                              onClick={(ev) => ev.stopPropagation()}
-                              onKeyDown={(ev) => ev.stopPropagation()}
-                            >
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-9 w-9 text-destructive hover:bg-destructive/15 hover:text-destructive"
-                                aria-label={t('common.delete')}
-                                onClick={() => setDeleteId(entry.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </li>
-                        )
-                      })}
+                      {day.items.map(({ entry, workItems }) => (
+                        <StatsCompletedRow
+                          key={entry.id}
+                          entry={entry}
+                          workCount={workItems.length}
+                          currency={settings.currency}
+                          hourlyRate={settings.hourlyRate}
+                          onEdit={setEditTarget}
+                          onDelete={setDeleteId}
+                        />
+                      ))}
                     </ul>
                   </div>
                 ))}

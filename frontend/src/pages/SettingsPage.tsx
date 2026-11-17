@@ -59,8 +59,8 @@ function TemplatesSection() {
   }
 
   return (
-    <section className="surface-panel min-w-0 overflow-hidden p-4 sm:p-5 space-y-3 h-full flex flex-col">
-      <h2 className="font-semibold text-primary-soft/90">{t('templates.title')}</h2>
+    <section className="surface-card min-w-0 overflow-hidden px-4 py-4 space-y-3 h-full flex flex-col">
+      <h2 className="section-label">{t('templates.title')}</h2>
       <p className="text-xs text-muted-foreground">{t('templates.settingsHint')}</p>
       {error && <p className="text-sm text-destructive">{error}</p>}
       <ul className="min-w-0 space-y-1 flex-1">
@@ -86,7 +86,7 @@ function TemplatesSection() {
                     type="button"
                     size="icon"
                     variant="ghost"
-                    className="h-8 w-8 text-emerald-500"
+                    className="h-8 w-8 text-success"
                     aria-label={t('common.save')}
                     onClick={saveEdit}
                   >
@@ -194,8 +194,8 @@ function DictSection({ kind, title }: { kind: DictKind; title: string }) {
   }
 
   return (
-    <section className="surface-panel min-w-0 overflow-hidden p-4 sm:p-5 space-y-3 h-full flex flex-col">
-      <h2 className="font-semibold text-primary-soft/90">{title}</h2>
+    <section className="surface-card min-w-0 overflow-hidden px-4 py-4 space-y-3 h-full flex flex-col">
+      <h2 className="section-label">{title}</h2>
       <div className="flex min-w-0 gap-2">
         <Input
           value={name}
@@ -234,7 +234,7 @@ function DictSection({ kind, title }: { kind: DictKind; title: string }) {
                     type="button"
                     size="icon"
                     variant="ghost"
-                    className="h-8 w-8 text-emerald-500"
+                    className="h-8 w-8 text-success"
                     aria-label={t('common.save')}
                     onClick={saveEdit}
                   >
@@ -370,34 +370,35 @@ export function SettingsPage() {
         <MemoryExportViewer onClose={() => setMemoryViewerOpen(false)} />
       )}
       <header>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('settings.title')}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-wide">{t('settings.title')}</h1>
       </header>
 
-      <section className="surface-panel p-4 sm:p-5 space-y-3">
-        <h2 className="font-semibold">{t('settings.theme')}</h2>
-        <SegmentedControl
-          fullWidth
-          value={preference}
-          onChange={setPreference}
-          onOptionTap={(value) => {
-            if (value === 'dark') onDarkThemeTriple()
-          }}
-          options={themeOptions}
-        />
-      </section>
+      <div className="grid gap-3">
+        <div className="space-y-2">
+          <h2 className="section-label">{t('settings.theme')}</h2>
+          <SegmentedControl
+            fullWidth
+            value={preference}
+            onChange={setPreference}
+            onOptionTap={(value) => {
+              if (value === 'dark') onDarkThemeTriple()
+            }}
+            options={themeOptions}
+          />
+        </div>
+        <div className="space-y-2">
+          <h2 className="section-label">{t('settings.language')}</h2>
+          <SegmentedControl
+            fullWidth
+            value={locale}
+            onChange={setLocale}
+            options={languageOptions}
+          />
+        </div>
+      </div>
 
-      <section className="surface-panel p-4 sm:p-5 space-y-3">
-        <h2 className="font-semibold">{t('settings.language')}</h2>
-        <SegmentedControl
-          fullWidth
-          value={locale}
-          onChange={setLocale}
-          options={languageOptions}
-        />
-      </section>
-
-      <section className="surface-panel p-4 sm:p-5 space-y-4">
-        <h2 className="font-semibold">{t('settings.pay')}</h2>
+      <section className="surface-card px-4 py-4 space-y-4">
+        <h2 className="section-label">{t('settings.pay')}</h2>
         <p className="text-sm text-muted-foreground">{t('settings.timezone')}</p>
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="space-y-2">
@@ -439,7 +440,7 @@ export function SettingsPage() {
         </div>
       </section>
 
-      <div className="grid min-w-0 gap-4 md:grid-cols-2">
+      <div className="grid min-w-0 gap-3 md:grid-cols-2">
         <DictSection kind="categories" title={t('settings.dict.categories')} />
         <DictSection kind="descriptions" title={t('settings.dict.descriptions')} />
         <DictSection kind="units" title={t('settings.dict.units')} />
@@ -447,8 +448,8 @@ export function SettingsPage() {
         <TemplatesSection />
       </div>
 
-      <section className="surface-panel p-4 sm:p-5 space-y-4">
-        <h2 className="font-semibold">{t('settings.export.title')}</h2>
+      <section className="surface-card px-4 py-4 space-y-4">
+        <h2 className="section-label">{t('settings.export.title')}</h2>
         <DownloadBurstButton
           variant="secondary"
           className="w-full"

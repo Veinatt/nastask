@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react'
+import { useEffect, useLayoutEffect, useState, useRef, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Bookmark, ChevronDown, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,12 +15,14 @@ import {
 import { DictAutocomplete } from '@/components/dicts/DictAutocomplete'
 import { useWorkTemplates } from '@/hooks/useWorkTemplates'
 import { useDictionaries } from '@/hooks/useDictionaries'
-import { useDropdownMaxWidth } from '@/hooks/useDropdownMaxWidth'
 import { useI18n } from '@/hooks/useI18n'
 import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { generateId } from '@/utils/idGenerator'
 import type { WorkItemInput, WorkTemplate } from '@/db/types'
+
+const TEMPLATES_MENU_MAX_H = 160
+const VIEWPORT_PAD = 8
 
 export type WorkItemDraft = {
   key: string
@@ -68,20 +71,117 @@ function draftMatchesTemplate(d: WorkItemDraft, tpl: WorkTemplate): boolean {
 type Props = {
   items: WorkItemDraft[]
   onChange: (items: WorkItemDraft[]) => void
+  /** Extra header actions (e.g. notes toggle), same style row as template/add */
+  headerExtra?: ReactNode
 }
 
-export function WorkItemsEditor({ items, onChange }: Props) {
+export function WorkItemsEditor({ items, onChange, headerExtra }: Props) {
   const { t } = useI18n()
   const { items: templates, create } = useWorkTemplates()
   const cats = useDictionaries('categories')
   const descs = useDictionaries('descriptions')
   const units = useDictionaries('units')
   const [templatesOpen, setTemplatesOpen] = useState(false)
+  const editorRootRef = useRef<HTMLDivElement>(null)
   const templatesTriggerRef = useRef<HTMLButtonElement>(null)
-  const templatesMaxWidth = useDropdownMaxWidth(templatesOpen, templatesTriggerRef)
+  const templatesMenuRef = useRef<HTMLUListElement>(null)
+  const templatesPortalRef = useRef<HTMLElement | null>(null)
+  const [templatesPos, setTemplatesPos] = useState<{
+    top: number
+    left: number
+    width: number
+    maxHeight: number
+  } | null>(null)
   const [saveDraft, setSaveDraft] = useState<WorkItemDraft | null>(null)
   const [templateName, setTemplateName] = useState('')
   const [savingTemplate, setSavingTemplate] = useState(false)
+  const [focusItemKey, setFocusItemKey] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!focusItemKey) return
+    if (!items.some((i) => i.key === focusItemKey)) return
+    const id = window.requestAnimationFrame(() => {
+      const input = editorRootRef.current?.querySelector<HTMLInputElement>(
+        `[data-work-focus-key="${focusItemKey}"] input`,
+      )
+      input?.focus()
+      setFocusItemKey(null)
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [focusItemKey, items])
+
+  useLayoutEffect(() => {
+    if (!templatesOpen) {
+      setTemplatesPos(null)
+      templatesPortalRef.current = null
+      return
+    }
+    const update = () => {
+      const el = templatesTriggerRef.current
+      const root = editorRootRef.current
+      if (!el || !root) return
+      // Portal into dialog content (RemoveScroll shard). Body portals stay
+      // blocked by the dialog's document wheel/touch listeners.
+      const portal =
+        el.closest<HTMLElement>('.dialog-content') ??
+        el.closest<HTMLElement>('[role="dialog"]') ??
+        document.body
+      templatesPortalRef.current = portal
+      const r = el.getBoundingClientRect()
+      const pr = portal.getBoundingClientRect()
+      const rootRect = root.getBoundingClientRect()
+      const left = r.left - pr.left
+      // Cover past the fields' right edge a few px so input borders
+      // don't peek beside the menu scrollbar; clamp to dialog edge.
+      const width = Math.max(
+        r.width,
+        Math.min(
+          Math.floor(rootRect.right - r.left) + 1,
+          Math.floor(pr.right - r.left),
+        ),
+      )
+      const spaceBelow = pr.bottom - r.bottom - VIEWPORT_PAD
+      const spaceAbove = r.top - pr.top - VIEWPORT_PAD
+      const openUp = spaceBelow < TEMPLATES_MENU_MAX_H && spaceAbove > spaceBelow
+      const maxHeight = Math.max(
+        72,
+        Math.min(TEMPLATES_MENU_MAX_H, openUp ? spaceAbove : spaceBelow),
+      )
+      setTemplatesPos({
+        top: openUp
+          ? r.top - pr.top - 4 - maxHeight
+          : r.bottom - pr.top + 4,
+        left,
+        width,
+        maxHeight,
+      })
+    }
+    const onScroll = (e: Event) => {
+      const menu = templatesMenuRef.current
+      if (menu && (e.target === menu || menu.contains(e.target as Node))) return
+      update()
+    }
+    update()
+    window.addEventListener('resize', update)
+    window.addEventListener('scroll', onScroll, true)
+    return () => {
+      window.removeEventListener('resize', update)
+      window.removeEventListener('scroll', onScroll, true)
+    }
+  }, [templatesOpen, templates.length])
+
+  useLayoutEffect(() => {
+    if (!templatesOpen) return
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node | null
+      if (!target) return
+      if (templatesTriggerRef.current?.contains(target)) return
+      if (templatesMenuRef.current?.contains(target)) return
+      setTemplatesOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown, true)
+    return () => document.removeEventListener('pointerdown', onPointerDown, true)
+  }, [templatesOpen])
 
   const nameOf = (list: { id: string; name: string }[], id: string) =>
     list.find((x) => x.id === id)?.name ?? ''
@@ -102,13 +202,14 @@ export function WorkItemsEditor({ items, onChange }: Props) {
       quantity: String(tpl.defaultQuantity),
     }
     const onlyEmpty =
-      items.length === 1 &&
-      !items[0]!.categoryId &&
-      !items[0]!.descriptionId &&
-      !items[0]!.unitId &&
-      !items[0]!.categoryName.trim() &&
-      !items[0]!.descriptionName.trim()
-    onChange(onlyEmpty ? [draft] : [...items, draft])
+      items.length === 0 ||
+      (items.length === 1 &&
+        !items[0]!.categoryId &&
+        !items[0]!.descriptionId &&
+        !items[0]!.unitId &&
+        !items[0]!.categoryName.trim() &&
+        !items[0]!.descriptionName.trim())
+    onChange(onlyEmpty ? [draft] : [draft, ...items])
     setTemplatesOpen(false)
   }
 
@@ -144,69 +245,81 @@ export function WorkItemsEditor({ items, onChange }: Props) {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <Label>{t('workItems.label')}</Label>
-        <div className="flex items-center gap-1.5">
+    <div ref={editorRootRef} className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+        <Label className="shrink-0 pb-0 leading-10">{t('workItems.label')}</Label>
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
           <div className="relative">
             <Button
               ref={templatesTriggerRef}
               type="button"
               variant="secondary"
-              size="sm"
-              className="bg-primary/15 text-primary-soft hover:bg-primary/25"
+              className="control-surface h-10 px-3 text-primary-soft"
               disabled={templates.length === 0}
               aria-expanded={templatesOpen}
               aria-label={t('templates.title')}
               onClick={() => setTemplatesOpen((v) => !v)}
-              onBlur={() => {
-                window.setTimeout(() => setTemplatesOpen(false), 150)
-              }}
             >
               {t('templates.pick')}
-              <ChevronDown className="h-4 w-4 ml-1 shrink-0 opacity-70" />
+              <ChevronDown className="h-4 w-4 shrink-0" strokeWidth={2.5} />
             </Button>
-            {templatesOpen && templates.length > 0 && (
-              <ul
-                className="absolute left-0 top-full z-50 mt-1 max-h-40 min-w-full overflow-x-hidden overflow-y-auto rounded-md border bg-popover text-sm shadow-md"
-                style={
-                  templatesMaxWidth != null
-                    ? { maxWidth: templatesMaxWidth, width: templatesMaxWidth }
-                    : undefined
-                }
-              >
-                {templates.map((tpl) => (
-                  <li key={tpl.id} className="min-w-0">
-                    <button
-                      type="button"
-                      className="block w-full truncate px-3 py-2 text-left hover:bg-accent"
-                      title={tpl.name}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => applyTemplate(tpl)}
+            {templatesOpen &&
+              templates.length > 0 &&
+              templatesPos &&
+              templatesPortalRef.current &&
+              createPortal(
+                <ul
+                  ref={templatesMenuRef}
+                  className="absolute z-[200] overflow-x-hidden overflow-y-auto overscroll-contain rounded-md border border-border bg-popover text-sm shadow-sm [touch-action:pan-y]"
+                  style={{
+                    top: templatesPos.top,
+                    left: templatesPos.left,
+                    width: templatesPos.width,
+                    maxHeight: templatesPos.maxHeight,
+                  }}
+                >
+                  {templates.map((tpl, index) => (
+                    <li
+                      key={tpl.id}
+                      className={cn(
+                        'min-w-0',
+                        index > 0 && 'border-t border-border/60',
+                      )}
                     >
-                      {tpl.name}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+                      <button
+                        type="button"
+                        className="block w-full truncate px-3 py-2 text-left hover:bg-accent"
+                        title={tpl.name}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => applyTemplate(tpl)}
+                      >
+                        {tpl.name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>,
+                templatesPortalRef.current,
+              )}
           </div>
           <Button
             type="button"
             variant="secondary"
-            size="sm"
-            className="bg-primary/15 text-primary-soft hover:bg-primary/25"
-            onClick={() => onChange([...items, emptyWorkItemDraft()])}
+            className="control-surface h-10 px-3 text-primary-soft"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              const draft = emptyWorkItemDraft()
+              setFocusItemKey(draft.key)
+              onChange([draft, ...items])
+            }}
+            aria-label={t('workItems.add')}
+            title={t('workItems.add')}
           >
-            <Plus className="h-4 w-4 mr-1" />
-            {t('workItems.add')}
+            <span className="hidden sm:inline">{t('workItems.add')}</span>
+            <Plus className="h-4 w-4" />
           </Button>
+          {headerExtra}
         </div>
       </div>
-
-      {items.length === 0 && (
-        <p className="text-sm text-muted-foreground">{t('workItems.emptyHint')}</p>
-      )}
 
       {items.map((item, index) => {
         const alreadyTemplate = templates.some((tpl) => draftMatchesTemplate(item, tpl))
@@ -214,6 +327,7 @@ export function WorkItemsEditor({ items, onChange }: Props) {
         return (
           <div
             key={item.key}
+            data-work-focus-key={item.key}
             className={cn('grid gap-2', index > 0 && 'border-t border-border/50 pt-3')}
           >
             <DictAutocomplete
@@ -238,7 +352,7 @@ export function WorkItemsEditor({ items, onChange }: Props) {
                 update(item.key, { descriptionId: id, descriptionName: name })
               }
             />
-            <div className="grid grid-cols-[5.5rem_minmax(0,1fr)_auto] items-center gap-2">
+            <div className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-2">
               <Input
                 type="number"
                 min={0.01}
@@ -246,6 +360,7 @@ export function WorkItemsEditor({ items, onChange }: Props) {
                 value={item.quantity}
                 onChange={(e) => update(item.key, { quantity: e.target.value })}
                 placeholder={t('workItems.quantity')}
+                className="px-2 tabular-nums"
               />
               <DictAutocomplete
                 kind="units"
@@ -255,12 +370,12 @@ export function WorkItemsEditor({ items, onChange }: Props) {
                 onChange={(name) => update(item.key, { unitName: name, unitId: '' })}
                 onResolved={(id, name) => update(item.key, { unitId: id, unitName: name })}
               />
-              <div className="flex items-center shrink-0">
+              <div className="flex shrink-0 items-center">
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className={cn('text-primary-soft', alreadyTemplate && 'opacity-40')}
+                  className={cn('h-9 w-9 text-primary-soft', alreadyTemplate && 'opacity-40')}
                   disabled={!canSave}
                   onClick={() => openSaveTemplate(item)}
                   aria-label={t('templates.save')}
@@ -274,7 +389,8 @@ export function WorkItemsEditor({ items, onChange }: Props) {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="text-destructive hover:bg-destructive/15 hover:text-destructive"
+                  className="h-9 w-9 text-destructive hover:bg-destructive/15 hover:text-destructive"
+                  disabled={items.length <= 1}
                   onClick={() => onChange(items.filter((i) => i.key !== item.key))}
                   aria-label={t('workItems.deleteAria')}
                 >
