@@ -175,7 +175,6 @@ export function SwipeToDelete({
 
   const deleteRevealed = offset < -2
   const completeRevealed = canComplete && offset > 2
-  const revealed = deleteRevealed || completeRevealed
 
   return (
     <div
