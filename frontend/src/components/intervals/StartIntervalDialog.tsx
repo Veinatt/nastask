@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Play } from 'lucide-react'
 import {
   Dialog,
   DialogBody,
@@ -125,8 +124,7 @@ export function StartIntervalDialog({ open, busy = false, onOpenChange, onConfir
             {t('common.cancel')}
           </Button>
           <Button disabled={busy} onClick={() => void submit()}>
-            <Play className="h-4 w-4 mr-1.5 fill-current" />
-            {busy ? t('home.starting') : t('home.start')}
+            {busy ? t('startDialog.submitting') : t('startDialog.submit')}
           </Button>
         </DialogFooter>
       </DialogContent>

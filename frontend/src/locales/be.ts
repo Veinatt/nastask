@@ -22,8 +22,8 @@ export const be: Record<MessageKey, string> = {
 
   'home.title': 'Галоўная',
   'home.subtitle': 'Адзін клік — новы інтэрвал. Улічваецца па даце і часе старту.',
-  'home.start': 'ЛЕЕЕТСГО',
-  'home.starting': 'ЛЕЕЕТСГО…',
+  'home.start': 'Старт',
+  'home.starting': 'Запуск…',
   'home.manual': 'Уручную',
   'home.startError': 'Не атрымалася запусціць',
   'home.active': 'Актыўныя',
@@ -40,6 +40,8 @@ export const be: Record<MessageKey, string> = {
 
   'startDialog.title': 'Новы інтэрвал',
   'startDialog.noTemplate': 'Без шаблона',
+  'startDialog.submit': 'Запусціць',
+  'startDialog.submitting': 'Запуск…',
   'interval.title': 'Назва',
   'interval.titlePlaceholder': 'Неабавязкова',
 
@@ -257,6 +259,8 @@ export const be: Record<MessageKey, string> = {
   'sync.queued': 'Не сінхранізавана — будзе адпраўлена пры з’яўленні сеткі',
   'sync.authError': 'Памылка аўтарызацыі — адкрыйце праграму з Telegram',
   'sync.retryLater': 'Не сінхранізавана — паўтор пры наступным падключэнні',
+  'sync.pullFailed': 'Не атрымалася загрузіць даныя — праверце сетку',
+  'sync.historyFailed': 'Гісторыя інтэрвалаў не абнавілася',
   'sync.ok': 'Сінхранізацыя прайшла паспяхова',
 
   'timeDisplay.from': 'з {{time}}',

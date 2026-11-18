@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { Plus, Play, StickyNote } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { StickyNote } from 'lucide-react'
+import { HomeStartPill } from '@/components/home/HomeStartPill'
+import { useStartActions } from '@/components/home/StartActionsContext'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,11 +14,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { TimerCard } from '@/components/intervals/TimerCard'
 import { CompleteIntervalDialog } from '@/components/intervals/CompleteIntervalDialog'
-import { ManualEntryDialog } from '@/components/intervals/ManualEntryDialog'
-import {
-  StartIntervalDialog,
-  type StartIntervalPayload,
-} from '@/components/intervals/StartIntervalDialog'
 import { useActiveIntervals } from '@/hooks/useActiveIntervals'
 import { useI18n } from '@/hooks/useI18n'
 import { SoftDivider } from '@/components/ui/soft-divider'
@@ -75,10 +71,11 @@ function CompletedRow({
 
   return (
     <SwipeToDelete
+      className="!rounded-[31px]"
       onDelete={() => onDelete(entry.id)}
       deleteAriaLabel={t('timer.deleteAria')}
       onTap={() => onEdit(entry)}
-      contentClassName="surface-card flex cursor-pointer items-center justify-between gap-3 px-4 py-3 select-none"
+      contentClassName="surface-card flex cursor-pointer items-center justify-between gap-3 !rounded-[31px] py-3 pl-5 pr-4 select-none"
     >
       <div
         title={t('timer.swipeDelete')}
@@ -150,7 +147,7 @@ function CompletedList({
         <span className="count-chip">{entries.length}</span>
       </div>
       {entries.length === 0 ? (
-        <div className="surface-card px-5 py-8 text-center text-sm text-muted-foreground">
+        <div className="surface-card !rounded-[31px] px-5 py-8 text-center text-sm text-muted-foreground">
           {t('home.completedEmpty')}
         </div>
       ) : (
@@ -181,23 +178,19 @@ export function HomePage() {
     completedToday,
     completedYesterday,
     workCountByEntry,
-    start,
     pause,
     resume,
     complete,
-    createManual,
     updateInterval,
     remove,
     refreshActive,
   } = useActiveIntervals()
+  const { openStart, openManual, starting } = useStartActions()
 
-  const [startOpen, setStartOpen] = useState(false)
-  const [starting, setStarting] = useState(false)
   const [completeTarget, setCompleteTarget] = useState<TimeEntry | null>(null)
   const [editTarget, setEditTarget] = useState<TimeEntry | null>(null)
   const [draftTarget, setDraftTarget] = useState<TimeEntry | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [manualOpen, setManualOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [stillWorking, setStillWorking] = useState<TimeEntry | null>(null)
   const [stillWorkingHours, setStillWorkingHours] = useState(0)
@@ -233,20 +226,6 @@ export function HomePage() {
     }
   }, [views])
 
-  const handleStartConfirm = async (payload: StartIntervalPayload) => {
-    setStarting(true)
-    setError(null)
-    try {
-      await start(payload.title, payload.workItems ?? [])
-      setStartOpen(false)
-      void refreshActive()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t('home.startError'))
-    } finally {
-      setStarting(false)
-    }
-  }
-
   const openComplete = async (entry: TimeEntry) => {
     pausedForCompleteRef.current = null
     if (!entry.pauseStartedAt) {
@@ -274,26 +253,13 @@ export function HomePage() {
 
   return (
     <div className="grid min-w-0 gap-6">
-      <div className="grid w-full grid-cols-2 gap-2">
-        <Button
-          size="lg"
-          className="w-full"
-          onClick={() => setStartOpen(true)}
-          disabled={starting}
-        >
-          <Play className="h-4 w-4 mr-1.5 fill-current" />
-          {starting ? t('home.starting') : t('home.start')}
-        </Button>
-        <Button
-          size="lg"
-          variant="secondary"
-          className="w-full"
-          onClick={() => setManualOpen(true)}
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          {t('home.manual')}
-        </Button>
-      </div>
+      <HomeStartPill
+        className="hidden md:block"
+        disabled={starting}
+        label={starting ? t('home.starting') : t('home.start')}
+        onStart={openStart}
+        onManual={openManual}
+      />
 
       {error && (
         <p className="surface-card px-4 py-2 text-sm text-destructive">
@@ -307,7 +273,7 @@ export function HomePage() {
           <span className="count-chip">{views.length}</span>
         </div>
         {views.length === 0 ? (
-          <div className="surface-card px-5 py-8 text-center text-sm text-muted-foreground">
+          <div className="surface-card !rounded-[31px] px-5 py-8 text-center text-sm text-muted-foreground">
             {t('home.activeEmpty')}
           </div>
         ) : (
@@ -406,21 +372,6 @@ export function HomePage() {
             end: payload.end ?? null,
             notes: payload.notes ?? null,
           })
-        }}
-      />
-
-      <StartIntervalDialog
-        open={startOpen}
-        busy={starting}
-        onOpenChange={setStartOpen}
-        onConfirm={handleStartConfirm}
-      />
-
-      <ManualEntryDialog
-        open={manualOpen}
-        onOpenChange={setManualOpen}
-        onSubmit={async (payload) => {
-          await createManual(payload)
         }}
       />
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { AppErrorBoundary } from '@/components/AppErrorBoundary'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { AppTabProvider } from '@/components/layout/AppTabContext'
+import { StartActionsProvider } from '@/components/home/StartActionsContext'
 import { MemoryOpenProvider } from '@/components/memory/MemoryOpenContext'
 import { SplashDoneProvider } from '@/components/splash/SplashDoneContext'
 import { SplashScreen } from '@/components/splash/SplashScreen'
@@ -43,10 +44,12 @@ export default function App() {
       <SplashDoneProvider value={splashDone}>
         <AppTabProvider>
           <MemoryOpenProvider>
-            <div className="app-shell min-h-dvh min-h-[100vh]">
-              <AppLayout />
-            </div>
-            {!splashDone && <SplashScreen onComplete={onSplashComplete} />}
+            <StartActionsProvider>
+              <div className="app-shell min-h-dvh min-h-[100vh]">
+                <AppLayout />
+              </div>
+              {!splashDone && <SplashScreen onComplete={onSplashComplete} />}
+            </StartActionsProvider>
           </MemoryOpenProvider>
         </AppTabProvider>
       </SplashDoneProvider>

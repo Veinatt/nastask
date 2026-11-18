@@ -16,6 +16,8 @@ type Props<T extends string> = {
   onOptionTap?: (value: T) => void
   className?: string
   fullWidth?: boolean
+  /** Taller track + larger icons (e.g. floating mobile nav). */
+  size?: 'md' | 'lg'
 }
 
 export function SegmentedControl<T extends string>({
@@ -25,6 +27,7 @@ export function SegmentedControl<T extends string>({
   onOptionTap,
   className,
   fullWidth,
+  size = 'md',
 }: Props<T>) {
   const rootRef = useRef<HTMLDivElement>(null)
   const btnRefs = useRef(new Map<string, HTMLButtonElement>())
@@ -58,15 +61,20 @@ export function SegmentedControl<T extends string>({
       ref={rootRef}
       role="tablist"
       className={cn(
-        'relative inline-flex h-11 items-stretch rounded-2xl bg-card p-1 surface-elevate',
+        'relative inline-flex items-stretch rounded-2xl bg-card p-1 surface-elevate',
         'transition-[background-color,box-shadow,color] duration-[280ms] ease-[var(--ease-out-soft)]',
+        size === 'lg' ? 'h-14 rounded-[1.75rem]' : 'h-11',
         fullWidth && 'flex w-full',
         className,
       )}
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute top-1 bottom-1 left-0 rounded-xl bg-primary"
+        className={cn(
+          'pointer-events-none absolute top-1 bottom-1 left-0 bg-primary',
+          /* Outer lg radius 1.75rem − p-1 → inner ~1.5rem so pill matches the track. */
+          size === 'lg' ? 'rounded-[1.5rem]' : 'rounded-xl',
+        )}
         style={{
           width: pill.w,
           transform: `translate3d(${pill.x}px, 0, 0)`,
@@ -95,7 +103,8 @@ export function SegmentedControl<T extends string>({
               if (opt.value !== value) onChange(opt.value)
             }}
             className={cn(
-              'relative z-10 flex min-w-0 items-center justify-center rounded-lg text-sm font-medium transition-colors duration-[280ms] ease-[var(--ease-out-soft)]',
+              'relative z-10 flex min-w-0 items-center justify-center text-sm font-medium transition-colors duration-[280ms] ease-[var(--ease-out-soft)]',
+              size === 'lg' ? 'rounded-[1.5rem]' : 'rounded-lg',
               iconOnly ? 'px-2' : 'px-3',
               fullWidth && 'flex-1',
               active
@@ -105,7 +114,14 @@ export function SegmentedControl<T extends string>({
           >
             {opt.icon ? (
               <>
-                <span className="inline-flex [&_svg]:h-5 [&_svg]:w-5">{opt.icon}</span>
+                <span
+                  className={cn(
+                    'inline-flex',
+                    size === 'lg' ? '[&_svg]:h-7 [&_svg]:w-7' : '[&_svg]:h-5 [&_svg]:w-5',
+                  )}
+                >
+                  {opt.icon}
+                </span>
                 <span className="sr-only">{opt.label}</span>
               </>
             ) : (

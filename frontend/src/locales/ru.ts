@@ -20,8 +20,8 @@ export const ru = {
 
   'home.title': 'Главная',
   'home.subtitle': 'Один клик — новый интервал. Учитывается по дате и времени старта.',
-  'home.start': 'ЛЕЕЕТСГО',
-  'home.starting': 'ЛЕЕЕТСГО…',
+  'home.start': 'Старт',
+  'home.starting': 'Запуск…',
   'home.manual': 'Вручную',
   'home.startError': 'Не удалось стартовать',
   'home.active': 'Активные',
@@ -38,6 +38,8 @@ export const ru = {
 
   'startDialog.title': 'Новый интервал',
   'startDialog.noTemplate': 'Без шаблона',
+  'startDialog.submit': 'Запустить',
+  'startDialog.submitting': 'Запуск…',
   'interval.title': 'Название',
   'interval.titlePlaceholder': 'Необязательно',
 
@@ -255,6 +257,8 @@ export const ru = {
   'sync.queued': 'Не синхронизировано — будет отправлено при появлении сети',
   'sync.authError': 'Ошибка авторизации — откройте приложение из Telegram',
   'sync.retryLater': 'Не синхронизировано — повтор при следующем подключении',
+  'sync.pullFailed': 'Не удалось загрузить данные — проверьте сеть',
+  'sync.historyFailed': 'История интервалов не обновилась',
   'sync.ok': 'Синхронизация прошла успешно',
 
   'timeDisplay.from': 'с {{time}}',

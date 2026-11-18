@@ -30,7 +30,7 @@ const AlertDialogContent = React.forwardRef<
       className={cn(
         'dialog-content fixed left-1/2 top-1/2 z-50 flex w-[calc(100%-1.5rem)] max-w-sm',
         'max-h-[calc(100dvh-1.5rem)] -translate-x-1/2 -translate-y-1/2',
-        'flex-col overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-lg',
+        'flex-col overflow-hidden rounded-2xl border-0 bg-card p-0 shadow-none',
         className,
       )}
       {...props}

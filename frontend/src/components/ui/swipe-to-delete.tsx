@@ -51,6 +51,9 @@ export function SwipeToDelete({
   const axisLock = useRef<'h' | 'v' | null>(null)
   const moved = useRef(false)
   const tracking = useRef(false)
+  const draggingRef = useRef(false)
+  /** Vertical page scroll or pointer cancel — never open edit. */
+  const suppressTap = useRef(false)
   const openRef = useRef(false)
   const lastSample = useRef({ x: 0, t: 0 })
   const velocityX = useRef(0)
@@ -76,6 +79,8 @@ export function SwipeToDelete({
     if (target.closest('button, a, input, textarea, select')) return
 
     tracking.current = true
+    draggingRef.current = true
+    suppressTap.current = false
     startX.current = ev.clientX
     startY.current = ev.clientY
     startT.current = performance.now()
@@ -89,7 +94,7 @@ export function SwipeToDelete({
   }
 
   const onPointerMove = (ev: ReactPointerEvent) => {
-    if (!tracking.current || !dragging) return
+    if (!tracking.current || !draggingRef.current) return
     const dx = ev.clientX - startX.current
     const dy = ev.clientY - startY.current
     const now = performance.now()
@@ -101,7 +106,10 @@ export function SwipeToDelete({
       if (Math.abs(dx) < DIRECTION_LOCK && Math.abs(dy) < DIRECTION_LOCK) return
       axisLock.current = Math.abs(dx) > Math.abs(dy) * 1.05 ? 'h' : 'v'
       if (axisLock.current === 'v') {
+        // Page scroll — abandon swipe and never treat as tap.
+        suppressTap.current = true
         tracking.current = false
+        draggingRef.current = false
         setDragging(false)
         return
       }
@@ -126,14 +134,27 @@ export function SwipeToDelete({
     }, 160)
   }
 
-  const onPointerUp = (ev: ReactPointerEvent) => {
-    if (!tracking.current && !dragging) return
+  const endGesture = (ev: ReactPointerEvent, allowTap: boolean) => {
+    const wasActive = tracking.current || draggingRef.current || suppressTap.current
+    if (!wasActive) return
+
+    const skipTap = suppressTap.current || !allowTap || axisLock.current === 'v'
     tracking.current = false
+    draggingRef.current = false
+    suppressTap.current = false
     setDragging(false)
     try {
       sheetRef.current?.releasePointerCapture(ev.pointerId)
     } catch {
       /* not capturing */
+    }
+
+    if (skipTap) {
+      // Vertical scroll / cancel: leave sheet where it was (usually closed).
+      if (Math.abs(offsetRef.current) > 0 && Math.abs(startOffset.current) === 0) {
+        setOffset(0)
+      }
+      return
     }
 
     const current = offsetRef.current
@@ -182,12 +203,12 @@ export function SwipeToDelete({
       className={cn('rounded-2xl surface-elevate', className)}
     >
       {/* Overflow clip is inner so outer elevation shadow is not cropped. */}
-      <div className="relative overflow-hidden rounded-2xl">
+      <div className="relative overflow-hidden rounded-[inherit]">
         {/* Delete — under card on the right */}
         <div
           className={cn(
-            'absolute inset-y-0 right-0 bg-destructive',
-            'rounded-r-2xl rounded-l-none',
+            'absolute top-px bottom-px right-0 bg-destructive',
+            'rounded-r-[inherit] rounded-l-none',
             deleteRevealed ? 'opacity-100' : 'pointer-events-none opacity-0',
           )}
           style={{ width: ACTION_WIDTH + UNDERLAP }}
@@ -213,8 +234,8 @@ export function SwipeToDelete({
         {canComplete ? (
           <div
             className={cn(
-              'absolute inset-y-0 left-0 bg-success',
-              'rounded-l-2xl rounded-r-none',
+              'absolute top-px bottom-px left-0 bg-success',
+              'rounded-l-[inherit] rounded-r-none',
               completeRevealed ? 'opacity-100' : 'pointer-events-none opacity-0',
             )}
             style={{ width: ACTION_WIDTH + UNDERLAP }}
@@ -241,7 +262,7 @@ export function SwipeToDelete({
           ref={sheetRef}
           data-swipe-sheet
           className={cn(
-            'relative z-[1] rounded-2xl bg-card will-change-transform !shadow-none',
+            'relative z-[1] rounded-[inherit] bg-card will-change-transform !shadow-none',
             dragging && axisLock.current === 'h' ? 'touch-none' : 'touch-pan-y',
             !dragging &&
               'transition-transform duration-[360ms] ease-[var(--ease-out-soft)]',
@@ -250,8 +271,8 @@ export function SwipeToDelete({
           style={{ transform: `translate3d(${offset}px, 0, 0)` }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
+          onPointerUp={(ev) => endGesture(ev, true)}
+          onPointerCancel={(ev) => endGesture(ev, false)}
         >
           {children}
         </div>

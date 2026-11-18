@@ -9,13 +9,26 @@ import { workTemplatesLocal } from '@/api/workTemplatesLocal'
 import { settingsRemote, settingsLocal } from '@/api/settingsApi'
 import { memoryRemote } from '@/api/memoryRemote'
 import { memoryLocal } from '@/api/memoryLocal'
+import { emitSyncStatus } from '@/components/layout/SyncStatusBanner'
 import { useTelegram } from '@/hooks/useTelegram'
+import { t } from '@/lib/i18n'
 import { ACCOUNTING_TIMEZONE } from '@/lib/timezone'
 import type { DictKind } from '@/db/types'
 
 const DICTS: DictKind[] = ['categories', 'descriptions', 'units', 'expenses']
+/** Avoid toast spam from the 60s active poll. */
+const ERROR_COOLDOWN_MS = 60_000
 
-async function pullAll(): Promise<void> {
+let lastPullErrorAt = 0
+
+function notifyPullError(messageKey: string): void {
+  const now = Date.now()
+  if (now - lastPullErrorAt < ERROR_COOLDOWN_MS) return
+  lastPullErrorAt = now
+  emitSyncStatus(t(messageKey), 'error')
+}
+
+async function pullAll(): Promise<{ historyOk: boolean }> {
   await flushPendingOps()
 
   const keepIds = await pendingEntityIds()
@@ -30,6 +43,7 @@ async function pullAll(): Promise<void> {
   ])
   await intervalsLocal.replaceActive(active, keepIds)
 
+  const historyOk = allCompleted != null
   if (allCompleted) {
     await intervalsLocal.replaceAllCompleted(allCompleted, keepIds)
   }
@@ -64,6 +78,8 @@ async function pullAll(): Promise<void> {
   } catch (error) {
     console.error('[sync] memory answers pull failed', error)
   }
+
+  return { historyOk }
 }
 
 /** Light pull so bot-side pause/resume shows up without full page reload. */
@@ -83,9 +99,16 @@ export function useSync() {
 
     const sync = async () => {
       try {
-        await pullAll()
+        const { historyOk } = await pullAll()
+        if (!historyOk) {
+          notifyPullError('sync.historyFailed')
+          return
+        }
+        // Clear cooldown so a later failure shows again; ok toast comes from pendingOps.
+        lastPullErrorAt = 0
       } catch (error) {
         console.error('[sync] failed', error)
+        notifyPullError('sync.pullFailed')
       }
     }
 
@@ -100,11 +123,16 @@ export function useSync() {
 
     const pollActives = () => {
       if (document.visibilityState !== 'visible') return
-      void pullActives().catch((error) => {
-        console.error('[sync] active poll failed', error)
-      })
+      void pullActives()
+        .then(() => {
+          lastPullErrorAt = 0
+        })
+        .catch((error) => {
+          console.error('[sync] active poll failed', error)
+          notifyPullError('sync.pullFailed')
+        })
     }
-    const pollId = window.setInterval(pollActives, 12_000)
+    const pollId = window.setInterval(pollActives, 60_000)
     window.addEventListener('focus', pollActives)
     document.addEventListener('visibilitychange', pollActives)
     window.addEventListener('online', onOnline)

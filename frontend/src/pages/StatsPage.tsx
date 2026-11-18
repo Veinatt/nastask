@@ -127,10 +127,11 @@ function StatsCompletedRow({
   return (
     <li>
       <SwipeToDelete
+        className="!rounded-[31px]"
         onDelete={() => onDelete(entry.id)}
         deleteAriaLabel={t('common.delete')}
         onTap={() => onEdit(entry)}
-        contentClassName="surface-card flex cursor-pointer items-center justify-between gap-3 px-4 py-3 select-none"
+        contentClassName="surface-card flex cursor-pointer items-center justify-between gap-3 !rounded-[31px] py-3 pl-5 pr-4 select-none"
       >
         <div
           title={t('timer.swipeDelete')}
@@ -801,7 +802,7 @@ export function StatsPage() {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="surface-card px-5 py-8 text-center text-sm text-muted-foreground">
+          <div className="surface-card !rounded-[31px] px-5 py-8 text-center text-sm text-muted-foreground">
             {t('stats.listEmpty')}
           </div>
         ) : (

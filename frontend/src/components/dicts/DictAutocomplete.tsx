@@ -181,7 +181,7 @@ export function DictAutocomplete({
         createPortal(
           <ul
             ref={menuRef}
-            className="absolute z-[200] overflow-x-hidden overflow-y-auto overscroll-contain rounded-md border border-border bg-popover text-sm shadow-sm [touch-action:pan-y]"
+            className="absolute z-[200] overflow-x-hidden overflow-y-auto overscroll-contain rounded-md border border-border bg-popover text-sm shadow-none [touch-action:pan-y]"
             style={{
               top: menuPos.top,
               left: menuPos.left,

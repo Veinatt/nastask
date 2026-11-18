@@ -1,4 +1,4 @@
-import { Pause, Play, StickyNote } from 'lucide-react'
+import { Pause, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { StatusChip } from '@/components/ui/status-chip'
 import { SwipeToDelete } from '@/components/ui/swipe-to-delete'
@@ -54,68 +54,82 @@ export function TimerCard({
 
   return (
     <SwipeToDelete
-      className="animate-fade-up h-full"
+      className="animate-fade-up h-full !rounded-[31px]"
       onDelete={onDelete}
       deleteAriaLabel={t('timer.deleteAria')}
       onComplete={onComplete}
       completeAriaLabel={t('timer.complete')}
       onTap={onEdit}
       contentClassName={cn(
-        'h-full select-none',
+        'h-full select-none !rounded-[31px]',
         paused ? 'surface-card' : 'surface-panel surface-panel-running',
         onEdit && 'cursor-pointer',
       )}
     >
       <div
         title={t('timer.swipeHint')}
-        className="flex h-full flex-col gap-3 p-4 outline-none sm:p-5"
+        className="flex h-full flex-col gap-5 p-3 pl-4 outline-none"
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1 space-y-1">
-            <p className="flex min-w-0 items-center gap-1.5 text-[15px] font-medium tracking-tight text-foreground">
+        <div className="min-w-0">
+          <div className="flex items-center justify-between gap-3">
+            <p
+              className={cn(
+                'flex min-w-0 items-center gap-1.5 text-2xl lowercase tracking-tight',
+                paused
+                  ? 'font-normal text-primary'
+                  : 'font-medium text-primary-foreground',
+              )}
+            >
               <span className="min-w-0 truncate">{title}</span>
-              {fill.hasNotes ? (
-                <StickyNote
-                  className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
-                  aria-label={t('list.notesIndicator')}
-                />
-              ) : null}
             </p>
-            <p className="flex min-w-0 items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
-              <span className="min-w-0 truncate">
-                {formatIntervalWhen(entry.start)}
-              </span>
-              {freshness.stale ? (
-                <span
-                  className="h-1.5 w-1.5 shrink-0 rounded-full bg-destructive"
-                  style={{ animation: 'tag-dot-pulse 2.4s ease-in-out infinite' }}
-                  title={t('timer.tagStale')}
-                  aria-label={t('timer.tagStale')}
-                />
-              ) : null}
-            </p>
-          </div>
-          <div className="flex max-w-[45%] shrink-0 flex-col items-end gap-1.5">
             <StatusChip
               label={fillSummary}
               tone={fill.needsWorks ? 'warn' : 'ok'}
+              className={cn(
+                'max-w-[45%] shrink-0',
+                paused ? undefined : 'bg-white/30 text-primary-foreground',
+              )}
             />
           </div>
+          <p
+            className={cn(
+              'flex min-w-0 items-center gap-1.5 text-xs tabular-nums',
+              paused ? 'text-primary' : 'text-primary-foreground/90',
+            )}
+          >
+            <span className="min-w-0 truncate">
+              {formatIntervalWhen(entry.start)}
+            </span>
+            {freshness.stale ? (
+              <span
+                className={cn(
+                  'h-1.5 w-1.5 shrink-0 rounded-full',
+                  paused ? 'bg-destructive' : 'bg-white',
+                )}
+                style={{ animation: 'tag-dot-pulse 2.4s ease-in-out infinite' }}
+                title={t('timer.tagStale')}
+                aria-label={t('timer.tagStale')}
+              />
+            ) : null}
+          </p>
         </div>
 
         <div className="mt-auto flex items-center justify-between gap-3 pt-0.5">
           <div className="flex min-w-0 items-center gap-2">
             <p
               className={cn(
-                'text-4xl font-medium leading-none tabular-nums tracking-tight sm:text-5xl',
-                paused ? 'text-muted-foreground' : 'text-primary',
+                'text-5xl font-medium leading-none tabular-nums tracking-tight',
+                paused ? 'text-foreground' : 'text-primary-foreground',
               )}
             >
               {formatDuration(entry.displaySeconds)}
             </p>
             {overLimit ? (
               <span
-                className="h-2 w-2 shrink-0 self-center rounded-full bg-destructive"
+                className={cn(
+                  'h-2 w-2 shrink-0 self-center rounded-full',
+                  paused ? 'bg-destructive' : 'bg-white',
+                )}
                 style={{ animation: 'tag-dot-pulse 2.4s ease-in-out infinite' }}
                 title={t('timer.overLimit')}
                 aria-label={t('timer.overLimit')}
@@ -127,17 +141,19 @@ export function TimerCard({
             size="icon"
             className={cn(
               'h-11 w-11 shrink-0 rounded-full border-0 sm:h-12 sm:w-12',
-              'bg-primary text-primary-foreground hover:bg-primary/90',
               '[&_svg]:!h-5 [&_svg]:!w-5',
+              paused
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                : 'bg-white text-primary hover:bg-white/90',
             )}
             onClick={paused ? onResume : onPause}
             aria-label={paused ? t('timer.resume') : t('timer.pause')}
             title={paused ? t('timer.resume') : t('timer.pause')}
           >
             {paused ? (
-              <Play fill="none" strokeWidth={2} />
+              <Play fill="currentColor" strokeWidth={0} />
             ) : (
-              <Pause fill="none" strokeWidth={2} />
+              <Pause fill="currentColor" strokeWidth={0} />
             )}
           </Button>
         </div>

@@ -350,6 +350,29 @@ debugRouter.post('/scenarios', (req, res) => {
   }
 })
 
+/** Wipe active intervals for the auth user (completed kept). For demo cleanup. */
+debugRouter.post('/clear-actives', (req, res) => {
+  try {
+    const userId = req.telegramUserId
+    if (userId == null) {
+      res.status(401).json({ success: false, error: 'Unauthorized' })
+      return
+    }
+    const actives = intervalsRepo.listActive(userId)
+    for (const entry of actives) {
+      intervalsRepo.delete(entry.id)
+    }
+    console.log(`[debug] cleared ${actives.length} active(s) for userId=${userId}`)
+    res.json({ success: true, cleared: actives.length })
+  } catch (error) {
+    console.error('[debug] clear-actives failed', error)
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'clear failed',
+    })
+  }
+})
+
 /** Send a one-off test message to the auth user. */
 debugRouter.post('/bot/ping', async (req, res) => {
   try {

@@ -65,7 +65,7 @@ export function formatIntervalWhen(
   const withDate = opts?.withDate ?? true
   const time = formatTimeHhMm(d)
   if (!withDate) return time
-  return `${formatDateDdMm(d)}, ${time}`
+  return `${formatDateDdMm(d)} — ${time}`
 }
 
 /** Parts for UI with a visual delimiter between date and time range. */

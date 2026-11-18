@@ -5,6 +5,7 @@ import { useAppTab, type AppTab } from '@/components/layout/AppTabContext'
 import { useMemoryOpen } from '@/components/memory/MemoryOpenContext'
 import { SyncStatusIcon } from '@/components/layout/SyncStatusBanner'
 import { useTripleTap } from '@/hooks/useTripleTap'
+import { MobileDock } from '@/components/layout/MobileDock'
 
 /** Brand gradient only — size comes from parent / inline style / text-* class. */
 export const APP_LOGO_GRADIENT =
@@ -26,34 +27,6 @@ export function Navigation({ className }: Props) {
   const { openMemory } = useMemoryOpen()
   const onLogoTap = useTripleTap(openMemory)
 
-  const renderItems = (mobile: boolean) =>
-    NAV_ITEMS.map(({ to, labelKey, icon: Icon }) => {
-      const isActive = tab === to
-      return (
-        <button
-          key={to}
-          type="button"
-          onClick={() => setTab(to as AppTab)}
-          className={
-            mobile
-              ? cn(
-                  'flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors duration-200',
-                  isActive ? 'text-primary-soft' : 'text-muted-foreground',
-                )
-              : cn(
-                  'inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors duration-200',
-                  isActive
-                    ? 'control-surface-static text-primary-soft'
-                    : 'text-muted-foreground hover:bg-[hsl(var(--primary)/0.09)] hover:text-primary-soft',
-                )
-          }
-        >
-          <Icon className={cn(mobile ? 'h-5 w-5' : 'h-4 w-4')} />
-          <span>{t(labelKey)}</span>
-        </button>
-      )
-    })
-
   return (
     <div className={cn(className)}>
       {/* Top bar: single #app-logo for all breakpoints (enter/exit fly to this slot) */}
@@ -70,7 +43,28 @@ export function Navigation({ className }: Props) {
           </button>
           <SyncStatusIcon />
         </div>
-        <div className="hidden md:flex items-center gap-1">{renderItems(false)}</div>
+        <div className="hidden md:flex items-center gap-1">
+          {NAV_ITEMS.map(({ to, labelKey, icon: Icon }) => {
+            const isActive = tab === to
+            return (
+              <button
+                key={to}
+                type="button"
+                onClick={() => setTab(to as AppTab)}
+                aria-label={t(labelKey)}
+                className={cn(
+                  'inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors duration-200',
+                  isActive
+                    ? 'control-surface-static text-primary-soft'
+                    : 'text-muted-foreground hover:bg-[hsl(var(--primary)/0.09)] hover:text-primary-soft',
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{t(labelKey)}</span>
+              </button>
+            )
+          })}
+        </div>
         <button
           type="button"
           className="relative ml-auto inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-[hsl(var(--primary)/0.09)] hover:text-primary-soft"
@@ -95,16 +89,7 @@ export function Navigation({ className }: Props) {
         </button>
       </nav>
 
-      <nav
-        className="md:hidden fixed inset-x-0 z-50 border-t border-border bg-card transition-[background-color,border-color,color] duration-[280ms] ease-[var(--ease-out-soft)]"
-        style={{
-          bottom: 'var(--tg-safe-area-inset-bottom, 0px)',
-          paddingBottom:
-            'max(0.25rem, var(--tg-content-safe-area-inset-bottom, 0px))',
-        }}
-      >
-        <div className="grid grid-cols-4 max-w-lg mx-auto">{renderItems(true)}</div>
-      </nav>
+      <MobileDock />
     </div>
   )
 }

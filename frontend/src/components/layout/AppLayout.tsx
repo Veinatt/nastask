@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Navigation } from './Navigation'
-import { NAV_ROUTES } from '@/components/layout/navItems'
-import { useAppTab } from '@/components/layout/AppTabContext'
-import { useSplashDone } from '@/components/splash/SplashDoneContext'
+import { useAppTab, type AppTab } from '@/components/layout/AppTabContext'
 import { useMemoryOpen } from '@/components/memory/MemoryOpenContext'
 import { MemoryEnterSplash } from '@/components/memory/MemoryEnterSplash'
 import { MemoryExitSplash } from '@/components/memory/MemoryExitSplash'
@@ -16,7 +14,7 @@ import { SettingsPage } from '@/pages/SettingsPage'
 import { MemoryQuizPage } from '@/pages/memory/MemoryQuizPage'
 import { cn } from '@/lib/utils'
 
-function TabPage({ tab }: { tab: (typeof NAV_ROUTES)[number] }) {
+function TabPage({ tab }: { tab: AppTab }) {
   switch (tab) {
     case '/stats':
       return <StatsPage />
@@ -34,7 +32,6 @@ export function AppLayout() {
   useTelegram()
   useSync()
   const { tab } = useAppTab()
-  const splashDone = useSplashDone()
   const {
     gate,
     pageMounted,
@@ -78,21 +75,11 @@ export function AppLayout() {
     }
   }, [])
 
-  const skipFirstPageIn = useRef(true)
-  const [pageIn, setPageIn] = useState(false)
-
+  // Keep visited tabs mounted so switching doesn't remount heavy pages (jank).
+  const [mountedTabs, setMountedTabs] = useState<AppTab[]>(() => [tab])
   useEffect(() => {
-    if (!splashDone) {
-      setPageIn(false)
-      return
-    }
-    if (skipFirstPageIn.current) {
-      skipFirstPageIn.current = false
-      setPageIn(false)
-      return
-    }
-    setPageIn(true)
-  }, [tab, splashDone])
+    setMountedTabs((prev) => (prev.includes(tab) ? prev : [...prev, tab]))
+  }, [tab])
 
   // Like boot splash: destination stays under the overlay; chrome hidden only while
   // memory is the active screen (notebook covers full viewport).
@@ -113,9 +100,19 @@ export function AppLayout() {
         }}
         aria-hidden={hideAppChrome || undefined}
       >
-        <div key={tab} className={cn('min-w-0', pageIn && 'animate-page-in')}>
-          <TabPage tab={tab} />
-        </div>
+        {mountedTabs.map((route) => {
+          const active = route === tab
+          return (
+            <div
+              key={route}
+              className="min-w-0"
+              hidden={!active}
+              aria-hidden={!active || undefined}
+            >
+              <TabPage tab={route} />
+            </div>
+          )
+        })}
       </main>
       {pageMounted && <MemoryQuizPage />}
       {gate === 'entering' && <MemoryEnterSplash onComplete={onEnterComplete} />}

@@ -166,7 +166,7 @@ export function MemoryExportViewer({ onClose }: Props) {
                     return (
                       <li
                         key={`${row.userId ?? 'x'}:${row.questionId}:${row.updatedAt ?? ''}`}
-                        className="rounded-2xl border border-border/80 bg-card/80 p-4 shadow-sm"
+                        className="rounded-2xl border border-border/80 bg-card/80 p-4 shadow-none"
                       >
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           {q?.theme ?? row.questionId}
