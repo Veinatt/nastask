@@ -150,7 +150,7 @@ export function TimerCard({
               '[&_svg]:!h-5 [&_svg]:!w-5',
               paused
                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'bg-white text-[hsl(240_4%_24%)] hover:bg-white/90',
+                : 'bg-white text-primary hover:bg-white/90',
             )}
             onClick={paused ? onResume : onPause}
             aria-label={paused ? t('timer.resume') : t('timer.pause')}
