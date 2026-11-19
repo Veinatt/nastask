@@ -162,7 +162,7 @@ export function OrbitalStartButton({
     >
       {/* Slot action — only while dragging so Play isn't doubled at rest */}
       <div
-        className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full bg-primary text-primary-foreground"
+        className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full bg-primary text-primary-foreground dark:text-primary-soft"
         style={{
           opacity: action ? absT : 0,
           transform: `scale(${0.35 + absT * 0.65})`,
@@ -184,7 +184,7 @@ export function OrbitalStartButton({
         aria-label={t('home.start')}
         className={cn(
           'absolute flex size-11 items-center justify-center rounded-full',
-          'bg-primary text-primary-foreground',
+          'bg-primary text-primary-foreground dark:text-primary-soft',
           'touch-none select-none outline-none',
           !dragging &&
             'transition-transform duration-300 ease-[var(--ease-out-soft)]',

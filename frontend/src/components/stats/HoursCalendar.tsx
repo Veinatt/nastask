@@ -11,8 +11,6 @@ import {
 } from 'date-fns'
 import { useI18n } from '@/hooks/useI18n'
 import { cn } from '@/lib/utils'
-import { formatHoursMinutes } from '@/utils/timeDisplay'
-
 const WEEKDAY_KEYS = [
   'weekday.mon',
   'weekday.tue',
@@ -34,9 +32,11 @@ type Props = {
   onSelectDate: (dateKey: string) => void
 }
 
-function formatHoursShort(seconds: number): string {
+function formatHoursShort(seconds: number, hoursSuffix: string): string {
   if (seconds <= 0) return ''
-  return formatHoursMinutes(seconds)
+  const hours = Math.floor(seconds / 3600)
+  if (hours < 1) return `<1${hoursSuffix}`
+  return `${hours}${hoursSuffix}`
 }
 
 function isWeekend(day: Date): boolean {
@@ -121,7 +121,7 @@ export function HoursCalendar({
         {days.map((day) => {
           const key = format(day, 'yyyy-MM-dd')
           const seconds = hoursByDay.get(key) ?? 0
-          const hoursLabel = formatHoursShort(seconds)
+          const hoursLabel = formatHoursShort(seconds, t('stats.hoursAbbrev'))
           const inMonth = isSameMonth(day, new Date(year, month - 1, 1))
           const weekend = isWeekend(day)
           const isToday = isSameDay(day, new Date())
@@ -140,14 +140,16 @@ export function HoursCalendar({
 
           const intensity =
             inMonth && maxSeconds > 0 && seconds > 0
-              ? Math.max(0.12, seconds / maxSeconds)
+              ? Math.max(0.2, seconds / maxSeconds)
               : 0
-          const showHeat =
-            !isSingle && !inActiveRange && intensity > 0
+          const hasWork = intensity > 0
+          // intensity is already 0.2…1 relative to the month max → solid at peak
+          const workDotAlpha = hasWork ? intensity : 0
           const weekendRed =
-            weekend && !isSingle && !inActiveRange && intensity === 0
+            weekend && !isSingle && !inActiveRange && !hasWork
           const todayText =
             isToday && !isSingle && !isRangeEndpoint
+          const onSolid = isSingle || isRangeEndpoint
 
           return (
             <button
@@ -162,9 +164,8 @@ export function HoursCalendar({
                 !inMonth && 'opacity-40',
                 // Continuous range track (soft fill).
                 inActiveRange && 'bg-primary/15',
-                trackRoundLeft && 'rounded-l-xl',
-                trackRoundRight && 'rounded-r-xl',
-                showHeat && 'rounded-xl',
+                trackRoundLeft && 'rounded-l-lg sm:rounded-l-[31px]',
+                trackRoundRight && 'rounded-r-lg sm:rounded-r-[31px]',
                 weekendRed && 'text-destructive',
                 !weekendRed &&
                   !isSingle &&
@@ -172,33 +173,25 @@ export function HoursCalendar({
                   inMonth &&
                   (isRangeMiddle ? 'text-primary-soft' : 'text-foreground'),
               )}
-              style={
-                showHeat
-                  ? { backgroundColor: `hsl(var(--primary) / ${0.08 + intensity * 0.42})` }
-                  : undefined
-              }
             >
               <span
                 className={cn(
-                  'relative z-[1] flex h-full min-h-14 w-full flex-col items-center justify-center rounded-xl border-2 border-transparent px-0.5',
-                  (isSingle || isRangeEndpoint) &&
-                    'bg-primary text-primary-foreground',
+                  'relative z-[1] flex h-full min-h-14 w-full items-center justify-center rounded-lg border-2 border-transparent px-0.5 sm:rounded-[31px]',
+                  onSolid && 'bg-primary text-primary-foreground',
                   // Outline only on hover, never on solid endpoints/single.
-                  isHover && !(isSingle || isRangeEndpoint) && 'border-primary',
+                  isHover && !onSolid && 'border-primary',
                 )}
               >
-                {hoursLabel && (
+                {hoursLabel ? (
                   <span
                     className={cn(
                       'absolute inset-x-0 top-1 text-center text-[10px] font-semibold leading-none tabular-nums',
-                      isSingle || isRangeEndpoint
-                        ? 'text-primary-foreground/90'
-                        : 'text-primary-soft',
+                      onSolid ? 'text-primary-foreground/90' : 'text-primary-soft',
                     )}
                   >
                     {hoursLabel}
                   </span>
-                )}
+                ) : null}
                 <span
                   className={cn(
                     'leading-none font-medium',
@@ -207,6 +200,17 @@ export function HoursCalendar({
                 >
                   {format(day, 'd')}
                 </span>
+                {hasWork ? (
+                  <span
+                    className="absolute bottom-1.5 h-1.5 w-1.5 rounded-full"
+                    style={{
+                      backgroundColor: onSolid
+                        ? `hsl(var(--primary-foreground) / ${Math.min(1, 0.35 + intensity * 0.65)})`
+                        : `hsl(var(--primary) / ${workDotAlpha})`,
+                    }}
+                    aria-hidden
+                  />
+                ) : null}
               </span>
             </button>
           )
@@ -214,13 +218,13 @@ export function HoursCalendar({
       </div>
       <div className="flex items-center gap-2 px-1 text-[10px] text-muted-foreground">
         <span>{t('stats.heatmap.less')}</span>
-        <div className="flex gap-0.5">
-          {[0.15, 0.3, 0.5, 0.7, 0.95].map((level) => (
+        <div className="flex items-center gap-1">
+          {[0.2, 0.4, 0.6, 0.8, 1].map((level) => (
             <span
               key={level}
-              className="h-3 w-3 rounded-sm"
+              className="h-1.5 w-1.5 rounded-full"
               style={{
-                backgroundColor: `hsl(var(--primary) / ${0.08 + level * 0.42})`,
+                backgroundColor: `hsl(var(--primary) / ${level})`,
               }}
             />
           ))}

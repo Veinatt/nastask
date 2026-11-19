@@ -7,9 +7,9 @@ import { SyncStatusIcon } from '@/components/layout/SyncStatusBanner'
 import { useTripleTap } from '@/hooks/useTripleTap'
 import { MobileDock } from '@/components/layout/MobileDock'
 
-/** Brand gradient only — size comes from parent / inline style / text-* class. */
-export const APP_LOGO_GRADIENT =
-  'logo bg-gradient-to-r from-primary to-[hsl(var(--brand-end))] bg-clip-text text-transparent font-bold tracking-tight'
+/** Brand gradient only — size comes from parent / inline style / text-* class.
+ *  `.logo` in index.css paints primary → brand-end (both from --brand-*). */
+export const APP_LOGO_GRADIENT = 'logo font-bold tracking-tight'
 
 /** Nav wordmark (fixed text-lg). */
 export const APP_LOGO_CLASS = cn(
@@ -56,7 +56,7 @@ export function Navigation({ className }: Props) {
                   'inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors duration-200',
                   isActive
                     ? 'control-surface-static text-primary-soft'
-                    : 'text-muted-foreground hover:bg-[hsl(var(--primary)/0.09)] hover:text-primary-soft',
+                    : 'text-muted-foreground hover:bg-[hsl(var(--primary)/var(--a-wash))] hover:text-primary-soft',
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -67,7 +67,7 @@ export function Navigation({ className }: Props) {
         </div>
         <button
           type="button"
-          className="relative ml-auto inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-[hsl(var(--primary)/0.09)] hover:text-primary-soft"
+          className="relative ml-auto inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-[hsl(var(--primary)/var(--a-wash))] hover:text-primary-soft"
           aria-label="1 новое сообщение"
           onClick={() => {
             window.dispatchEvent(new Event('open-postcard'))

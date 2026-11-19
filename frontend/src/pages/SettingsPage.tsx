@@ -1,11 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import {
   Check,
-  Coffee,
   Download,
-  Monitor,
   Moon,
   Pencil,
+  Plus,
   Sun,
   Trash2,
   X,
@@ -15,7 +14,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useSettings } from '@/hooks/useSettings'
 import { useTheme } from '@/hooks/useTheme'
-import { useTelegram } from '@/hooks/useTelegram'
+import { useBrand } from '@/hooks/useBrand'
+import { BrandColorDialog } from '@/components/settings/BrandColorDialog'
+import { cn } from '@/lib/utils'
 import { useDictionaries } from '@/hooks/useDictionaries'
 import { useWorkTemplates } from '@/hooks/useWorkTemplates'
 import { useI18n } from '@/hooks/useI18n'
@@ -299,7 +300,17 @@ export function SettingsPage() {
   const { t, locale, setLocale } = useI18n()
   const { settings, updateSettings } = useSettings()
   const { preference, setPreference } = useTheme()
-  const { inTelegram } = useTelegram()
+  const {
+    hex: brandHex,
+    isCustom: brandCustom,
+    swatches: brandSwatches,
+    canAddSaved: canAddBrand,
+    setHex: setBrandHex,
+    commitHex: commitBrandHex,
+    reset: resetBrand,
+    removeSwatch: removeBrandSwatch,
+  } = useBrand()
+  const [brandPickerOpen, setBrandPickerOpen] = useState(false)
   const [hourlyRate, setHourlyRate] = useState('')
   const [taxRate, setTaxRate] = useState('')
   const [currency, setCurrency] = useState('')
@@ -317,12 +328,6 @@ export function SettingsPage() {
   }[] = [
     { value: 'light', label: t('settings.theme.light'), icon: <Sun /> },
     { value: 'dark', label: t('settings.theme.dark'), icon: <Moon /> },
-    { value: 'cozy', label: t('settings.theme.cozy'), icon: <Coffee /> },
-    {
-      value: 'system',
-      label: inTelegram ? t('settings.theme.telegram') : t('settings.theme.system'),
-      icon: <Monitor />,
-    },
   ]
 
   const languageOptions: { value: AppLocale; label: string }[] = [
@@ -370,7 +375,9 @@ export function SettingsPage() {
         <MemoryExportViewer onClose={() => setMemoryViewerOpen(false)} />
       )}
       <header>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-wide">{t('settings.title')}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-wide text-primary-soft/90 dark:text-foreground">
+          {t('settings.title')}
+        </h1>
       </header>
 
       <div className="grid gap-3">
@@ -386,6 +393,83 @@ export function SettingsPage() {
             options={themeOptions}
           />
         </div>
+        {preference !== 'dark' ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="section-label">{t('settings.brand')}</h2>
+              <button
+                type="button"
+                className={cn(
+                  'section-label text-muted-foreground transition-opacity',
+                  brandCustom
+                    ? 'hover:text-foreground'
+                    : 'invisible pointer-events-none',
+                )}
+                tabIndex={brandCustom ? 0 : -1}
+                aria-hidden={!brandCustom}
+                disabled={!brandCustom}
+                onClick={resetBrand}
+              >
+                {t('settings.brand.reset')}
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {brandSwatches.map((swatch) => {
+                const active = brandHex.toUpperCase() === swatch.hex.toUpperCase()
+                return (
+                  <div key={swatch.hex} className="relative size-9 shrink-0">
+                    <button
+                      type="button"
+                      title={swatch.label ?? swatch.hex}
+                      aria-label={swatch.label ?? swatch.hex}
+                      aria-pressed={active}
+                      onClick={() => setBrandHex(swatch.hex)}
+                      className={cn(
+                        'box-border size-9 rounded-full border-2 transition-[box-shadow,border-color]',
+                        active ? 'border-foreground' : 'border-transparent',
+                      )}
+                      style={{ backgroundColor: swatch.hex }}
+                    />
+                    {swatch.removable ? (
+                      <button
+                        type="button"
+                        className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-card text-[10px] leading-none text-muted-foreground shadow-sm ring-1 ring-border"
+                        aria-label={t('settings.brand.remove')}
+                        title={t('settings.brand.remove')}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeBrandSwatch(swatch.hex)
+                        }}
+                      >
+                        ×
+                      </button>
+                    ) : null}
+                  </div>
+                )
+              })}
+              <button
+                type="button"
+                title={t('settings.brand.pick')}
+                aria-label={t('settings.brand.pick')}
+                disabled={!canAddBrand}
+                onClick={() => setBrandPickerOpen(true)}
+                className={cn(
+                  'box-border flex size-9 shrink-0 items-center justify-center rounded-full',
+                  'border-2 border-dashed border-primary text-primary',
+                  'disabled:pointer-events-none disabled:opacity-20',
+                )}
+              >
+                <Plus className="size-3.5" strokeWidth={2.25} />
+              </button>
+            </div>
+            <BrandColorDialog
+              open={brandPickerOpen}
+              initialHex={brandHex}
+              onOpenChange={setBrandPickerOpen}
+              onSave={(hex) => commitBrandHex(hex, { save: true })}
+            />
+          </div>
+        ) : null}
         <div className="space-y-2">
           <h2 className="section-label">{t('settings.language')}</h2>
           <SegmentedControl

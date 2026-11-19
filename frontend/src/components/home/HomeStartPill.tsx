@@ -211,7 +211,7 @@ export function HomeStartPill({
             type="button"
             data-swipe-action
             tabIndex={offset >= OPEN_THRESHOLD ? 0 : -1}
-            className="absolute inset-y-0 left-0 flex w-[76px] items-center justify-center text-primary-foreground"
+            className="absolute inset-y-0 left-0 flex w-[76px] items-center justify-center text-primary-foreground dark:text-primary-soft"
             aria-label={t('home.start')}
             onClick={(ev) => {
               ev.stopPropagation()
@@ -237,7 +237,7 @@ export function HomeStartPill({
             type="button"
             data-swipe-action
             tabIndex={offset <= -OPEN_THRESHOLD ? 0 : -1}
-            className="absolute inset-y-0 right-0 flex w-[76px] items-center justify-center text-primary-foreground"
+            className="absolute inset-y-0 right-0 flex w-[76px] items-center justify-center text-primary-foreground dark:text-primary-soft"
             aria-label={t('home.manual')}
             onClick={(ev) => {
               ev.stopPropagation()
@@ -256,7 +256,7 @@ export function HomeStartPill({
           tabIndex={disabled ? -1 : 0}
           aria-label={text}
           className={cn(
-            'relative z-[1] select-none rounded-[inherit] bg-card text-primary',
+            'relative z-[1] select-none rounded-[inherit] bg-card text-primary dark:text-foreground',
             'p-5 text-center text-2xl font-medium leading-none',
             'will-change-transform !shadow-none outline-none',
             dragging && axisLock.current === 'h' ? 'touch-none' : 'touch-pan-y',

@@ -76,8 +76,8 @@ export function TimerCard({
               className={cn(
                 'flex min-w-0 items-center gap-1.5 text-2xl lowercase tracking-tight',
                 paused
-                  ? 'font-normal text-primary'
-                  : 'font-medium text-primary-foreground',
+                  ? 'font-normal text-primary-soft'
+                  : 'font-medium text-primary-foreground dark:text-foreground',
               )}
             >
               <span className="min-w-0 truncate">{title}</span>
@@ -87,14 +87,18 @@ export function TimerCard({
               tone={fill.needsWorks ? 'warn' : 'ok'}
               className={cn(
                 'max-w-[45%] shrink-0',
-                paused ? undefined : 'bg-white/30 text-primary-foreground',
+                // Running fill — soft chip; dark uses foreground (not harsh white)
+                !paused &&
+                  'bg-[hsl(var(--primary-foreground)/0.22)] text-primary-foreground dark:bg-foreground/15 dark:text-foreground',
               )}
             />
           </div>
           <p
             className={cn(
               'flex min-w-0 items-center gap-1.5 text-xs tabular-nums',
-              paused ? 'text-primary' : 'text-primary-foreground/90',
+              paused
+                ? 'text-primary-soft'
+                : 'text-primary-foreground/90 dark:text-foreground/80',
             )}
           >
             <span className="min-w-0 truncate">
@@ -104,7 +108,7 @@ export function TimerCard({
               <span
                 className={cn(
                   'h-1.5 w-1.5 shrink-0 rounded-full',
-                  paused ? 'bg-destructive' : 'bg-white',
+                  paused ? 'bg-destructive' : 'bg-primary-foreground dark:bg-foreground',
                 )}
                 style={{ animation: 'tag-dot-pulse 2.4s ease-in-out infinite' }}
                 title={t('timer.tagStale')}
@@ -119,7 +123,9 @@ export function TimerCard({
             <p
               className={cn(
                 'text-5xl font-medium leading-none tabular-nums tracking-tight',
-                paused ? 'text-foreground' : 'text-primary-foreground',
+                paused
+                  ? 'text-foreground'
+                  : 'text-primary-foreground dark:text-foreground',
               )}
             >
               {formatDuration(entry.displaySeconds)}
@@ -128,7 +134,7 @@ export function TimerCard({
               <span
                 className={cn(
                   'h-2 w-2 shrink-0 self-center rounded-full',
-                  paused ? 'bg-destructive' : 'bg-white',
+                  paused ? 'bg-destructive' : 'bg-primary-foreground dark:bg-foreground',
                 )}
                 style={{ animation: 'tag-dot-pulse 2.4s ease-in-out infinite' }}
                 title={t('timer.overLimit')}
@@ -144,7 +150,7 @@ export function TimerCard({
               '[&_svg]:!h-5 [&_svg]:!w-5',
               paused
                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'bg-white text-primary hover:bg-white/90',
+                : 'bg-white text-[hsl(240_4%_24%)] hover:bg-white/90',
             )}
             onClick={paused ? onResume : onPause}
             aria-label={paused ? t('timer.resume') : t('timer.pause')}

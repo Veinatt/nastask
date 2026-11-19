@@ -283,8 +283,8 @@ export function HomePage() {
                 key={entry.id}
                 entry={entry}
                 onEdit={() => setDraftTarget(entry)}
-                onPause={() => void pause(entry.id).then(() => refreshActive())}
-                onResume={() => void resume(entry.id).then(() => refreshActive())}
+                onPause={() => void pause(entry.id)}
+                onResume={() => void resume(entry.id)}
                 onComplete={() => void openComplete(entry)}
                 onDelete={() => setDeleteId(entry.id)}
               />
@@ -423,7 +423,7 @@ export function HomePage() {
                 const id = stillWorking?.id
                 setStillWorking(null)
                 if (!id) return
-                void pause(id).then(() => refreshActive())
+                void pause(id)
               }}
             >
               {t('timer.pause')}

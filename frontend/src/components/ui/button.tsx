@@ -14,7 +14,8 @@ const buttonVariants = cva(
           'border-0 control-surface text-primary-soft hover:text-primary-soft',
         secondary:
           'border-0 control-surface text-primary-soft hover:text-primary-soft',
-        ghost: 'hover:bg-[hsl(var(--primary)/0.09)] hover:text-foreground dark:hover:bg-[hsl(var(--muted)/0.78)]',
+        ghost:
+          'hover:bg-[hsl(var(--primary)/var(--a-wash))] hover:text-foreground dark:hover:bg-[hsl(var(--muted)/0.78)]',
         link: 'text-primary-soft underline-offset-4 hover:underline',
       },
       size: {

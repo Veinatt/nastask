@@ -74,7 +74,9 @@ export function ReportsPage() {
   return (
     <div className="grid min-w-0 gap-6">
       <header>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-wide">{t('reports.title')}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-wide text-primary-soft/90 dark:text-foreground">
+          {t('reports.title')}
+        </h1>
       </header>
 
       <SegmentedControl
@@ -101,36 +103,39 @@ export function ReportsPage() {
 
       {tab === 'salary' && salary && (
         <section key="salary" className="grid gap-4 animate-fade-up">
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full border-[hsl(var(--primary)/0.2)]"
-              onClick={() => setAddExpenseOpen(true)}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              {t('expenses.add')}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full border-[hsl(var(--primary)/0.2)]"
-              disabled={salary.expenses.length === 0}
-              onClick={() => setListExpensesOpen(true)}
-            >
-              <List className="h-4 w-4 mr-1" />
-              {t('expenses.list')}
-            </Button>
+          <div className="grid gap-2">
+            <p className="section-label">{t('expenses.label')}</p>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-[hsl(var(--primary)/0.2)]"
+                onClick={() => setAddExpenseOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                {t('expenses.add')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-[hsl(var(--primary)/0.2)]"
+                disabled={salary.expenses.length === 0}
+                onClick={() => setListExpensesOpen(true)}
+              >
+                <List className="h-4 w-4 mr-1" />
+                {t('expenses.list')}
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="surface-card px-4 py-3">
+            <div className="surface-card !rounded-[31px] px-4 py-3">
               <p className="section-label">{t('reports.total')}</p>
               <p className="mt-1.5 text-xl font-bold tabular-nums tracking-tight text-primary">
                 {salary.monthSum.toFixed(2)} {salary.currency}
               </p>
             </div>
-            <div className="surface-card px-4 py-3">
+            <div className="surface-card !rounded-[31px] px-4 py-3">
               <p className="section-label">{employerLabel}</p>
               <p className="mt-1.5 text-xl font-bold tabular-nums tracking-tight text-primary">
                 {salary.employerPay.toFixed(2)} {salary.currency}
@@ -143,9 +148,9 @@ export function ReportsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('reports.col.dateTime')}</TableHead>
-                  <TableHead className="text-right">{t('reports.col.hours')}</TableHead>
-                  <TableHead className="text-right">{t('reports.col.coef')}</TableHead>
-                  <TableHead className="text-right">{t('reports.col.amount')}</TableHead>
+                  <TableHead>{t('reports.col.hours')}</TableHead>
+                  <TableHead>{t('reports.col.coef')}</TableHead>
+                  <TableHead>{t('reports.col.amount')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -154,11 +159,11 @@ export function ReportsPage() {
                     <TableCell className="font-medium whitespace-nowrap">
                       {r.start ? formatIntervalWhen(r.start) : r.date}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{r.hours.toFixed(2)}</TableCell>
-                    <TableCell className="text-right tabular-nums">
+                    <TableCell className="tabular-nums">{r.hours.toFixed(2)}</TableCell>
+                    <TableCell className="tabular-nums">
                       {formatDecimal(r.coefficient)}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums font-medium">
+                    <TableCell className="tabular-nums font-medium">
                       {r.amount.toFixed(2)}
                     </TableCell>
                   </TableRow>
@@ -277,7 +282,7 @@ export function ReportsPage() {
                       <TableCell className="align-middle whitespace-nowrap">
                         {r.unitName}
                       </TableCell>
-                      <TableCell className="align-top min-w-[9rem] text-sm text-muted-foreground">
+                      <TableCell className="align-top min-w-[9rem] text-muted-foreground">
                         {notes.length === 0 ? (
                           '—'
                         ) : (

@@ -68,22 +68,28 @@ function currentYearMonth() {
   return { year: d.getFullYear(), month: d.getMonth() + 1 }
 }
 
-function MetricCard({
-  label,
-  value,
-  hint,
-}: {
-  label: string
-  value: string
-  hint?: string
-}) {
+function MetricStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="surface-card px-4 py-3">
-      <p className="section-label">{label}</p>
-      <p className="mt-1.5 text-xl font-bold tabular-nums tracking-tight text-primary">
-        {value}
-      </p>
-      {hint && <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>}
+    <div className="min-w-0 md:flex-1">
+      {/* Phone: label | value on one row */}
+      <div className="flex items-baseline justify-between gap-3 md:hidden">
+        <p className="section-label m-0 min-w-0 truncate">{label}</p>
+        <p className="m-0 shrink-0 text-sm font-bold tabular-nums tracking-tight text-primary">
+          {value}
+        </p>
+      </div>
+      {/* Desktop: stacked, fixed 2px gap (no flex stretch / utility fights) */}
+      <div
+        className="hidden flex-col items-center text-center md:flex"
+        style={{ gap: 10 }}
+      >
+        <p className="m-0 text-sm font-semibold leading-none tracking-tight text-foreground">
+          {label}
+        </p>
+        <p className="m-0 text-xl font-bold leading-none tabular-nums tracking-tight text-primary">
+          {value}
+        </p>
+      </div>
     </div>
   )
 }
@@ -210,8 +216,7 @@ export function StatsPage() {
   const [allItems, setAllItems] = useState<IntervalWithWorks[]>([])
   const [loading, setLoading] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const [topCategoriesOpen, setTopCategoriesOpen] = useState(false)
-  const [topWorksOpen, setTopWorksOpen] = useState(false)
+  const [summaryOpen, setSummaryOpen] = useState(false)
   const [expensesSum, setExpensesSum] = useState(0)
 
   const [coefFrom, setCoefFrom] = useState('')
@@ -421,23 +426,6 @@ export function StatsPage() {
   const dayHours = useMemo(() => hoursByDayMap(calendarItems), [calendarItems])
   const grouped = useMemo(() => groupByMonthThenDay(filtered), [filtered])
 
-  const earnedHint = useMemo(() => {
-    const parts: string[] = []
-    if (metrics.expensesSum > 0) {
-      parts.push(
-        t('stats.metric.expenses', {
-          amount: `${metrics.expensesSum.toFixed(2)} ${settings.currency}`,
-        }),
-      )
-    }
-    parts.push(
-      t('stats.metric.employerPay', {
-        amount: `${metrics.employerPay.toFixed(2)} ${settings.currency}`,
-      }),
-    )
-    return parts.join(' · ')
-  }, [metrics.expensesSum, metrics.employerPay, settings.currency, t])
-
   const handleCalendarSelect = (key: string) => {
     if (mode === 'range') {
       // Second tap on the start day clears the range.
@@ -488,7 +476,9 @@ export function StatsPage() {
   return (
     <div className="grid min-w-0 gap-6">
       <header>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-wide">{t('stats.title')}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-wide text-primary-soft/90 dark:text-foreground">
+          {t('stats.title')}
+        </h1>
       </header>
 
       <SegmentedControl
@@ -541,6 +531,10 @@ export function StatsPage() {
           <div className="flex h-32 items-end gap-1 sm:gap-1.5">
             {monthChart.map((m) => {
               const pct = (m.totalSeconds / monthChartMaxSeconds) * 100
+              const intensity =
+                m.totalSeconds > 0 && monthChartMaxSeconds > 0
+                  ? Math.max(0.2, m.totalSeconds / monthChartMaxSeconds)
+                  : 0
               const shortLabel = monthLabel(m.year, m.month, locale).slice(0, 3)
               return (
                 <button
@@ -556,11 +550,17 @@ export function StatsPage() {
                   <div className="flex h-24 w-full items-end justify-center">
                     <div
                       className={cn(
-                        'w-full max-w-8 rounded-t-sm transition-colors duration-[280ms] ease-[var(--ease-out-soft)]',
-                        'bg-primary/35 group-hover:bg-primary/55',
+                        'w-full max-w-8 rounded-full transition-[height,background-color] duration-[280ms] ease-[var(--ease-out-soft)]',
                         m.totalSeconds === 0 && 'min-h-0.5 bg-muted',
                       )}
-                      style={{ height: `${Math.max(m.totalSeconds > 0 ? 4 : 2, pct)}%` }}
+                      style={{
+                        height: `${Math.max(m.totalSeconds > 0 ? 4 : 2, pct)}%`,
+                        ...(m.totalSeconds > 0
+                          ? {
+                              backgroundColor: `hsl(var(--primary) / ${intensity})`,
+                            }
+                          : undefined),
+                      }}
                     />
                   </div>
                   <span className="truncate text-[10px] tabular-nums capitalize text-muted-foreground">
@@ -673,123 +673,112 @@ export function StatsPage() {
 
       {loading && <p className="text-sm text-muted-foreground">{t('common.loading')}</p>}
 
-      <section className="grid grid-cols-2 gap-3">
-        <MetricCard
-          label={
-            mode === 'all'
-              ? t('stats.metric.totalHoursAll')
-              : t('stats.metric.totalHoursPeriod')
-          }
-          value={formatHoursMinutes(metrics.totalSeconds)}
-          hint={formatDuration(metrics.totalSeconds)}
-        />
-        <MetricCard
-          label={t('stats.metric.avgPerWorkedDay')}
-          value={formatDecimalHoursAsClock(metrics.avgHoursPerWorkedDay)}
-          hint={t('stats.metric.workedDays', { count: metrics.workedDays })}
-        />
-        <MetricCard
-          label={t('stats.metric.avgCoef')}
-          value={metrics.weightedAvgCoefficient.toFixed(2)}
-          hint={t('stats.metric.avgCoefHint')}
-        />
-        <MetricCard
-          label={t('stats.metric.earned')}
-          value={`${metrics.earned.toFixed(2)} ${settings.currency}`}
-          hint={earnedHint}
-        />
-      </section>
+      <div className="surface-card min-w-0 w-full overflow-hidden">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+          onClick={() => setSummaryOpen((v) => !v)}
+          aria-expanded={summaryOpen}
+        >
+          <span className="font-medium">{t('stats.summary')}</span>
+          <ChevronDown
+            className={cn(
+              'h-5 w-5 text-muted-foreground transition-transform duration-300 ease-[var(--ease-out-soft)]',
+              summaryOpen && 'rotate-180',
+            )}
+          />
+        </button>
+        {summaryOpen && (
+          <div className="grid gap-5 border-t border-border/60 px-4 py-4 animate-fade-up">
+            <div
+              className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4"
+              aria-label={t('stats.summary')}
+            >
+              <MetricStat
+                label={
+                  mode === 'all'
+                    ? t('stats.metric.totalHoursAll')
+                    : t('stats.metric.totalHoursPeriod')
+                }
+                value={formatHoursMinutes(metrics.totalSeconds)}
+              />
+              <MetricStat
+                label={t('stats.metric.avgPerWorkedDay')}
+                value={formatDecimalHoursAsClock(metrics.avgHoursPerWorkedDay)}
+              />
+              <MetricStat
+                label={t('stats.metric.avgCoef')}
+                value={metrics.weightedAvgCoefficient.toFixed(2)}
+              />
+              <MetricStat
+                label={t('stats.metric.earned')}
+                value={`${metrics.earned.toFixed(2)} ${settings.currency}`}
+              />
+            </div>
 
-      {topCategories.length > 0 && (
-        <div className="surface-card min-w-0 w-full overflow-hidden">
-          <button
-            type="button"
-            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-            onClick={() => setTopCategoriesOpen((v) => !v)}
-            aria-expanded={topCategoriesOpen}
-          >
-            <span className="font-medium">{t('stats.topCategories')}</span>
-            <ChevronDown
-              className={cn(
-                'h-5 w-5 text-muted-foreground transition-transform duration-300 ease-[var(--ease-out-soft)]',
-                topCategoriesOpen && 'rotate-180',
-              )}
-            />
-          </button>
-          {topCategoriesOpen && (
-            <ul className="grid gap-2.5 border-t border-border/60 px-4 py-4 animate-fade-up">
-              {topCategories.map((c) => (
-                <li key={c.categoryId} className="grid gap-1">
-                  <div className="flex items-baseline justify-between gap-2 text-sm">
-                    <span className="min-w-0 truncate font-medium">
-                      {categoryName(c.categoryId)}
-                    </span>
-                    <span className="shrink-0 tabular-nums text-muted-foreground">
-                      {formatHoursMinutes(c.seconds)}
-                    </span>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-primary/70"
-                      style={{
-                        width: `${(c.seconds / topCategoryMaxSeconds) * 100}%`,
-                      }}
-                    />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+            {topCategories.length > 0 && (
+              <section className="mt-3 grid gap-2.5">
+                <h3 className="section-label">{t('stats.topCategories')}</h3>
+                <ul className="grid gap-2.5">
+                  {topCategories.map((c) => (
+                    <li key={c.categoryId} className="grid gap-1">
+                      <div className="flex items-baseline justify-between gap-2 text-sm">
+                        <span className="min-w-0 truncate font-medium">
+                          {categoryName(c.categoryId)}
+                        </span>
+                        <span className="shrink-0 tabular-nums text-muted-foreground">
+                          {formatHoursMinutes(c.seconds)}
+                        </span>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-primary/70"
+                          style={{
+                            width: `${(c.seconds / topCategoryMaxSeconds) * 100}%`,
+                          }}
+                        />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
-      {topWorks.length > 0 && (
-        <div className="surface-card min-w-0 w-full overflow-hidden">
-          <button
-            type="button"
-            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-            onClick={() => setTopWorksOpen((v) => !v)}
-            aria-expanded={topWorksOpen}
-          >
-            <span className="font-medium">{t('stats.topWorks')}</span>
-            <ChevronDown
-              className={cn(
-                'h-5 w-5 text-muted-foreground transition-transform duration-300 ease-[var(--ease-out-soft)]',
-                topWorksOpen && 'rotate-180',
-              )}
-            />
-          </button>
-          {topWorksOpen && (
-            <ul className="grid gap-2.5 border-t border-border/60 px-4 py-4 animate-fade-up">
-              {topWorks.map((w) => (
-                <li key={`${w.categoryId}\0${w.descriptionId}`} className="grid gap-1">
-                  <div className="flex items-baseline justify-between gap-2 text-sm">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">
-                        {descriptionName(w.descriptionId)}
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {categoryName(w.categoryId)}
-                      </p>
-                    </div>
-                    <span className="shrink-0 tabular-nums text-muted-foreground">
-                      {formatHoursMinutes(w.seconds)}
-                    </span>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-primary/70"
-                      style={{
-                        width: `${(w.seconds / topWorksMaxSeconds) * 100}%`,
-                      }}
-                    />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+            {topWorks.length > 0 && (
+              <section className="mt-3 grid gap-2.5">
+                <h3 className="section-label">{t('stats.topWorks')}</h3>
+                <ul className="grid gap-2.5">
+                  {topWorks.map((w) => (
+                    <li key={`${w.categoryId}\0${w.descriptionId}`} className="grid gap-1">
+                      <div className="flex items-baseline justify-between gap-2 text-sm">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">
+                            {descriptionName(w.descriptionId)}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {categoryName(w.categoryId)}
+                          </p>
+                        </div>
+                        <span className="shrink-0 tabular-nums text-muted-foreground">
+                          {formatHoursMinutes(w.seconds)}
+                        </span>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-primary/70"
+                          style={{
+                            width: `${(w.seconds / topWorksMaxSeconds) * 100}%`,
+                          }}
+                        />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </div>
+        )}
+      </div>
 
       <section className="grid gap-4">
         <div className="flex items-center justify-between gap-3">
@@ -814,7 +803,7 @@ export function StatsPage() {
                     {monthLabel(monthGroup.year, monthGroup.month, locale)}
                   </h3>
                   <span className="text-sm tabular-nums text-muted-foreground">
-                    {formatHoursMinutes(monthGroup.totalSeconds)}
+                    {formatDuration(monthGroup.totalSeconds)}
                   </span>
                 </div>
                 {monthGroup.days.map((day) => (
@@ -824,7 +813,7 @@ export function StatsPage() {
                         {formatDayLabel(day.date)}
                       </h4>
                       <span className="text-xs tabular-nums text-muted-foreground">
-                        {formatHoursMinutes(day.totalSeconds)}
+                        {formatDuration(day.totalSeconds)}
                       </span>
                     </div>
                     <ul className="grid gap-2">

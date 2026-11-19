@@ -2,6 +2,9 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App'
+import { applyBrandColor, getBrandHex } from '@/lib/brand'
+
+applyBrandColor(getBrandHex())
 
 function showBootError(err: unknown) {
   const message = err instanceof Error ? err.stack || err.message : String(err)

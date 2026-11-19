@@ -32,7 +32,7 @@ function DockTab({
       aria-label={label}
       aria-current={active ? 'page' : undefined}
       onClick={onSelect}
-      className="flex h-full min-w-0 w-full items-center justify-center text-primary outline-none"
+      className="flex h-full min-w-0 w-full items-center justify-center text-primary-soft outline-none dark:text-foreground"
     >
       <span
         key={bounceKey}
@@ -42,7 +42,7 @@ function DockTab({
         )}
       >
         <Icon
-          className="shrink-0 overflow-visible text-primary"
+          className="shrink-0 overflow-visible text-primary-soft dark:text-foreground"
           size={28}
           strokeWidth={active ? 2.35 : 1.35}
           style={{
@@ -80,7 +80,7 @@ export function MobileDock() {
         className={cn(
           'pointer-events-auto relative mx-auto grid max-w-lg grid-cols-5 items-center overflow-visible',
           'h-14 rounded-[1.75rem] bg-card px-1 py-1.5',
-          '!shadow-[0_0_24px_rgb(15_40_80_/_0.16),0_4px_16px_rgb(15_40_80_/_0.1),0_-4px_16px_rgb(15_40_80_/_0.08)]',
+          '![box-shadow:var(--shadow-dock)]',
         )}
       >
         {left.map(({ to, labelKey, icon }) => (

@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { cn } from '@/lib/utils'
 import { APP_LOGO_GRADIENT } from '@/components/layout/Navigation'
-import catSrc from '@/assets/cat.jpg'
+import { getSessionSplashFrogSrc } from '@/lib/splashFrogs'
 
 const CAT_COUNT = 16
 
-function buildCats() {
+function buildCats(desktop: boolean) {
   return Array.from({ length: CAT_COUNT }, (_, i) => {
     const t = (i / CAT_COUNT) * Math.PI * 2
     const hx = 16 * Math.sin(t) ** 3
@@ -22,12 +22,11 @@ function buildCats() {
       ty: `${hy * scale - 4}vmin`,
       rot: `${(i % 2 === 0 ? 1 : -1) * (12 + (i % 5) * 6)}deg`,
       delay: `${40 + i * 30}ms`,
-      size: 64 + (i % 4) * 14,
+      // Phone: original size; desktop: larger stickers
+      size: desktop ? 84 + (i % 4) * 16 : 64 + (i % 4) * 14,
     }
   })
 }
-
-const CATS = buildCats()
 
 type Phase = 'hold' | 'burst' | 'morph'
 
@@ -61,6 +60,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   const [phase, setPhase] = useState<Phase>('hold')
   const [logoBox, setLogoBox] = useState<LogoBox | null>(null)
   const [burst, setBurst] = useState(false)
+  const frogSrc = useMemo(() => getSessionSplashFrogSrc(), [])
+  const cats = useMemo(
+    () => buildCats(window.matchMedia('(min-width: 768px)').matches),
+    [],
+  )
 
   const finish = () => {
     if (finishedRef.current) return
@@ -72,8 +76,8 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   useEffect(() => {
     signalReady()
     const img = new Image()
-    img.src = catSrc
-  }, [])
+    img.src = frogSrc
+  }, [frogSrc])
 
   useEffect(() => {
     const timers: number[] = []
@@ -196,14 +200,14 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       />
 
       {burst &&
-        CATS.map((cat) => (
+        cats.map((cat) => (
           <img
             key={cat.id}
-            src={catSrc}
+            src={frogSrc}
             alt=""
             draggable={false}
             className={cn(
-              'splash-cat absolute left-1/2 top-1/2 z-0 rounded-2xl object-cover shadow-lg',
+              'splash-cat absolute left-1/2 top-1/2 z-0 object-contain',
               phase === 'morph' && 'splash-cat-fade',
             )}
             style={

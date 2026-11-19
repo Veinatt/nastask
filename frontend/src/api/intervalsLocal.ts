@@ -3,11 +3,17 @@ import type { TimeEntry, WorkItem } from '@/db/types'
 
 export const intervalsLocal = {
   async putEntry(entry: TimeEntry, workItems?: WorkItem[]): Promise<void> {
-    await db.timeEntries.put(entry)
-    if (workItems) {
+    // undefined → leave works alone (pause/resume must not wipe them)
+    if (workItems === undefined) {
+      await db.timeEntries.put(entry)
+      return
+    }
+    // One transaction so liveQuery never sees a brief workCount=0 flash
+    await db.transaction('rw', db.timeEntries, db.workItems, async () => {
+      await db.timeEntries.put(entry)
       await db.workItems.where('timeEntryId').equals(entry.id).delete()
       if (workItems.length) await db.workItems.bulkPut(workItems)
-    }
+    })
   },
 
   async remove(id: string): Promise<void> {
@@ -53,8 +59,13 @@ export const intervalsLocal = {
         // Do not clobber a local row that still has a pending op.
         if (keepIds.has(entry.id)) continue
         await db.timeEntries.put(entry)
-        await db.workItems.where('timeEntryId').equals(entry.id).delete()
-        if (workItems.length) await db.workItems.bulkPut(workItems)
+        // Empty workItems from a partial payload must not erase local works
+        // (pause/resume race with refreshActive). Only replace when server sent any
+        // or local already has none.
+        if (workItems.length > 0) {
+          await db.workItems.where('timeEntryId').equals(entry.id).delete()
+          await db.workItems.bulkPut(workItems)
+        }
       }
     })
   },

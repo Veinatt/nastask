@@ -17,14 +17,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { expensesRemote } from '@/api/expensesRemote'
 import { useI18n } from '@/hooks/useI18n'
 import type { SalaryExpense } from '@/db/types'
@@ -73,49 +65,43 @@ export function ExpensesListDialog({
           <DialogHeader>
             <DialogTitle>{t('expenses.listTitle')}</DialogTitle>
           </DialogHeader>
-          <DialogBody className="space-y-3">
-            {error && <p className="text-sm text-destructive">{error}</p>}
+          <DialogBody className="space-y-0 p-0">
+            {error && (
+              <p className="px-4 pt-3 text-sm text-destructive">{error}</p>
+            )}
             {expenses.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
+              <p className="px-4 py-6 text-center text-sm text-muted-foreground">
                 {t('expenses.empty')}
               </p>
             ) : (
-              <div className="surface-card overflow-hidden rounded-2xl">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('expenses.name')}</TableHead>
-                      <TableHead className="text-right">{t('expenses.amount')}</TableHead>
-                      <TableHead className="w-10" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {expenses.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.name}</TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatDecimal(item.amount, 2)} {currency}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-destructive hover:bg-destructive/15 hover:text-destructive"
-                            disabled={busyId === item.id}
-                            aria-label={t('common.delete')}
-                            onClick={() => setDeleteId(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <ul>
+                {expenses.map((item) => (
+                  <li
+                    key={item.id}
+                    className="flex items-center gap-3 border-b border-border px-4 py-3 last:border-b-0"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                      {item.name}
+                    </span>
+                    <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+                      {formatDecimal(item.amount, 2)} {currency}
+                    </span>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 shrink-0 text-destructive hover:bg-destructive/15 hover:text-destructive"
+                      disabled={busyId === item.id}
+                      aria-label={t('common.delete')}
+                      onClick={() => setDeleteId(item.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
             )}
-            <p className="text-sm font-semibold tabular-nums text-right">
+            <p className="border-t border-border px-4 py-3 text-base font-semibold tabular-nums text-left">
               {t('expenses.total')}: {formatDecimal(expensesSum, 2)} {currency}
             </p>
           </DialogBody>

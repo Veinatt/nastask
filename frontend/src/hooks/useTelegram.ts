@@ -9,6 +9,7 @@ import {
   requestSafeAreaInsets,
   requestContentSafeAreaInsets,
 } from '@telegram-apps/sdk-react'
+import { applyBrandColor, BRAND_CHANGE_EVENT, getBrandHex } from '@/lib/brand'
 import {
   THEME_CHANGE_EVENT,
   applyTheme,
@@ -234,36 +235,29 @@ export function useTelegram() {
     }
 
     refreshUser()
-    applyTheme(getThemePreference(), ok ? isDark ?? null : null)
+    applyTheme(getThemePreference())
+    applyBrandColor(getBrandHex())
 
-    const apply = () => {
-      let telegramDark: boolean | null = null
-      try {
-        if (ok) telegramDark = Boolean(miniApp.isDark())
-      } catch {
-        telegramDark = null
-      }
-      applyTheme(getThemePreference(), telegramDark)
+    const applyThemeOnly = () => {
+      applyTheme(getThemePreference())
+      applyBrandColor(getBrandHex())
       refreshUser()
     }
 
-    window.addEventListener(THEME_CHANGE_EVENT, apply)
-
-    let cleanupMq: (() => void) | undefined
-    if (!ok) {
-      const mq = window.matchMedia('(prefers-color-scheme: dark)')
-      const onChange = () => apply()
-      mq.addEventListener('change', onChange)
-      cleanupMq = () => mq.removeEventListener('change', onChange)
+    const applyBrandOnly = () => {
+      applyBrandColor(getBrandHex())
     }
+
+    window.addEventListener(THEME_CHANGE_EVENT, applyThemeOnly)
+    window.addEventListener(BRAND_CHANGE_EVENT, applyBrandOnly)
 
     // Late WebView injection — retry a few times
     const t1 = window.setTimeout(refreshUser, 300)
     const t2 = window.setTimeout(refreshUser, 1000)
 
     return () => {
-      window.removeEventListener(THEME_CHANGE_EVENT, apply)
-      cleanupMq?.()
+      window.removeEventListener(THEME_CHANGE_EVENT, applyThemeOnly)
+      window.removeEventListener(BRAND_CHANGE_EVENT, applyBrandOnly)
       window.clearTimeout(t1)
       window.clearTimeout(t2)
     }

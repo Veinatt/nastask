@@ -123,12 +123,19 @@ async function applyOp(op: PendingOp): Promise<void> {
     }
     case 'interval_pause': {
       const result = await intervalsRemote.pause(op.entityId)
-      await intervalsLocal.putEntry(result.entry, result.workItems)
+      // Prefer server works when present; otherwise keep local (don't wipe with [])
+      await intervalsLocal.putEntry(
+        result.entry,
+        result.workItems.length > 0 ? result.workItems : undefined,
+      )
       return
     }
     case 'interval_resume': {
       const result = await intervalsRemote.resume(op.entityId)
-      await intervalsLocal.putEntry(result.entry, result.workItems)
+      await intervalsLocal.putEntry(
+        result.entry,
+        result.workItems.length > 0 ? result.workItems : undefined,
+      )
       return
     }
     case 'interval_complete': {

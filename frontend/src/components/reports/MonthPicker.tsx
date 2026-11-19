@@ -24,7 +24,7 @@ export function MonthPicker({ year, month, onChange }: MonthPickerProps) {
         type="button"
         variant="ghost"
         size="icon"
-        className="h-9 w-9 shrink-0 text-primary-soft hover:bg-[hsl(var(--primary)/0.1)] hover:text-primary"
+        className="h-9 w-9 shrink-0 text-primary-soft hover:bg-[hsl(var(--primary)/var(--a-wash))] hover:text-primary"
         aria-label={t('monthPicker.prev')}
         onClick={() => onChange(addMonthsSafe(year, month, -1))}
       >
@@ -37,7 +37,7 @@ export function MonthPicker({ year, month, onChange }: MonthPickerProps) {
         type="button"
         variant="ghost"
         size="icon"
-        className="h-9 w-9 shrink-0 text-primary-soft hover:bg-[hsl(var(--primary)/0.1)] hover:text-primary disabled:text-muted-foreground"
+        className="h-9 w-9 shrink-0 text-primary-soft hover:bg-[hsl(var(--primary)/var(--a-wash))] hover:text-primary disabled:text-muted-foreground"
         aria-label={t('monthPicker.next')}
         disabled={isCurrent}
         onClick={() => {
