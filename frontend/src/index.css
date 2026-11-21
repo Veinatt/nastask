@@ -44,7 +44,7 @@
  * Channels (space-separated H S L, used as hsl(var(--token) / a)):
  *   --primary              solid CTA fill, running cards, peak charts
  *   --primary-foreground   text/icons ON primary
- *   --primary-soft         text/icons ON white/card (darker/lighter L)
+ *   --primary-soft         text/icons ON white/card (--brand-soft-s/l)
  *   --background           page wash (same H, high L)
  *   --secondary / --muted / --accent  soft brand-tinted surfaces
  *   --border / --input     brand-tinted lines
@@ -67,6 +67,9 @@
   --brand-h: 212;
   --brand-s: 100%;
   --brand-l: 72%; /* #72B3FF */
+  /* Text-on-card: derived from brand (see applyBrandColor). Defaults = Sky. */
+  --brand-soft-s: 70%;
+  --brand-soft-l: 48%;
 
   --a-wash: 0.15;
   --a-wash-hover: 0.22;
@@ -75,34 +78,36 @@
 
   --primary: var(--brand-h) var(--brand-s) var(--brand-l);
   --primary-foreground: 0 0% 100%;
-  --primary-soft: var(--brand-h) 70% 48%;
+  /* Was hardcoded 70%/48% — gray brands kept hue but became vivid blue. */
+  --primary-soft: var(--brand-h) var(--brand-soft-s) var(--brand-soft-l);
 
-  --background: var(--brand-h) 100% 97%; /* #F1F7FF family */
+  --background: var(--brand-h) var(--brand-s) 97%; /* wash tracks brand chroma */
   --foreground: 240 6% 10%;
   --card: 0 0% 100%;
   --card-foreground: 240 6% 10%;
   --popover: 0 0% 100%;
   --popover-foreground: 240 6% 10%;
-  --secondary: var(--brand-h) 60% 94%;
+  /* min(..., brand-s) so gray brands don't get fake blue tints */
+  --secondary: var(--brand-h) min(60%, var(--brand-s)) 94%;
   --secondary-foreground: 218 16% 18%;
-  --muted: var(--brand-h) 50% 93%;
-  --muted-foreground: var(--brand-h) 14% 38%;
-  --accent: var(--brand-h) 55% 93%;
+  --muted: var(--brand-h) min(50%, var(--brand-s)) 93%;
+  --muted-foreground: var(--brand-h) min(14%, var(--brand-s)) 38%;
+  --accent: var(--brand-h) min(55%, var(--brand-s)) 93%;
   --accent-foreground: 218 16% 18%;
   --destructive: 12.5 100% 50%; /* #FF3500 */
   --destructive-foreground: 0 0% 100%;
   --success: 160 100% 36%; /* #00B77A */
   --success-foreground: 0 0% 100%;
-  --border: var(--brand-h) 30% 88%;
-  --input: var(--brand-h) 30% 88%;
+  --border: var(--brand-h) min(30%, var(--brand-s)) 88%;
+  --input: var(--brand-h) min(30%, var(--brand-s)) 88%;
   --ring: var(--primary);
-  /* Logo end: same brand, hue shifted −12° for a readable gradient */
+  /* Logo end: same brand, hue shifted −12°; chroma capped to brand-s */
   --brand-end-h: calc(var(--brand-h) - 12);
-  --brand-end: var(--brand-end-h) 90% 65%;
+  --brand-end: var(--brand-end-h) min(90%, var(--brand-s)) 65%;
   --glow-a: var(--primary);
   --glow-b: var(--brand-end);
   --glow-c-h: calc(var(--brand-h) + 8);
-  --glow-c: var(--glow-c-h) 80% 70%;
+  --glow-c: var(--glow-c-h) min(80%, var(--brand-s)) 70%;
   --radius: 0.75rem;
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);

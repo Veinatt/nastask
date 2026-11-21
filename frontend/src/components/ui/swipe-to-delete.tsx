@@ -200,7 +200,7 @@ export function SwipeToDelete({
   return (
     <div
       data-no-swipe
-      className={cn('rounded-2xl surface-elevate', className)}
+      className={cn('min-w-0 rounded-2xl surface-elevate', className)}
     >
       {/* Overflow clip is inner so outer elevation shadow is not cropped. */}
       <div className="relative overflow-hidden rounded-[inherit]">

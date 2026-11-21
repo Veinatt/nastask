@@ -131,20 +131,20 @@ function StatsCompletedRow({
   })
 
   return (
-    <li>
+    <li className="min-w-0">
       <SwipeToDelete
-        className="!rounded-[31px]"
+        className="min-w-0 w-full !rounded-[31px]"
         onDelete={() => onDelete(entry.id)}
         deleteAriaLabel={t('common.delete')}
         onTap={() => onEdit(entry)}
-        contentClassName="surface-card flex cursor-pointer items-center justify-between gap-3 !rounded-[31px] py-3 pl-5 pr-4 select-none"
+        contentClassName="surface-card flex min-w-0 w-full cursor-pointer items-center justify-between gap-2 !rounded-[31px] py-3 pl-5 pr-4 select-none sm:gap-3"
       >
         <div
           title={t('timer.swipeDelete')}
           aria-label={t('common.edit')}
-          className="flex min-w-0 flex-1 items-center justify-between gap-3 outline-none"
+          className="flex min-w-0 flex-1 items-center justify-between gap-2 outline-none sm:gap-3"
         >
-          <div className="min-w-0 flex-1 space-y-1">
+          <div className="min-w-0 flex-1 space-y-1 overflow-hidden">
             <p className="flex min-w-0 items-center text-sm font-medium">
               {range.dateLabel ? (
                 <span className="shrink-0 tabular-nums">{range.dateLabel}</span>
@@ -186,7 +186,7 @@ function StatsCompletedRow({
             </div>
           </div>
           <StatusChip
-            className="shrink-0"
+            className="max-w-[9.5rem] shrink"
             label={fillSummary}
             tone={fill.needsWorks ? 'warn' : 'ok'}
           />
@@ -474,8 +474,8 @@ export function StatsPage() {
   }
 
   return (
-    <div className="grid min-w-0 gap-6">
-      <header>
+    <div className="grid min-w-0 max-w-full gap-6 overflow-x-clip">
+      <header className="min-w-0">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-wide text-primary-soft/90 dark:text-foreground">
           {t('stats.title')}
         </h1>
@@ -483,6 +483,7 @@ export function StatsPage() {
 
       <SegmentedControl
         fullWidth
+        className="min-w-0 max-w-full"
         value={mode}
         onChange={(key) => {
           setMode(key)
@@ -498,7 +499,7 @@ export function StatsPage() {
       />
 
       {mode !== 'all' && (
-        <div key={mode} className="grid gap-3 animate-fade-up">
+        <div key={mode} className="grid min-w-0 gap-3 animate-fade-up">
           <MonthPicker
             year={year}
             month={month}
@@ -526,9 +527,9 @@ export function StatsPage() {
       )}
 
       {mode === 'all' && (
-        <section className="surface-card grid gap-3 px-4 py-4">
+        <section className="surface-card grid min-w-0 gap-3 overflow-hidden px-4 py-4">
           <h2 className="section-label">{t('stats.monthsChart')}</h2>
-          <div className="flex h-32 items-end gap-1 sm:gap-1.5">
+          <div className="flex h-32 min-w-0 w-full items-end gap-1 overflow-hidden sm:gap-1.5">
             {monthChart.map((m) => {
               const pct = (m.totalSeconds / monthChartMaxSeconds) * 100
               const intensity =
@@ -541,13 +542,13 @@ export function StatsPage() {
                   key={m.key}
                   type="button"
                   className={cn(
-                    'group flex min-w-0 flex-1 flex-col items-center gap-1.5',
+                    'group flex min-w-0 flex-1 flex-col items-center gap-1.5 overflow-hidden',
                     'focus-visible:outline-none focus-visible:ring-0',
                   )}
                   onClick={() => selectMonthFromChart(m.year, m.month)}
                   aria-label={`${monthLabel(m.year, m.month, locale)}: ${formatHoursMinutes(m.totalSeconds)}`}
                 >
-                  <div className="flex h-24 w-full items-end justify-center">
+                  <div className="flex h-24 w-full min-w-0 items-end justify-center">
                     <div
                       className={cn(
                         'w-full max-w-8 rounded-full transition-[height,background-color] duration-[280ms] ease-[var(--ease-out-soft)]',
@@ -563,7 +564,7 @@ export function StatsPage() {
                       }}
                     />
                   </div>
-                  <span className="truncate text-[10px] tabular-nums capitalize text-muted-foreground">
+                  <span className="w-full truncate text-center text-[10px] tabular-nums capitalize text-muted-foreground">
                     {shortLabel}
                   </span>
                 </button>
@@ -780,12 +781,12 @@ export function StatsPage() {
         )}
       </div>
 
-      <section className="grid gap-4">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="section-label">
+      <section className="grid min-w-0 gap-4">
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <h2 className="section-label min-w-0 truncate">
             {mode === 'all' ? t('stats.list.all') : t('stats.list.period')}
           </h2>
-          <span className="count-chip">
+          <span className="count-chip shrink-0">
             {filtered.length}
           </span>
         </div>
@@ -795,28 +796,28 @@ export function StatsPage() {
             {t('stats.listEmpty')}
           </div>
         ) : (
-          <div className="grid gap-5">
+          <div className="grid min-w-0 gap-5">
             {grouped.map((monthGroup) => (
-              <div key={monthGroup.key} className="grid gap-3">
-                <div className="flex items-baseline justify-between gap-3 border-b border-border/60 pb-2">
-                  <h3 className="text-base font-semibold">
+              <div key={monthGroup.key} className="grid min-w-0 gap-3">
+                <div className="flex min-w-0 items-baseline justify-between gap-3 border-b border-border/60 pb-2">
+                  <h3 className="min-w-0 truncate text-base font-semibold">
                     {monthLabel(monthGroup.year, monthGroup.month, locale)}
                   </h3>
-                  <span className="text-sm tabular-nums text-muted-foreground">
+                  <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
                     {formatDuration(monthGroup.totalSeconds)}
                   </span>
                 </div>
                 {monthGroup.days.map((day) => (
-                  <div key={day.date} className="grid gap-2 pl-0 sm:pl-1">
-                    <div className="flex items-baseline justify-between gap-3">
-                      <h4 className="text-sm font-medium text-primary-soft/90 capitalize">
+                  <div key={day.date} className="grid min-w-0 gap-2 pl-0 sm:pl-1">
+                    <div className="flex min-w-0 items-baseline justify-between gap-3">
+                      <h4 className="min-w-0 truncate text-sm font-medium text-primary-soft/90 capitalize">
                         {formatDayLabel(day.date)}
                       </h4>
-                      <span className="text-xs tabular-nums text-muted-foreground">
+                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                         {formatDuration(day.totalSeconds)}
                       </span>
                     </div>
-                    <ul className="grid gap-2">
+                    <ul className="grid min-w-0 gap-2">
                       {day.items.map(({ entry, workItems }) => (
                         <StatsCompletedRow
                           key={entry.id}

@@ -64,7 +64,7 @@ export function SegmentedControl<T extends string>({
         'relative inline-flex items-stretch rounded-2xl bg-card p-1 surface-elevate',
         'transition-[background-color,box-shadow,color] duration-[280ms] ease-[var(--ease-out-soft)]',
         size === 'lg' ? 'h-14 rounded-[1.75rem]' : 'h-11',
-        fullWidth && 'flex w-full',
+        fullWidth && 'flex w-full min-w-0 max-w-full',
         className,
       )}
     >

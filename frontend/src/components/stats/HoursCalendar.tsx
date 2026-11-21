@@ -102,9 +102,9 @@ export function HoursCalendar({
       : null
 
   return (
-    <div className="surface-card p-3 space-y-3">
+    <div className="surface-card min-w-0 space-y-3 overflow-hidden p-3">
       <div
-        className="grid grid-cols-7 gap-x-0 gap-y-1"
+        className="grid min-w-0 grid-cols-7 gap-x-0 gap-y-1"
         onPointerLeave={() => setHoverDay(null)}
       >
         {WEEKDAY_KEYS.map((key, index) => (

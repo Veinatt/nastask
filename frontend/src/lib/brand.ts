@@ -304,6 +304,15 @@ export function setBrandHex(hex: string | null): void {
   window.dispatchEvent(new Event(BRAND_CHANGE_EVENT))
 }
 
+/** Readable text-on-card channels from a brand fill (keeps gray brands gray). */
+export function brandSoftFromHsl(hsl: BrandHsl): { s: number; l: number } {
+  // Never invent chroma the swatch doesn't have (that made #454F5C titles blue).
+  const s = Math.min(hsl.s, 70)
+  // Bright pastels → darker text; already-dark fills keep their lightness.
+  const l = hsl.l > 55 ? 48 : Math.min(Math.max(hsl.l, 22), 50)
+  return { s, l }
+}
+
 /**
  * Push brand channels onto <html> as inline styles (override :root).
  * Dark theme ignores --brand-* (monochrome tokens). null → CSS defaults.
@@ -314,11 +323,16 @@ export function applyBrandColor(hex: string | null): void {
     root.style.removeProperty('--brand-h')
     root.style.removeProperty('--brand-s')
     root.style.removeProperty('--brand-l')
+    root.style.removeProperty('--brand-soft-s')
+    root.style.removeProperty('--brand-soft-l')
     return
   }
   const hsl = hexToHsl(hex)
   if (!hsl) return
+  const soft = brandSoftFromHsl(hsl)
   root.style.setProperty('--brand-h', String(Math.round(hsl.h)))
   root.style.setProperty('--brand-s', `${Math.round(hsl.s)}%`)
   root.style.setProperty('--brand-l', `${Math.round(hsl.l)}%`)
+  root.style.setProperty('--brand-soft-s', `${Math.round(soft.s)}%`)
+  root.style.setProperty('--brand-soft-l', `${Math.round(soft.l)}%`)
 }
