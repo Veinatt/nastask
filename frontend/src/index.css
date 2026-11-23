@@ -45,7 +45,7 @@
  *   --primary              solid CTA fill, running cards, peak charts
  *   --primary-foreground   text/icons ON primary
  *   --primary-soft         text/icons ON white/card (--brand-soft-s/l)
- *   --background           page wash (same H, high L)
+ *   --background           light/colored: #f5f7f9; dark: graphite
  *   --secondary / --muted / --accent  soft brand-tinted surfaces
  *   --border / --input     brand-tinted lines
  *   --ring                 = --primary (focus)
@@ -81,7 +81,8 @@
   /* Was hardcoded 70%/48% — gray brands kept hue but became vivid blue. */
   --primary-soft: var(--brand-h) var(--brand-soft-s) var(--brand-soft-l);
 
-  --background: var(--brand-h) var(--brand-s) 97%; /* wash tracks brand chroma */
+  /* Light + colored brands — fixed #f5f7f9 (does not track brand hue) */
+  --background: 210 25% 97%;
   --foreground: 240 6% 10%;
   --card: 0 0% 100%;
   --card-foreground: 240 6% 10%;
@@ -113,11 +114,11 @@
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
   --shadow-card: none;
   --shadow-card-hover: none;
-  /* Floating chrome (dock) — brand-tinted shadow */
+  /* Floating chrome (dock) — neutral gray shadow */
   --shadow-dock:
-    0 0 24px hsl(var(--primary) / 0.22),
-    0 4px 16px hsl(var(--primary) / 0.14),
-    0 -4px 16px hsl(var(--primary) / 0.1);
+    0 0 24px hsl(220 10% 40% / 0.16),
+    0 4px 16px hsl(220 8% 30% / 0.12),
+    0 -4px 16px hsl(220 8% 35% / 0.08);
 }
 
 .dark {
