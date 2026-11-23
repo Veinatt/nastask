@@ -132,9 +132,9 @@ export function HoursCalendar({
           const isRangeStart = activeBounds != null && key === activeBounds.lo
           const isRangeEnd = activeBounds != null && key === activeBounds.hi
           const isRangeEndpoint = isRangeStart || isRangeEnd
-          const isRangeMiddle = inActiveRange && !isRangeEndpoint
           // Mon=0 … Sun=6 for week-edge rounding of the track.
           const weekIndex = (day.getDay() + 6) % 7
+          // Round only the outer edge of the continuous strip.
           const trackRoundLeft = isRangeStart || (inActiveRange && weekIndex === 0)
           const trackRoundRight = isRangeEnd || (inActiveRange && weekIndex === 6)
 
@@ -143,13 +143,20 @@ export function HoursCalendar({
               ? Math.max(0.2, seconds / maxSeconds)
               : 0
           const hasWork = intensity > 0
-          // intensity is already 0.2…1 relative to the month max → solid at peak
-          const workDotAlpha = hasWork ? intensity : 0
           const weekendRed =
             weekend && !isSingle && !inActiveRange && !hasWork
           const todayText =
             isToday && !isSingle && !isRangeEndpoint
-          const onSolid = isSingle || isRangeEndpoint
+          // Day-mode single pick = pill. Period = one strip: soft middle + solid caps.
+          const singlePill = isSingle && !inActiveRange
+          // Heatmap only outside a period — inside the strip, hours stay in the top label.
+          const heatBg =
+            hasWork && !singlePill && !inActiveRange
+              ? `hsl(var(--primary) / ${intensity})`
+              : undefined
+          // White text on solid pills and heavy heat; light heat keeps dark text.
+          const onHeatFg = heatBg != null && intensity >= 0.55
+          const onSolidFg = singlePill || isRangeEndpoint || onHeatFg
 
           return (
             <button
@@ -159,34 +166,63 @@ export function HoursCalendar({
               onClick={() => onSelectDate(key)}
               onPointerEnter={() => setHoverDay(key)}
               className={cn(
-                'relative flex min-h-14 items-center justify-center px-0.5 text-sm transition-colors duration-[280ms] ease-[var(--ease-out-soft)]',
+                'relative flex min-h-14 items-center justify-center p-0 text-sm transition-colors duration-[280ms] ease-[var(--ease-out-soft)]',
                 'focus-visible:outline-none focus-visible:ring-0',
+                // Flush cells in a period strip; slight gap when browsing the month.
+                !inActiveRange && 'px-0.5',
                 !inMonth && 'opacity-40',
-                // Continuous range track (soft fill).
-                inActiveRange && 'bg-primary/15',
-                trackRoundLeft && 'rounded-l-lg sm:rounded-l-[31px]',
-                trackRoundRight && 'rounded-r-lg sm:rounded-r-[31px]',
                 weekendRed && 'text-destructive',
                 !weekendRed &&
-                  !isSingle &&
+                  !singlePill &&
                   !isRangeEndpoint &&
                   inMonth &&
-                  (isRangeMiddle ? 'text-primary-soft' : 'text-foreground'),
+                  (onHeatFg
+                    ? 'text-primary-foreground'
+                    : inActiveRange || hasWork
+                      ? 'text-primary-soft'
+                      : 'text-foreground'),
+                isRangeEndpoint && 'text-primary-foreground',
               )}
             >
+              {/* Soft strip across the whole period — keeps the range one mass. */}
+              {inActiveRange ? (
+                <span
+                  aria-hidden
+                  className={cn(
+                    'pointer-events-none absolute inset-0 bg-primary/30',
+                    trackRoundLeft && 'rounded-l-xl sm:rounded-l-[31px]',
+                    trackRoundRight && 'rounded-r-xl sm:rounded-r-[31px]',
+                  )}
+                />
+              ) : null}
+              {/* End days: bright pill, rounded on all sides; soft strip fills the
+                  corner crescents so they stay part of the same range. */}
+              {isRangeEndpoint ? (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 z-[1] rounded-lg bg-primary sm:rounded-[31px]"
+                />
+              ) : null}
               <span
                 className={cn(
-                  'relative z-[1] flex h-full min-h-14 w-full items-center justify-center rounded-lg border-2 border-transparent px-0.5 sm:rounded-[31px]',
-                  onSolid && 'bg-primary text-primary-foreground',
-                  // Outline only on hover, never on solid endpoints/single.
-                  isHover && !onSolid && 'border-primary',
+                  'relative z-[2] flex h-full min-h-14 w-full items-center justify-center',
+                  inActiveRange
+                    ? 'border-0 px-0'
+                    : 'border-2 border-transparent px-0.5',
+                  // Standalone day pick = rounded pill; range fill lives on the track layer.
+                  !inActiveRange && 'rounded-lg sm:rounded-[31px]',
+                  singlePill && 'bg-primary text-primary-foreground',
+                  isHover && !singlePill && !isRangeEndpoint && 'border-primary',
                 )}
+                style={heatBg ? { backgroundColor: heatBg } : undefined}
               >
                 {hoursLabel ? (
                   <span
                     className={cn(
                       'absolute inset-x-0 top-1 text-center text-[10px] font-semibold leading-none tabular-nums',
-                      onSolid ? 'text-primary-foreground/90' : 'text-primary-soft',
+                      onSolidFg
+                        ? 'text-primary-foreground/90'
+                        : 'text-primary-soft',
                     )}
                   >
                     {hoursLabel}
@@ -195,22 +231,11 @@ export function HoursCalendar({
                 <span
                   className={cn(
                     'leading-none font-medium',
-                    todayText && 'text-primary',
+                    todayText && !hasWork && !onSolidFg && 'text-primary',
                   )}
                 >
                   {format(day, 'd')}
                 </span>
-                {hasWork ? (
-                  <span
-                    className="absolute bottom-1.5 h-1.5 w-1.5 rounded-full"
-                    style={{
-                      backgroundColor: onSolid
-                        ? `hsl(var(--primary-foreground) / ${Math.min(1, 0.35 + intensity * 0.65)})`
-                        : `hsl(var(--primary) / ${workDotAlpha})`,
-                    }}
-                    aria-hidden
-                  />
-                ) : null}
               </span>
             </button>
           )
@@ -222,7 +247,7 @@ export function HoursCalendar({
           {[0.2, 0.4, 0.6, 0.8, 1].map((level) => (
             <span
               key={level}
-              className="h-1.5 w-1.5 rounded-full"
+              className="h-3 w-3 rounded-md"
               style={{
                 backgroundColor: `hsl(var(--primary) / ${level})`,
               }}

@@ -74,7 +74,7 @@ function MetricStat({ label, value }: { label: string; value: string }) {
       {/* Phone: label | value on one row */}
       <div className="flex items-baseline justify-between gap-3 md:hidden">
         <p className="section-label m-0 min-w-0 truncate">{label}</p>
-        <p className="m-0 shrink-0 text-sm font-bold tabular-nums tracking-tight text-primary">
+        <p className="m-0 shrink-0 text-sm font-bold tabular-nums tracking-tight text-primary-soft">
           {value}
         </p>
       </div>
@@ -86,7 +86,7 @@ function MetricStat({ label, value }: { label: string; value: string }) {
         <p className="m-0 text-sm font-semibold leading-none tracking-tight text-foreground">
           {label}
         </p>
-        <p className="m-0 text-xl font-bold leading-none tabular-nums tracking-tight text-primary">
+        <p className="m-0 text-xl font-bold leading-none tabular-nums tracking-tight text-primary-soft">
           {value}
         </p>
       </div>
@@ -215,8 +215,14 @@ export function StatsPage() {
 
   const [allItems, setAllItems] = useState<IntervalWithWorks[]>([])
   const [loading, setLoading] = useState(false)
-  const [filtersOpen, setFiltersOpen] = useState(false)
-  const [summaryOpen, setSummaryOpen] = useState(false)
+  const [statsPanel, setStatsPanel] = useState<'filters' | 'summary' | null>(
+    null,
+  )
+  const filtersOpen = statsPanel === 'filters'
+  const summaryOpen = statsPanel === 'summary'
+  const toggleStatsPanel = (panel: 'filters' | 'summary') => {
+    setStatsPanel((cur) => (cur === panel ? null : panel))
+  }
   const [expensesSum, setExpensesSum] = useState(0)
 
   const [coefFrom, setCoefFrom] = useState('')
@@ -575,22 +581,42 @@ export function StatsPage() {
       )}
 
       <div className="surface-card min-w-0 w-full overflow-hidden">
-        <button
-          type="button"
-          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-          onClick={() => setFiltersOpen((v) => !v)}
-          aria-expanded={filtersOpen}
-        >
-          <span className="font-medium">{t('stats.filters')}</span>
-          <ChevronDown
-            className={cn(
-              'h-5 w-5 text-muted-foreground transition-transform duration-300 ease-[var(--ease-out-soft)]',
-              filtersOpen && 'rotate-180',
-            )}
-          />
-        </button>
+        <div className="grid min-w-0 grid-cols-2">
+          <button
+            type="button"
+            className="flex min-w-0 items-center justify-between gap-2 px-4 py-3 text-left"
+            onClick={() => toggleStatsPanel('filters')}
+            aria-expanded={filtersOpen}
+          >
+            <span className="min-w-0 truncate font-medium">{t('stats.filters')}</span>
+            <ChevronDown
+              className={cn(
+                'h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-300 ease-[var(--ease-out-soft)]',
+                filtersOpen && 'rotate-180',
+              )}
+            />
+          </button>
+          <button
+            type="button"
+            className="flex min-w-0 items-center justify-between gap-2 border-l border-border/60 px-4 py-3 text-left"
+            onClick={() => toggleStatsPanel('summary')}
+            aria-expanded={summaryOpen}
+          >
+            <span className="min-w-0 truncate font-medium">{t('stats.summary')}</span>
+            <ChevronDown
+              className={cn(
+                'h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-300 ease-[var(--ease-out-soft)]',
+                summaryOpen && 'rotate-180',
+              )}
+            />
+          </button>
+        </div>
+
         {filtersOpen && (
-          <div className="grid min-w-0 gap-4 border-t border-border/60 px-4 py-4 animate-fade-up">
+          <div
+            key="filters"
+            className="grid min-w-0 gap-4 border-t border-border/60 px-4 py-4 animate-fade-up"
+          >
             <div className="min-w-0 space-y-2">
               <div className="flex items-center justify-between gap-3">
                 <Label>{t('stats.coefficient')}</Label>
@@ -670,27 +696,12 @@ export function StatsPage() {
             </div>
           </div>
         )}
-      </div>
 
-      {loading && <p className="text-sm text-muted-foreground">{t('common.loading')}</p>}
-
-      <div className="surface-card min-w-0 w-full overflow-hidden">
-        <button
-          type="button"
-          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-          onClick={() => setSummaryOpen((v) => !v)}
-          aria-expanded={summaryOpen}
-        >
-          <span className="font-medium">{t('stats.summary')}</span>
-          <ChevronDown
-            className={cn(
-              'h-5 w-5 text-muted-foreground transition-transform duration-300 ease-[var(--ease-out-soft)]',
-              summaryOpen && 'rotate-180',
-            )}
-          />
-        </button>
         {summaryOpen && (
-          <div className="grid gap-5 border-t border-border/60 px-4 py-4 animate-fade-up">
+          <div
+            key="summary"
+            className="grid gap-5 border-t border-border/60 px-4 py-4 animate-fade-up"
+          >
             <div
               className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4"
               aria-label={t('stats.summary')}
@@ -727,7 +738,7 @@ export function StatsPage() {
                         <span className="min-w-0 truncate font-medium">
                           {categoryName(c.categoryId)}
                         </span>
-                        <span className="shrink-0 tabular-nums text-muted-foreground">
+                        <span className="shrink-0 tabular-nums text-primary-soft">
                           {formatHoursMinutes(c.seconds)}
                         </span>
                       </div>
@@ -760,7 +771,7 @@ export function StatsPage() {
                             {categoryName(w.categoryId)}
                           </p>
                         </div>
-                        <span className="shrink-0 tabular-nums text-muted-foreground">
+                        <span className="shrink-0 tabular-nums text-primary-soft">
                           {formatHoursMinutes(w.seconds)}
                         </span>
                       </div>
@@ -780,6 +791,8 @@ export function StatsPage() {
           </div>
         )}
       </div>
+
+      {loading && <p className="text-sm text-muted-foreground">{t('common.loading')}</p>}
 
       <section className="grid min-w-0 gap-4">
         <div className="flex min-w-0 items-center justify-between gap-3">

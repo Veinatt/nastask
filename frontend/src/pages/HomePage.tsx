@@ -197,14 +197,25 @@ export function HomePage() {
   /** If we auto-paused this interval for the complete dialog, resume on cancel */
   const pausedForCompleteRef = useRef<string | null>(null)
   const stillWorkingOpenRef = useRef(false)
+  const viewsRef = useRef(views)
   stillWorkingOpenRef.current = stillWorking != null
+  viewsRef.current = views
+
+  // Drop the prompt if that interval is paused/gone (modal used to linger on paused UI).
+  useEffect(() => {
+    if (!stillWorking) return
+    const live = views.find((e) => e.id === stillWorking.id)
+    if (!live || live.pauseStartedAt) {
+      setStillWorking(null)
+    }
+  }, [views, stillWorking])
 
   useEffect(() => {
     const maybePrompt = () => {
       if (stillWorkingOpenRef.current) return
       if (document.visibilityState !== 'visible') return
       const now = new Date()
-      for (const entry of views) {
+      for (const entry of viewsRef.current) {
         if (entry.pauseStartedAt) continue
         const hours = continuousRunHours(entry, now)
         if (hours < STILL_WORKING_HOURS) continue
@@ -224,7 +235,8 @@ export function HomePage() {
       window.clearInterval(id)
       document.removeEventListener('visibilitychange', maybePrompt)
     }
-  }, [views])
+    // Mount-once: read actives via viewsRef so the 1s timer tick doesn't re-arm this.
+  }, [])
 
   const openComplete = async (entry: TimeEntry) => {
     pausedForCompleteRef.current = null

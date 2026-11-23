@@ -84,6 +84,9 @@ async function pullAll(): Promise<{ historyOk: boolean }> {
 
 /** Light pull so bot-side pause/resume shows up without full page reload. */
 async function pullActives(): Promise<void> {
+  // Flush first — otherwise local pause can sit in the queue while the server
+  // (and bot still-working) still see a running interval.
+  await flushPendingOps()
   const keepIds = await pendingEntityIds()
   const active = await intervalsRemote.listActive()
   await intervalsLocal.replaceActive(active, keepIds)

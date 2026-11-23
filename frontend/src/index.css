@@ -780,6 +780,9 @@
 .bg-primary\/15 {
   background-color: hsl(var(--primary) / 0.15);
 }
+.bg-primary\/30 {
+  background-color: hsl(var(--primary) / 0.3);
+}
 .bg-destructive\/10 {
   background-color: hsl(var(--destructive) / 0.1);
 }
